@@ -10,8 +10,10 @@
     body { background: var(--gray-100); }
     .cert-page { min-height: 100vh; }
     .tier-banner { padding: 10px 24px; font-size: .8rem; font-weight: 600; text-align: center; letter-spacing: .03em; }
-    .tier-banner--public { background: var(--gray-200); color: var(--gray-600); }
-    .tier-banner--agency { background: #DCFCE7; color: #15803D; border-bottom: 1px solid #86EFAC; }
+    .tier-banner--public    { background: var(--gray-200); color: var(--gray-600); }
+    .tier-banner--agency    { background: #DCFCE7; color: #15803D; border-bottom: 1px solid #86EFAC; }
+    .tier-banner--open      { background: #EFF6FF; color: #1D4ED8; border-bottom: 1px solid #BFDBFE; }
+    .tier-banner--onrequest { background: #FFF7ED; color: #C2410C; border-bottom: 1px solid #FED7AA; }
   </style>
 </head>
 <body class="cert-page">
@@ -200,6 +202,24 @@
     </div>
   </div>
 
+  <!-- On-Request: access request panel (shown instead of agency section for on_request mode) -->
+  <div id="onrequest-section" style="display:none;">
+    <div class="card" style="border:2px solid #FED7AA; background:#FFF7ED;">
+      <div style="display:flex; gap:12px; align-items:flex-start;">
+        <div style="font-size:1.5rem;">🔔</div>
+        <div style="flex:1;">
+          <div class="font-bold mb-4">On-Request certificate</div>
+          <div class="text-sm text-gray mb-16">The tenant controls who accesses this dossier. Sign in as a verified régie or landlord to request full access. The tenant will be notified and can approve or deny your request.</div>
+          <a href="../auth/login.html" class="btn btn-primary btn-sm">Sign in to request access</a>
+        </div>
+      </div>
+    </div>
+    <!-- Demo: approved state -->
+    <div id="onrequest-approved" class="card mt-16" style="display:none; border:2px solid #86EFAC; background:#F0FDF4;">
+      <div class="text-sm" style="color:#15803D;">✓ <strong>Access approved by tenant</strong> — full dossier is now visible below.</div>
+    </div>
+  </div>
+
   <!-- Access log note -->
   <div class="card mt-32 card--flat" style="background:var(--gray-100); border:none; padding:14px 16px;">
     <div class="text-xs text-gray">🔒 This access has been logged for audit purposes · <a href="../verify.html" style="color:var(--charcoal); font-weight:600;">Verify another certificate</a></div>
@@ -207,35 +227,93 @@
 </div>
 
 <script>
-// Demo: toggle between public and agency view
-const isAgencyView = window.location.hash === '#agency';
+// Demo modes: #agency = directed agency view, #open = open view, #onrequest = on-request view
+const hash = window.location.hash;
 
-function setView(agency) {
+// Certificate mode: 'directed' | 'open' | 'on_request'
+// In production this comes from the DB; for demo we infer from hash
+function getCertMode() {
+  if (hash === '#open') return 'open';
+  if (hash === '#onrequest') return 'on_request';
+  return 'directed';
+}
+
+function setView(mode, isAuthenticated) {
   const banner = document.getElementById('tier-banner');
   const agencySection = document.getElementById('agency-section');
+  const onrequestSection = document.getElementById('onrequest-section');
   const navActions = document.getElementById('nav-actions');
+  const publicLockNote = document.querySelector('#public-section .card');
 
-  if (agency) {
-    banner.className = 'tier-banner tier-banner--agency';
-    banner.textContent = '🔓 Agency view — Moser Vernet & Cie — Full dossier access';
-    agencySection.style.display = 'block';
-    navActions.innerHTML = `
-      <span class="text-sm text-gray">Moser Vernet & Cie</span>
-      <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
-    `;
-  } else {
-    banner.className = 'tier-banner tier-banner--public';
-    banner.innerHTML = '👁 Public view — <a href="../auth/login.html" style="color:var(--charcoal); font-weight:600;">Sign in as the authorised agency</a> to access the full dossier';
-    agencySection.style.display = 'none';
-    navActions.innerHTML = `
-      <a href="../auth/login.html" class="nav__link">Sign in</a>
-      <button onclick="setView(true)" class="btn btn-primary btn-sm">Demo: Agency view</button>
-    `;
+  // Reset
+  agencySection.style.display = 'none';
+  onrequestSection.style.display = 'none';
+
+  if (mode === 'directed') {
+    if (isAuthenticated) {
+      banner.className = 'tier-banner tier-banner--agency';
+      banner.textContent = '🔓 Directed — Moser Vernet & Cie — Full dossier access';
+      agencySection.style.display = 'block';
+      navActions.innerHTML = `
+        <span class="text-sm text-gray">Moser Vernet & Cie</span>
+        <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
+        <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      `;
+    } else {
+      banner.className = 'tier-banner tier-banner--public';
+      banner.innerHTML = '👁 Public view · Directed certificate — <a href="../auth/login.html" style="color:var(--charcoal);font-weight:600;">Sign in as Moser Vernet & Cie</a> to access the full dossier';
+      navActions.innerHTML = `
+        <a href="../auth/login.html" class="nav__link">Sign in</a>
+        <button onclick="setView('directed',true)" class="btn btn-primary btn-sm">Demo: Agency view</button>
+      `;
+    }
+
+  } else if (mode === 'open') {
+    if (isAuthenticated) {
+      banner.className = 'tier-banner tier-banner--open';
+      banner.textContent = '🌐 Open certificate — full dossier accessible to all verified professionals';
+      agencySection.style.display = 'block';
+      navActions.innerHTML = `
+        <span class="text-sm text-gray">Naef Immobilier</span>
+        <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
+        <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      `;
+    } else {
+      banner.className = 'tier-banner tier-banner--open';
+      banner.innerHTML = '🌐 Open certificate — <a href="../auth/login.html" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier';
+      navActions.innerHTML = `
+        <a href="../auth/login.html" class="nav__link">Sign in</a>
+        <button onclick="setView('open',true)" class="btn btn-primary btn-sm">Demo: Verified professional view</button>
+      `;
+    }
+
+  } else if (mode === 'on_request') {
+    onrequestSection.style.display = 'block';
+    if (isAuthenticated) {
+      // Show approved state for demo
+      document.getElementById('onrequest-approved').style.display = 'block';
+      agencySection.style.display = 'block';
+      banner.className = 'tier-banner tier-banner--onrequest';
+      banner.textContent = '🔔 On-Request — access approved by tenant · Moser Vernet & Cie';
+      navActions.innerHTML = `
+        <span class="text-sm text-gray">Moser Vernet & Cie</span>
+        <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
+        <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      `;
+    } else {
+      banner.className = 'tier-banner tier-banner--onrequest';
+      banner.textContent = '🔔 On-Request certificate — request access from the tenant';
+      navActions.innerHTML = `
+        <a href="../auth/login.html" class="nav__link">Sign in</a>
+        <button onclick="setView('on_request',true)" class="btn btn-ghost btn-sm">Demo: Approved view</button>
+      `;
+    }
   }
 }
 
-setView(isAgencyView);
+const certMode = getCertMode();
+const isAuth = hash === '#agency' || hash === '#open' || hash === '#onrequest';
+setView(certMode, isAuth);
 </script>
 </body>
 </html>

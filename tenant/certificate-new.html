@@ -55,6 +55,38 @@
 
     <form onsubmit="generateCertificate(event)">
 
+      <!-- Certificate mode -->
+      <fieldset class="fieldset">
+        <legend>Sharing mode</legend>
+        <p class="text-sm text-gray mb-16">Choose who can access your full dossier when they scan the QR code.</p>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;" id="mode-grid">
+
+          <label class="mode-card mode-card--selected" id="card-directed" onclick="selectMode('directed')">
+            <input type="radio" name="cert_mode" value="directed" checked style="display:none;">
+            <div class="mode-card__icon">🎯</div>
+            <div class="mode-card__title">Directed</div>
+            <div class="mode-card__desc">Full dossier visible only to the one agency you pre-authorise.</div>
+            <div class="mode-card__badge" style="color:var(--charcoal);">Most private</div>
+          </label>
+
+          <label class="mode-card" id="card-open" onclick="selectMode('open')">
+            <input type="radio" name="cert_mode" value="open" style="display:none;">
+            <div class="mode-card__icon">🌐</div>
+            <div class="mode-card__title">Open</div>
+            <div class="mode-card__desc">Any verified régie or private landlord on SwissTrust can view the full dossier.</div>
+            <div class="mode-card__badge" style="color:var(--green);">Fastest</div>
+          </label>
+
+          <label class="mode-card" id="card-on-request" onclick="selectMode('on_request')">
+            <input type="radio" name="cert_mode" value="on_request" style="display:none;">
+            <div class="mode-card__icon">🔔</div>
+            <div class="mode-card__title">On-Request</div>
+            <div class="mode-card__desc">Professionals see your public summary and request access. You approve or deny each one.</div>
+            <div class="mode-card__badge" style="color:var(--red);">Max control</div>
+          </label>
+        </div>
+      </fieldset>
+
       <!-- Property details -->
       <fieldset class="fieldset">
         <legend>Property details</legend>
@@ -144,12 +176,12 @@
         </div>
       </fieldset>
 
-      <!-- Agency selector -->
-      <fieldset class="fieldset">
+      <!-- Agency selector — only for Directed mode -->
+      <fieldset class="fieldset" id="agency-fieldset">
         <legend>Authorised agency</legend>
         <div class="form-group">
           <label>Select the régie managing this property <span class="req">*</span></label>
-          <select id="agency" required>
+          <select id="agency">
             <option value="">Search for an agency…</option>
             <option value="moser_vernet">Moser Vernet & Cie — Genève</option>
             <option value="naef">Naef Immobilier — Genève</option>
@@ -160,6 +192,16 @@
           <div class="form-hint">Only the selected agency will have access to your full dossier.</div>
         </div>
       </fieldset>
+
+      <!-- Open mode notice -->
+      <div class="card mb-24" id="open-notice" style="display:none; background:#F0FDF4; border:1px solid #86EFAC;">
+        <div class="text-sm" style="color:#15803D;">🌐 <strong>Open certificate</strong> — any verified régie or private landlord signed in to SwissTrust can access your full dossier when they scan this QR code. All accesses are logged.</div>
+      </div>
+
+      <!-- On-Request mode notice -->
+      <div class="card mb-24" id="onrequest-notice" style="display:none; background:#FFF7ED; border:1px solid #FED7AA;">
+        <div class="text-sm" style="color:#C2410C;">🔔 <strong>On-Request certificate</strong> — professionals see your public summary and must request full access. You'll be notified and can approve or deny each request from your dashboard.</div>
+      </div>
 
       <div class="flex gap-16">
         <button type="submit" class="btn btn-primary btn-lg">Generate QR certificate</button>
@@ -203,7 +245,7 @@
     </div>
 
     <div class="font-mono font-bold mb-8" style="font-size:1.5rem; letter-spacing:.12em;">STD-2G7K-X4NP</div>
-    <div class="text-xs text-gray mb-24">Anyone can scan to see your public summary. The agency sees the full dossier.</div>
+    <div class="text-xs text-gray mb-24" id="modal-mode-desc">Anyone can scan to see your public summary. The agency sees the full dossier.</div>
 
     <div class="flex gap-12" style="justify-content:center; flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="window.location.href='../cert/cert-view.html'">View certificate →</button>
@@ -212,7 +254,46 @@
   </div>
 </div>
 
+<style>
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  background: white;
+}
+.mode-card:hover { border-color: var(--gray-400); }
+.mode-card--selected { border-color: var(--charcoal); background: var(--gray-100); }
+.mode-card__icon { font-size: 1.5rem; }
+.mode-card__title { font-weight: 700; font-size: .95rem; }
+.mode-card__desc { font-size: .78rem; color: var(--gray-500); line-height: 1.4; }
+.mode-card__badge { font-size: .72rem; font-weight: 600; margin-top: 4px; }
+</style>
 <script>
+let currentMode = 'directed';
+
+function selectMode(mode) {
+  currentMode = mode;
+  ['directed','open','on_request'].forEach(m => {
+    const card = document.getElementById('card-' + m.replace('_','-'));
+    if (card) card.classList.toggle('mode-card--selected', m === mode);
+  });
+
+  const agencyFieldset = document.getElementById('agency-fieldset');
+  const openNotice = document.getElementById('open-notice');
+  const onrequestNotice = document.getElementById('onrequest-notice');
+  const agencySelect = document.getElementById('agency');
+
+  agencyFieldset.style.display = mode === 'directed' ? '' : 'none';
+  openNotice.style.display = mode === 'open' ? '' : 'none';
+  onrequestNotice.style.display = mode === 'on_request' ? '' : 'none';
+  agencySelect.required = mode === 'directed';
+}
+
 function calcTotal() {
   const rent = parseFloat(document.getElementById('rent').value) || 0;
   const charges = parseFloat(document.getElementById('charges').value) || 0;
@@ -240,6 +321,12 @@ function calcTotal() {
 
 function generateCertificate(e) {
   e.preventDefault();
+  const modeDescs = {
+    directed: 'Directed certificate — only the selected agency can access your full dossier.',
+    open: 'Open certificate — any verified régie or landlord on SwissTrust can access your full dossier.',
+    on_request: 'On-Request certificate — professionals see your public summary and must request access. Check your dashboard to approve.'
+  };
+  document.getElementById('modal-mode-desc').textContent = modeDescs[currentMode];
   const modal = document.getElementById('cert-modal');
   modal.style.display = 'flex';
 }

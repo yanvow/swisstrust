@@ -20,6 +20,7 @@
     <div class="nav__links">
       <a href="#how-it-works" class="nav__link">How it works</a>
       <a href="#agencies" class="nav__link">For agencies</a>
+      <a href="#owners" class="nav__link">For owners</a>
       <a href="auth/login.html" class="nav__link">Sign in</a>
       <a href="auth/tenant-register.html" class="btn btn-primary btn-sm">Create dossier</a>
     </div>
@@ -176,13 +177,38 @@
   </div>
 </section>
 
-<!-- TIERED ACCESS TABLE -->
+<!-- CERTIFICATE MODES -->
 <section class="section section--gray">
   <div class="container">
     <div class="text-center mb-32">
-      <div class="section-label">Granular access control</div>
-      <h2>You control what agencies see</h2>
-      <p class="mt-8">Every certificate has two access tiers. Public scans show only your summary. The authorised agency unlocks the full dossier.</p>
+      <div class="section-label">Three certificate modes</div>
+      <h2>You choose how your dossier is shared</h2>
+      <p class="mt-8">Generate a different certificate for each situation — from maximum privacy to frictionless open access.</p>
+    </div>
+    <div class="grid-3" style="margin-bottom:48px;">
+      <div class="card" style="border-top:3px solid var(--charcoal);">
+        <div style="font-size:2rem; margin-bottom:12px;">🎯</div>
+        <h3 style="margin-bottom:8px;">Directed</h3>
+        <p class="text-sm text-gray mb-16">Pre-authorise one specific régie or landlord. Only they unlock the full dossier when they scan.</p>
+        <div class="text-xs" style="font-weight:600; color:var(--charcoal);">Most private — recommended for targeted applications</div>
+      </div>
+      <div class="card" style="border-top:3px solid #1D4ED8;">
+        <div style="font-size:2rem; margin-bottom:12px;">🌐</div>
+        <h3 style="margin-bottom:8px;">Open</h3>
+        <p class="text-sm text-gray mb-16">Any verified régie or private landlord on SwissTrust can access the full dossier when they scan.</p>
+        <div class="text-xs" style="font-weight:600; color:#1D4ED8;">Fastest — ideal for competitive listings</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--red);">
+        <div style="font-size:2rem; margin-bottom:12px;">🔔</div>
+        <h3 style="margin-bottom:8px;">On-Request</h3>
+        <p class="text-sm text-gray mb-16">Professionals see your public summary and must request access. You approve or deny each one from your dashboard.</p>
+        <div class="text-xs" style="font-weight:600; color:var(--red);">Maximum control — you decide who sees what</div>
+      </div>
+    </div>
+
+    <div class="text-center mb-24">
+      <div class="section-label">Access tiers within each mode</div>
+      <p class="mt-8">Regardless of mode, your raw documents are always protected behind authentication.</p>
     </div>
     <div class="table-wrap" style="max-width:700px; margin:0 auto;">
       <table class="tier-table">
@@ -190,7 +216,7 @@
           <tr>
             <th>Data point</th>
             <th style="text-align:center;">Public (anyone)</th>
-            <th style="text-align:center;" class="tier-agency-col">Authorised agency</th>
+            <th style="text-align:center;" class="tier-agency-col">Authorised professional</th>
           </tr>
         </thead>
         <tbody>
@@ -313,15 +339,67 @@
   </div>
 </section>
 
+<!-- PRIVATE OWNERS -->
+<section class="section" id="owners">
+  <div class="container">
+    <div class="grid-2" style="gap:60px; align-items:center;">
+      <div>
+        <div class="section-label" style="color:#1D4ED8;">For private owners</div>
+        <h2>Rent out your property with confidence</h2>
+        <p class="mt-16" style="margin-bottom:32px;">No régie needed. As a private landlord, register a free account and scan any SwissTrust QR code to instantly see a tenant's verified dossier — income, documents, Trust Score included.</p>
+        <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:32px;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <span style="color:#1D4ED8; font-size:1.2rem; margin-top:2px;">✓</span>
+            <div>
+              <div style="font-weight:600;">No subscription needed</div>
+              <div style="font-size:.875rem; color:var(--gray-500);">Free plan lets you view Open and approved On-Request certificates.</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <span style="color:#1D4ED8; font-size:1.2rem; margin-top:2px;">✓</span>
+            <div>
+              <div style="font-weight:600;">Same verified quality as agencies</div>
+              <div style="font-size:.875rem; color:var(--gray-500);">AI-verified documents and Trust Score — same as what a régie sees.</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <span style="color:#1D4ED8; font-size:1.2rem; margin-top:2px;">✓</span>
+            <div>
+              <div style="font-weight:600;">Request access for Directed certificates</div>
+              <div style="font-size:.875rem; color:var(--gray-500);">If a tenant uses Directed mode, you can request access and they approve directly.</div>
+            </div>
+          </div>
+        </div>
+        <a href="auth/owner-register.html" class="btn btn-outline btn-lg">Register as private owner — free</a>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="card" style="border-left:3px solid #1D4ED8;">
+          <div class="text-sm font-bold mb-4">Open certificate scan</div>
+          <div class="text-xs text-gray">Sign in → scan QR → instant full dossier access. No request needed.</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--red);">
+          <div class="text-sm font-bold mb-4">On-Request certificate scan</div>
+          <div class="text-xs text-gray">Sign in → scan QR → tap "Request access" → tenant approves → full dossier unlocked.</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--gray-300);">
+          <div class="text-sm font-bold mb-4">Directed certificate scan</div>
+          <div class="text-xs text-gray">Only works if tenant pre-authorised you. Otherwise shows public summary only.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- FINAL CTA -->
-<section class="section">
+<section class="section section--gray">
   <div class="container text-center">
     <div class="section-label">Get started today</div>
     <h2 style="max-width:600px; margin:0 auto 16px;">Your dossier. Your data. Your control.</h2>
-    <p style="max-width:480px; margin:0 auto 36px;">Join thousands of tenants who verify once and apply anywhere — without exposing their data to strangers.</p>
+    <p style="max-width:480px; margin:0 auto 36px;">Verify once. Apply everywhere. Choose exactly how each certificate is shared.</p>
     <div class="flex-center gap-16" style="flex-wrap:wrap;">
-      <a href="auth/tenant-register.html" class="btn btn-primary btn-lg">Create my dossier</a>
+      <a href="auth/tenant-register.html" class="btn btn-primary btn-lg">Create tenant dossier</a>
       <a href="auth/agency-register.html" class="btn btn-outline btn-lg">Register agency</a>
+      <a href="auth/owner-register.html" class="btn btn-ghost btn-lg">Private owner →</a>
     </div>
     <p class="text-xs text-gray mt-24">Already have an account? <a href="auth/login.html" style="color:var(--charcoal); font-weight:600;">Sign in →</a></p>
   </div>
