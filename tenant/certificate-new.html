@@ -21,8 +21,8 @@
       SwissTrust
     </a>
     <div class="nav__links">
-      <span class="text-sm text-gray">Sophie Müller</span>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
     </div>
   </div>
 </nav>
@@ -53,7 +53,7 @@
           <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
           Identity Verified
         </div>
-        <span class="badge trust-b">B Score (provisional)</span>
+        <span class="badge trust-b" id="profile-trust-badge">— Score</span>
       </div>
       <div class="text-sm text-gray">Your tenant data is pre-filled: <strong style="color:var(--charcoal);">Sophie Müller</strong> · CHF 8,500/mo gross · 2 occupants · No smoker · No pets</div>
     </div>
@@ -256,21 +256,52 @@
 </style>
 <script>
 let currentMode = 'directed';
-let _user = null;
+let _user   = null;
 let _tenant = null;
+let _docs   = [];
 let _generatedCertCode = null;
+
+function computeTrustGrade(docs) {
+  const byType = {};
+  (docs || []).forEach(d => { byType[d.doc_type] = d; });
+  let score = 100;
+  const b = byType['betreibungsauszug'];
+  if (!b)                            score -= 20;
+  else if (b.status === 'rejected')  score -= 40;
+  else if (b.status !== 'auto_verified') score -= 10;
+  ['salary_slip_1','salary_slip_2','salary_slip_3'].forEach(k => {
+    const s = byType[k];
+    if (!s)                            score -= 10;
+    else if (s.status !== 'auto_verified') score -= 5;
+  });
+  const id = byType['passport_id'];
+  if (!id)                            score -= 15;
+  else if (id.status !== 'auto_verified') score -= 8;
+  if (!byType['reference_letter']) score -= 5;
+  const clamped = Math.max(0, score);
+  return { grade: clamped >= 80 ? 'A' : clamped >= 60 ? 'B' : 'C' };
+}
 
 // Init: auth check + load agencies + load tenant profile
 (async () => {
   _user = await sbHelpers.requireAuth('tenant');
   if (!_user) return;
 
+  document.getElementById('nav-name').textContent = _user.user_metadata?.full_name || _user.email;
+
   // Load tenant profile for eligibility calc
   const { data: tenant } = await sbHelpers.getTenantByUserId(_user.id);
   _tenant = tenant;
 
-  // Update profile preview
   if (tenant) {
+    // Load documents to compute provisional trust score
+    const { data: docs } = await sbHelpers.getDocumentsByTenant(tenant.id);
+    _docs = docs || [];
+    const { grade } = computeTrustGrade(_docs);
+    const badge = document.getElementById('profile-trust-badge');
+    badge.className = `badge trust-${grade.toLowerCase()}`;
+    badge.textContent = `${grade} Score (provisional)`;
+
     document.querySelector('.card.mb-24 .text-sm').innerHTML =
       `Your tenant data is pre-filled: <strong style="color:var(--charcoal);">${tenant.full_name || _user.email}</strong> · CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()}/mo gross · ${tenant.occupant_count || 1} occupant(s) · ${tenant.is_smoker ? 'Smoker' : 'No smoker'} · ${tenant.has_pets ? 'Pets' : 'No pets'}`;
   }
@@ -316,8 +347,7 @@ function calcTotal() {
   const total = rent + charges;
   document.getElementById('total').value = total || '';
 
-  // Eligibility check (salary 8500 × 3 = 25500/year = 2125/mo threshold is inverted — need salary >= rent*3)
-  const salary = 8500;
+  const salary = _tenant?.monthly_gross_salary || 0;
   const hint = document.getElementById('eligibility-hint');
   if (total > 0) {
     const needed = total * 3;
@@ -360,8 +390,9 @@ async function generateCertificate(e) {
   const salary = tenant.monthly_gross_salary || 0;
   const isEligible = salary >= total * 3;
 
-  // Simple trust score from profile completeness (real calc done server-side in future)
-  const trustScore = 'B'; // provisional until documents are verified
+  // Compute trust score from current document statuses
+  const { data: latestDocs } = await sbHelpers.getDocumentsByTenant(tenant.id);
+  const { grade: trustScore } = computeTrustGrade(latestDocs || []);
 
   const certCode = sbHelpers.generateCertCode();
   const appUrl   = window.location.origin + window.location.pathname.replace(/\/tenant\/.*/, '');

@@ -139,70 +139,7 @@
 
     <!-- Documents -->
     <h3 class="mb-16" style="font-size:.9rem; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-400);">Verified documents</h3>
-
-    <!-- Passport -->
-    <div class="doc-viewer">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">🪪 Passport / Swiss ID</div>
-        <span class="badge badge-green">Auto-verified · 96%</span>
-      </div>
-      <div class="doc-viewer__body">
-        <div style="background:var(--gray-100); border-radius:var(--radius); height:120px; display:flex; align-items:center; justify-content:center; color:var(--gray-400); font-size:.8rem; margin-bottom:10px;">
-          [ Document preview — click to download ]
-        </div>
-        <div class="doc-viewer__extracted">
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Full name</span><span class="doc-viewer__field-v">MÜLLER SOPHIE</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Date of birth</span><span class="doc-viewer__field-v">14.06.1992</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Nationality</span><span class="doc-viewer__field-v">CHE (Swiss)</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Document no.</span><span class="doc-viewer__field-v">X4920384</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Valid until</span><span class="doc-viewer__field-v">14.06.2032</span></div>
-        </div>
-        <button class="btn btn-outline btn-sm mt-8">Download (expires in 60s)</button>
-      </div>
-    </div>
-
-    <!-- Betreibungsauszug -->
-    <div class="doc-viewer">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">⚖️ Betreibungsauszug</div>
-        <span class="badge badge-green">Auto-verified · 93%</span>
-      </div>
-      <div class="doc-viewer__body">
-        <div class="doc-viewer__extracted">
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Status</span><span class="doc-viewer__field-v" style="color:var(--green); font-weight:700;">✓ CLEAN — aucune poursuite</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Issued by</span><span class="doc-viewer__field-v">Office des poursuites Genève</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Date issued</span><span class="doc-viewer__field-v">02.04.2026</span></div>
-        </div>
-        <button class="btn btn-outline btn-sm mt-8">Download (expires in 60s)</button>
-      </div>
-    </div>
-
-    <!-- Salary slips -->
-    <div class="doc-viewer">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">💰 Salary slips</div>
-        <span class="badge badge-amber">2/3 — 1 flagged</span>
-      </div>
-      <div class="doc-viewer__body">
-        <div class="doc-viewer__extracted">
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">March 2026 (verified)</span><span class="doc-viewer__field-v">CHF 8,500 gross</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">February 2026 (flagged)</span><span class="doc-viewer__field-v">CHF 8,500 — low quality scan</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">January 2026</span><span class="doc-viewer__field-v" style="color:var(--gray-400);">Not uploaded</span></div>
-        </div>
-        <button class="btn btn-outline btn-sm mt-8">Download all (expires in 60s)</button>
-      </div>
-    </div>
-
-    <!-- Reference -->
-    <div class="doc-viewer">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">🏠 Landlord reference letter</div>
-        <span class="badge badge-gray">Not uploaded</span>
-      </div>
-      <div class="doc-viewer__body">
-        <p class="text-sm text-gray">The tenant has not uploaded a landlord reference letter.</p>
-      </div>
-    </div>
+    <div id="doc-viewers"><div class="text-sm text-gray">Loading documents…</div></div>
   </div>
 
   <!-- On-Request: access request panel (shown instead of agency section for on_request mode) -->
@@ -428,6 +365,10 @@
         <div><div class="text-xs text-gray mb-2">Employed since</div><div class="font-bold">${tenant.employment_start_date ? new Date(tenant.employment_start_date).toLocaleDateString('de-CH') : '—'}</div></div>
         <div><div class="text-xs text-gray mb-2">Eligibility check</div><div class="font-bold" style="color:${cert.is_eligible ? 'var(--green)' : 'var(--red)'};">${cert.is_eligible ? '✓' : '✗'} CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()} ${cert.is_eligible ? '≥' : '<'} 3× CHF ${(cert.total_chf || 0).toLocaleString()}</div></div>`;
     }
+
+    // Load and render real documents
+    const { data: tenantDocs } = await sbHelpers.getDocumentsByTenant(cert.tenant_id);
+    renderDocViewers(tenantDocs || []);
   } else {
     // ── Public / no access ─────────────────────────────────
     banner.className = 'tier-banner tier-banner--public';
@@ -439,6 +380,94 @@
       : `<a href="../auth/login.html" class="nav__link">Sign in</a>`;
   }
 })();
+
+// ── Document rendering ────────────────────────────────────────
+const DOC_META = [
+  { key: 'passport_id',       label: 'Passport / Swiss ID',        icon: '🪪' },
+  { key: 'residence_permit',  label: 'Residence permit',            icon: '📋' },
+  { key: 'salary_slip_1',     label: 'Salary slip — month 1',       icon: '💰' },
+  { key: 'salary_slip_2',     label: 'Salary slip — month 2',       icon: '💰' },
+  { key: 'salary_slip_3',     label: 'Salary slip — month 3',       icon: '💰' },
+  { key: 'betreibungsauszug', label: 'Betreibungsauszug',           icon: '⚖️' },
+  { key: 'reference_letter',  label: 'Landlord reference letter',   icon: '🏠' },
+];
+const STATUS_BADGE_CV = {
+  pending:       'badge badge-amber',
+  processing:    'badge badge-blue',
+  auto_verified: 'badge badge-green',
+  flagged:       'badge badge-amber',
+  rejected:      'badge badge-red',
+};
+const STATUS_LABEL_CV = {
+  pending: 'Pending review', processing: 'Processing…',
+  auto_verified: 'Auto-verified', flagged: 'Flagged', rejected: 'Rejected',
+};
+
+function renderDocViewers(docs) {
+  const byType = {};
+  docs.forEach(d => { byType[d.doc_type] = d; });
+  const container = document.getElementById('doc-viewers');
+  container.innerHTML = DOC_META.map(t => {
+    const doc = byType[t.key];
+    if (!doc) {
+      return `
+        <div class="doc-viewer">
+          <div class="doc-viewer__head">
+            <div class="doc-viewer__name">${t.icon} ${escHtml(t.label)}</div>
+            <span class="badge badge-gray">Not uploaded</span>
+          </div>
+          <div class="doc-viewer__body">
+            <p class="text-sm text-gray">The tenant has not uploaded this document.</p>
+          </div>
+        </div>`;
+    }
+    const confPct = doc.confidence_score != null ? Math.round(doc.confidence_score * 100) : null;
+    const badgeText = confPct != null
+      ? `${STATUS_LABEL_CV[doc.status] || doc.status} · ${confPct}%`
+      : STATUS_LABEL_CV[doc.status] || doc.status;
+    const ocrRows = doc.ocr_extracted_data
+      ? Object.entries(doc.ocr_extracted_data)
+          .filter(([,v]) => v != null && v !== '')
+          .map(([k,v]) => `<div class="doc-viewer__field"><span class="doc-viewer__field-k">${escHtml(k.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase()))}</span><span class="doc-viewer__field-v">${escHtml(String(v))}</span></div>`)
+          .join('')
+      : '';
+    return `
+      <div class="doc-viewer">
+        <div class="doc-viewer__head">
+          <div class="doc-viewer__name">${t.icon} ${escHtml(t.label)}</div>
+          <span class="${STATUS_BADGE_CV[doc.status] || 'badge badge-gray'}">${escHtml(badgeText)}</span>
+        </div>
+        <div class="doc-viewer__body">
+          <div class="text-xs text-gray mb-8">${escHtml(doc.file_name || doc.storage_path.split('/').pop())}</div>
+          ${ocrRows ? `<div class="doc-viewer__extracted">${ocrRows}</div>` : ''}
+          <button class="btn btn-outline btn-sm mt-8" onclick="downloadDoc('${escHtml(doc.storage_path)}', this)">Download (expires in 60s)</button>
+          <div id="dl-err-${t.key}" style="display:none; color:var(--red); font-size:.75rem; margin-top:4px;"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function downloadDoc(storagePath, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Generating link…';
+  const { url, error } = await sbHelpers.getDocumentSignedUrl(storagePath);
+  if (error || !url) {
+    btn.disabled = false;
+    btn.textContent = 'Download (expires in 60s)';
+    const key = storagePath.split('/')[1];
+    const errEl = document.getElementById(`dl-err-${key}`);
+    if (errEl) { errEl.textContent = 'Could not generate download link.'; errEl.style.display = 'block'; }
+    return;
+  }
+  window.open(url, '_blank');
+  btn.disabled = false;
+  btn.textContent = 'Download (expires in 60s)';
+}
+
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 async function submitAccessRequest() {
   const btn = document.getElementById('request-btn');
