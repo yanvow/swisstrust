@@ -6,6 +6,7 @@
   <title>Verify a certificate — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script src="lib/i18n.js"></script>
 </head>
 <body class="verify-page">
 
@@ -70,7 +71,7 @@ function formatCode(input) {
 function verifyCert(e) {
   e.preventDefault();
   const code = document.getElementById('cert_code').value.trim().toUpperCase();
-  if (code.length !== 12) { alert('Please enter the full 12-character code (STD-XXXX-XXXX).'); return; }
+  if (code.length !== 12) { alert(window.stI18n?.t('Please enter the full 12-character code (STD-XXXX-XXXX).') || 'Please enter the full 12-character code (STD-XXXX-XXXX).'); return; }
   window.location.href = 'cert/cert-view.html?code=' + encodeURIComponent(code);
 }
 </script>

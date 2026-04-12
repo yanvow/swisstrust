@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body>
 
@@ -205,7 +206,7 @@ function verifyOwnerCert(e) {
   e.preventDefault();
   const code = document.getElementById('cert_code').value.trim().toUpperCase();
   if (code.length !== 12) {
-    alert('Please enter the full 12-character code (STD-XXXX-XXXX).');
+    alert(window.stI18n?.t('Please enter the full 12-character code (STD-XXXX-XXXX).') || 'Please enter the full 12-character code (STD-XXXX-XXXX).');
     return;
   }
   window.location.href = `../cert/cert-view.html?code=${encodeURIComponent(code)}`;
@@ -263,7 +264,9 @@ function renderHistory(history) {
   const fullName = user.user_metadata?.full_name || user.email;
 
   document.getElementById('nav-owner').textContent = fullName;
-  document.getElementById('page-subtitle').textContent = `Welcome back, ${fullName}. Verify codes, open dossiers, and review your recent checks.`;
+  document.getElementById('page-subtitle').textContent =
+    window.stI18n?.template('owner_dashboard_welcome', { name: fullName })
+    || `Welcome back, ${fullName}. Verify codes, open dossiers, and review your recent checks.`;
 
   const history = JSON.parse(localStorage.getItem(historyKey(user.id)) || '[]');
   renderHistory(history);

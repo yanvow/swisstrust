@@ -1,0 +1,133 @@
+{
+  "template_version": "1.0",
+  "document_type": "passport_id",
+  "document_label": "Passport or Swiss ID",
+  "maps_to_profile_fields": [
+    "full_name",
+    "date_of_birth",
+    "nationality"
+  ],
+  "output_schema": {
+    "document_meta": {
+      "document_kind": null,
+      "issuing_country": null,
+      "document_number": null,
+      "mrz_present": null
+    },
+    "identity": {
+      "full_name": null,
+      "first_name": null,
+      "last_name": null,
+      "date_of_birth": null,
+      "nationality": null,
+      "sex": null,
+      "place_of_birth": null
+    },
+    "validity": {
+      "issue_date": null,
+      "expiry_date": null
+    },
+    "verification": {
+      "name_matches_profile": null,
+      "dob_matches_profile": null,
+      "nationality_matches_profile": null,
+      "document_is_expired": null
+    },
+    "confidence": {
+      "document_kind": null,
+      "document_number": null,
+      "full_name": null,
+      "date_of_birth": null,
+      "nationality": null,
+      "expiry_date": null
+    }
+  },
+  "field_definitions": [
+    {
+      "path": "document_meta.document_kind",
+      "type": "string",
+      "required": true,
+      "allowed_values": [
+        "passport",
+        "swiss_id",
+        "other_national_id"
+      ],
+      "description": "Best classification of the identity document."
+    },
+    {
+      "path": "document_meta.issuing_country",
+      "type": "string",
+      "required": true,
+      "description": "Country that issued the document."
+    },
+    {
+      "path": "document_meta.document_number",
+      "type": "string",
+      "required": true,
+      "description": "Passport or ID document number."
+    },
+    {
+      "path": "identity.full_name",
+      "type": "string",
+      "required": true,
+      "maps_to": "tenants.full_name",
+      "description": "Full legal name exactly as printed."
+    },
+    {
+      "path": "identity.first_name",
+      "type": "string",
+      "required": false,
+      "description": "Given name(s) if separable."
+    },
+    {
+      "path": "identity.last_name",
+      "type": "string",
+      "required": false,
+      "description": "Surname if separable."
+    },
+    {
+      "path": "identity.date_of_birth",
+      "type": "date",
+      "required": true,
+      "maps_to": "tenants.date_of_birth",
+      "description": "Date of birth."
+    },
+    {
+      "path": "identity.nationality",
+      "type": "string",
+      "required": true,
+      "maps_to": "tenants.nationality",
+      "description": "Nationality shown on the document."
+    },
+    {
+      "path": "identity.sex",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "M",
+        "F",
+        "X",
+        "unknown"
+      ],
+      "description": "Sex marker if present."
+    },
+    {
+      "path": "identity.place_of_birth",
+      "type": "string",
+      "required": false,
+      "description": "Place of birth if present."
+    },
+    {
+      "path": "validity.issue_date",
+      "type": "date",
+      "required": false,
+      "description": "Document issue date."
+    },
+    {
+      "path": "validity.expiry_date",
+      "type": "date",
+      "required": true,
+      "description": "Document expiry date."
+    }
+  ]
+}

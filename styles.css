@@ -94,6 +94,17 @@ small { font-size: .8125rem; }
 .nav__link { padding: 8px 14px; font-size: .9rem; color: var(--gray-600); border-radius: var(--radius); }
 .nav__link:hover { color: var(--charcoal); background: var(--gray-100); }
 .nav__link--active { color: var(--charcoal); font-weight: 600; }
+.st-lang-switcher { display: flex; align-items: center; gap: 8px; margin-right: 8px; }
+.st-lang-switcher__label { font-size: .75rem; color: var(--gray-400); margin: 0; }
+.st-lang-switcher__select {
+  width: auto;
+  min-width: 116px;
+  padding: 8px 30px 8px 10px;
+  font-size: .8125rem;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  background: var(--white);
+}
 
 /* Sidebar nav (app shell) */
 .app-shell { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - var(--nav-h)); }
@@ -409,5 +420,7 @@ tr:hover td { background: var(--gray-100); }
   .hero__ctas .btn { width: 100%; }
   .stat-grid { grid-template-columns: 1fr; }
   .nav__links .btn { display: none; }
+  .st-lang-switcher__label { display: none; }
+  .st-lang-switcher__select { min-width: 88px; }
   .cert-card { max-width: 100%; }
 }

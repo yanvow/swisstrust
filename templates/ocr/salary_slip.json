@@ -1,0 +1,200 @@
+{
+  "template_version": "1.0",
+  "document_type": "salary_slip",
+  "document_label": "Salary slip",
+  "applies_to_document_types": [
+    "salary_slip_1",
+    "salary_slip_2",
+    "salary_slip_3"
+  ],
+  "maps_to_profile_fields": [
+    "full_name",
+    "employer_name",
+    "monthly_gross_salary",
+    "job_role"
+  ],
+  "output_schema": {
+    "document_meta": {
+      "payroll_provider": null,
+      "document_language": null,
+      "currency": null
+    },
+    "employee": {
+      "full_name": null,
+      "employee_id": null,
+      "job_title": null,
+      "employment_start_date": null
+    },
+    "employer": {
+      "employer_name": null,
+      "employer_address": null
+    },
+    "pay_period": {
+      "period_label": null,
+      "period_start_date": null,
+      "period_end_date": null,
+      "pay_date": null
+    },
+    "income": {
+      "gross_salary_amount": null,
+      "net_salary_amount": null,
+      "salary_frequency": null,
+      "is_13th_salary_included": null,
+      "bonus_amount": null,
+      "overtime_amount": null
+    },
+    "deductions": {
+      "ahv_iv_eo_amount": null,
+      "alv_amount": null,
+      "pension_amount": null,
+      "tax_withholding_amount": null,
+      "other_deductions_amount": null
+    },
+    "verification": {
+      "employee_name_matches_profile": null,
+      "employer_name_matches_profile": null,
+      "salary_is_plausible_monthly_amount": null
+    },
+    "confidence": {
+      "employee_full_name": null,
+      "employer_name": null,
+      "job_title": null,
+      "employment_start_date": null,
+      "gross_salary_amount": null,
+      "net_salary_amount": null,
+      "pay_date": null
+    }
+  },
+  "field_definitions": [
+    {
+      "path": "document_meta.payroll_provider",
+      "type": "string",
+      "required": false,
+      "description": "Payroll system or source if identifiable."
+    },
+    {
+      "path": "document_meta.document_language",
+      "type": "string",
+      "required": false,
+      "description": "Detected language of the salary slip."
+    },
+    {
+      "path": "document_meta.currency",
+      "type": "string",
+      "required": true,
+      "allowed_values": [
+        "CHF",
+        "EUR",
+        "other"
+      ],
+      "description": "Currency used on the slip."
+    },
+    {
+      "path": "employee.full_name",
+      "type": "string",
+      "required": true,
+      "maps_to": "tenants.full_name",
+      "description": "Employee name as shown."
+    },
+    {
+      "path": "employee.employee_id",
+      "type": "string",
+      "required": false,
+      "description": "Employee identifier if present."
+    },
+    {
+      "path": "employee.job_title",
+      "type": "string",
+      "required": false,
+      "maps_to": "tenants.job_role",
+      "description": "Employee position or function if printed."
+    },
+    {
+      "path": "employee.employment_start_date",
+      "type": "date",
+      "required": false,
+      "maps_to": "tenants.employment_start_date",
+      "description": "Employment start date if shown on the salary slip."
+    },
+    {
+      "path": "employer.employer_name",
+      "type": "string",
+      "required": true,
+      "maps_to": "tenants.employer_name",
+      "description": "Employer legal or trading name."
+    },
+    {
+      "path": "employer.employer_address",
+      "type": "string",
+      "required": false,
+      "description": "Employer address if shown."
+    },
+    {
+      "path": "pay_period.period_label",
+      "type": "string",
+      "required": false,
+      "description": "Human-readable payroll month or period label."
+    },
+    {
+      "path": "pay_period.period_start_date",
+      "type": "date",
+      "required": false,
+      "description": "Payroll period start date."
+    },
+    {
+      "path": "pay_period.period_end_date",
+      "type": "date",
+      "required": false,
+      "description": "Payroll period end date."
+    },
+    {
+      "path": "pay_period.pay_date",
+      "type": "date",
+      "required": true,
+      "description": "Payment or payslip date."
+    },
+    {
+      "path": "income.gross_salary_amount",
+      "type": "number",
+      "required": true,
+      "maps_to": "tenants.monthly_gross_salary",
+      "description": "Gross salary amount for the pay period."
+    },
+    {
+      "path": "income.net_salary_amount",
+      "type": "number",
+      "required": false,
+      "description": "Net salary amount for the pay period."
+    },
+    {
+      "path": "income.salary_frequency",
+      "type": "string",
+      "required": true,
+      "allowed_values": [
+        "monthly",
+        "biweekly",
+        "weekly",
+        "other"
+      ],
+      "description": "Normalized salary frequency."
+    },
+    {
+      "path": "income.is_13th_salary_included",
+      "type": "boolean",
+      "required": false,
+      "description": "Whether the period includes a 13th-month payment component."
+    },
+    {
+      "path": "income.bonus_amount",
+      "type": "number",
+      "required": false,
+      "description": "Bonus amount included in the period, if identifiable."
+    },
+    {
+      "path": "income.overtime_amount",
+      "type": "number",
+      "required": false,
+      "description": "Overtime amount included in the period, if identifiable."
+    }
+  ]
+}
