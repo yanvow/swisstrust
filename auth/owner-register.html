@@ -41,11 +41,11 @@
     <form onsubmit="registerOwner(event)">
       <div class="form-group">
         <label>First name <span class="req">*</span></label>
-        <input type="text" placeholder="Jean" required>
+        <input type="text" id="first_name" placeholder="Jean" required>
       </div>
       <div class="form-group">
         <label>Last name <span class="req">*</span></label>
-        <input type="text" placeholder="Dupont" required>
+        <input type="text" id="last_name" placeholder="Dupont" required>
       </div>
       <div class="form-group">
         <label>Email address <span class="req">*</span></label>
@@ -75,7 +75,7 @@
 
       <div id="error-msg" style="display:none; color:var(--red); font-size:.875rem; margin-bottom:12px;"></div>
 
-      <button type="submit" class="btn btn-primary w-full btn-lg">Create owner account</button>
+      <button type="submit" id="submit-btn" class="btn btn-primary w-full btn-lg">Create owner account</button>
     </form>
 
     <div class="auth-card__footer">
@@ -101,10 +101,9 @@ async function registerOwner(e) {
     return;
   }
 
-  const inputs = e.target.querySelectorAll('input[type=text], input[type=email]');
-  const firstName = inputs[0].value.trim();
-  const lastName  = inputs[1].value.trim();
-  const email     = inputs[2].value.trim();
+  const firstName = document.getElementById('first_name').value.trim();
+  const lastName  = document.getElementById('last_name').value.trim();
+  const email     = document.getElementById('email').value.trim();
 
   const { data, error } = await _sb.auth.signUp({
     email,
@@ -118,7 +117,7 @@ async function registerOwner(e) {
     return;
   }
 
-  window.location.href = '../index.html';
+  window.location.href = '../owner/dashboard.html';
 }
 </script>
 </body>

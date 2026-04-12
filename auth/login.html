@@ -27,7 +27,7 @@
       SwissTrust
     </div>
     <h1 class="auth-card__title">Welcome back</h1>
-    <p class="auth-card__sub">Sign in to your tenant or agency account</p>
+    <p class="auth-card__sub">Sign in to your tenant, agency, or owner account</p>
 
     <form onsubmit="handleLogin(event)">
       <div class="form-group">
@@ -45,9 +45,12 @@
 
     <div class="auth-divider mt-24"><span>or continue as</span></div>
 
-    <div class="flex gap-16 mt-16">
-      <a href="tenant-register.html" class="btn btn-outline btn-full">New tenant</a>
-      <a href="agency-register.html" class="btn btn-outline btn-full">New agency</a>
+    <div class="mt-16" style="display:flex; flex-direction:column; gap:10px;">
+      <a href="tenant-register.html" class="btn btn-outline btn-full" style="padding-top:14px; padding-bottom:14px; font-size:1rem;">New tenant</a>
+      <div style="display:flex; gap:10px;">
+        <a href="agency-register.html" class="btn btn-outline btn-full">New agency</a>
+        <a href="owner-register.html" class="btn btn-outline btn-full">New owner</a>
+      </div>
     </div>
 
     <div class="auth-card__footer mt-24">
@@ -65,7 +68,7 @@
 
 function redirectByRole(role) {
   if (role === 'agency') window.location.href = '../agency/dashboard.html';
-  else if (role === 'owner') window.location.href = '../index.html';
+  else if (role === 'owner') window.location.href = '../owner/dashboard.html';
   else window.location.href = '../tenant/dashboard.html';
 }
 

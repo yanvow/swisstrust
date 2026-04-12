@@ -284,22 +284,24 @@
 
   // Determine access level
   const session = await sbHelpers.getSession();
+  const role    = session?.user?.user_metadata?.role || null;
   const mode    = cert.mode || 'directed';
   let canSeeFull = false;
   let viewerType = 'public';
   let viewerName = '';
 
   if (session) {
-    const role = session.user.user_metadata?.role;
     if (role === 'agency' || role === 'owner') {
       if (mode === 'open') {
         canSeeFull = true;
         viewerType = 'agency';
-        viewerName = session.user.user_metadata?.company_name || session.user.email;
+        viewerName = session.user.user_metadata?.company_name || session.user.user_metadata?.full_name || session.user.email;
       } else if (mode === 'directed' && agency.user_id === session.user.id) {
         canSeeFull = true;
         viewerType = 'agency';
-        viewerName = agency.company_name;
+        viewerName = role === 'owner'
+          ? (session.user.user_metadata?.full_name || session.user.email)
+          : agency.company_name;
       }
       // on_request: canSeeFull = false until approved (future feature)
     } else if (role === 'tenant') {
@@ -310,11 +312,26 @@
   // Log the access
   await sbHelpers.logAccess(cert.id, session?.user?.id || null, viewerType);
 
+  if (role === 'owner' && session) {
+    const key = `swisstrust:ownerRecent:${session.user.id}`;
+    const entry = {
+      certCode: cert.cert_code,
+      tenantName: tenant.full_name || '—',
+      property: `${cert.property_address || '—'}${cert.property_city ? ', ' + cert.property_city : ''}`,
+      mode,
+      access: canSeeFull ? 'full' : (mode === 'on_request' ? 'request' : 'preview'),
+      viewedAt: new Date().toISOString(),
+    };
+    const existing = JSON.parse(localStorage.getItem(key) || '[]').filter(item => item.certCode !== entry.certCode);
+    localStorage.setItem(key, JSON.stringify([entry, ...existing].slice(0, 8)));
+  }
+
   // Render view
   const banner      = document.getElementById('tier-banner');
   const agencySection = document.getElementById('agency-section');
   const onrequestSection = document.getElementById('onrequest-section');
   const navActions  = document.getElementById('nav-actions');
+  const dashboardHref = role === 'owner' ? '../owner/dashboard.html' : '../agency/dashboard.html';
 
   agencySection.style.display = 'none';
   onrequestSection.style.display = 'none';
@@ -337,7 +354,7 @@
     agencySection.style.display = 'block';
     navActions.innerHTML = `
       <span class="text-sm text-gray">${viewerName}</span>
-      <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
+      <a href="${dashboardHref}" class="btn btn-outline btn-sm">Dashboard</a>
       <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
 
     // Fill employment card
