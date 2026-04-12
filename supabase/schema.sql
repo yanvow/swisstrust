@@ -3,7 +3,14 @@
 -- Run this in the Supabase SQL editor (dashboard → SQL Editor)
 -- ============================================================
 
--- Enums
+-- Enums (drop first so the script is safe to re-run)
+DROP TYPE IF EXISTS heard_about_property CASCADE;
+DROP TYPE IF EXISTS certificate_mode     CASCADE;
+DROP TYPE IF EXISTS trust_score_grade    CASCADE;
+DROP TYPE IF EXISTS document_status      CASCADE;
+DROP TYPE IF EXISTS document_type        CASCADE;
+DROP TYPE IF EXISTS permit_type          CASCADE;
+
 CREATE TYPE permit_type AS ENUM ('swiss', 'B', 'C', 'G', 'L');
 CREATE TYPE document_type AS ENUM (
   'passport_id',
@@ -22,6 +29,7 @@ CREATE TYPE document_status AS ENUM (
   'rejected'
 );
 CREATE TYPE trust_score_grade AS ENUM ('A', 'B', 'C');
+CREATE TYPE certificate_mode AS ENUM ('directed', 'open', 'on_request');
 CREATE TYPE heard_about_property AS ENUM (
   'former_tenant',
   'relocation_agency',
@@ -148,17 +156,6 @@ CREATE POLICY "documents_own_update" ON documents
     tenant_id IN (SELECT id FROM tenants WHERE user_id = auth.uid())
   );
 
--- Agency can read documents for certificates directed to them
-CREATE POLICY "documents_agency_select" ON documents
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM certificates c
-      JOIN agencies a ON a.id = c.agency_id
-      WHERE c.tenant_id = documents.tenant_id
-        AND a.user_id = auth.uid()
-    )
-  );
-
 -- ============================================================
 -- TABLE: certificates
 -- ============================================================
@@ -190,6 +187,11 @@ CREATE TABLE IF NOT EXISTS certificates (
   qr_data_url       TEXT,                  -- base64 PNG (small, stored in DB)
   qr_url            TEXT,                  -- full URL encoded in QR
 
+  -- Certificate sharing mode (from strategy: Directed / Open / On-Request)
+  mode              certificate_mode DEFAULT 'directed',
+  -- For on_request mode: null = pending, 'approved' = approved, 'denied' = denied
+  approval_status   TEXT CHECK (approval_status IN ('pending', 'approved', 'denied')),
+
   -- Lifecycle
   is_active         BOOLEAN DEFAULT TRUE,
   created_at        TIMESTAMPTZ DEFAULT NOW()
@@ -217,6 +219,18 @@ CREATE POLICY "certificates_own_agency_select" ON certificates
 -- Public read by cert_code (app layer enforces tiered content)
 CREATE POLICY "certificates_public_read" ON certificates
   FOR SELECT USING (is_active = TRUE);
+
+-- Agency can read documents for certificates directed to them
+-- (defined here, after certificates table exists)
+CREATE POLICY "documents_agency_select" ON documents
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM certificates c
+      JOIN agencies a ON a.id = c.agency_id
+      WHERE c.tenant_id = documents.tenant_id
+        AND a.user_id = auth.uid()
+    )
+  );
 
 -- ============================================================
 -- TABLE: document_access_logs (compliance / audit trail)
