@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create tenant account — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body class="auth-page">
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <a href="login.html" class="nav__link">Already have an account? Sign in</a>
+  </div>
+</nav>
+
+<div class="auth-wrap" style="padding:60px 24px;">
+  <div class="auth-card" style="max-width:520px;">
+    <div class="auth-card__logo">
+      <div class="auth-card__logo-mark">ST</div>
+      SwissTrust
+    </div>
+    <h1 class="auth-card__title">Create your tenant account</h1>
+    <p class="auth-card__sub">Verify your identity once. Apply to any property in Switzerland.</p>
+
+    <div class="alert alert-info mb-24">
+      <span>ℹ️</span>
+      <span>After registration, you'll be guided to complete your profile and upload documents.</span>
+    </div>
+
+    <form onsubmit="handleRegister(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="first_name">First name <span class="req">*</span></label>
+          <input type="text" id="first_name" placeholder="Sophie" required>
+        </div>
+        <div class="form-group">
+          <label for="last_name">Last name <span class="req">*</span></label>
+          <input type="text" id="last_name" placeholder="Müller" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="email">Email address <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="sophie@example.com" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="password">Password <span class="req">*</span></label>
+          <input type="password" id="password" placeholder="Min. 8 characters" required>
+        </div>
+        <div class="form-group">
+          <label for="confirm_password">Confirm password <span class="req">*</span></label>
+          <input type="password" id="confirm_password" placeholder="Repeat password" required>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="form-group">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <input type="checkbox" id="terms" required style="width:auto; margin-top:3px; flex-shrink:0;">
+          <label for="terms" style="font-size:.875rem; color:var(--gray-600); margin-bottom:0;">
+            I agree to the <a href="#" style="color:var(--charcoal); font-weight:600;">Terms of Service</a> and <a href="#" style="color:var(--charcoal); font-weight:600;">Privacy Policy</a>. I understand my documents will be stored securely on Swiss servers.
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Create account &amp; continue</button>
+    </form>
+
+    <div class="auth-card__footer">
+      Already have an account? <a href="login.html">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function handleRegister(e) {
+  e.preventDefault();
+  window.location.href = '../tenant/profile.html';
+}
+</script>
+</body>
+</html>

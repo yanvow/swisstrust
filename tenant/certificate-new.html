@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Certificate — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray">Sophie Müller</span>
+      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">My dossier</div>
+      <a href="dashboard.html" class="sidebar__link"><span class="sidebar__icon">⊞</span> Dashboard</a>
+      <a href="profile.html" class="sidebar__link"><span class="sidebar__icon">◎</span> My profile</a>
+      <a href="documents.html" class="sidebar__link"><span class="sidebar__icon">📄</span> Documents</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Certificates</div>
+      <a href="certificates.html" class="sidebar__link"><span class="sidebar__icon">🪪</span> My certificates</a>
+      <a href="certificate-new.html" class="sidebar__link sidebar__link--active"><span class="sidebar__icon">＋</span> New certificate</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-title">New certificate</div>
+    <div class="page-subtitle">Fill in the property details. Your verified profile is added automatically.</div>
+
+    <!-- Profile preview -->
+    <div class="card mb-24" style="background:var(--gray-100); border:none;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+        <div class="verified-badge" style="font-size:.8rem; padding:5px 12px;">
+          <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+          Identity Verified
+        </div>
+        <span class="badge trust-b">B Score (provisional)</span>
+      </div>
+      <div class="text-sm text-gray">Your tenant data is pre-filled: <strong style="color:var(--charcoal);">Sophie Müller</strong> · CHF 8,500/mo gross · 2 occupants · No smoker · No pets</div>
+    </div>
+
+    <form onsubmit="generateCertificate(event)">
+
+      <!-- Property details -->
+      <fieldset class="fieldset">
+        <legend>Property details</legend>
+        <div class="form-group">
+          <label>Property street address <span class="req">*</span></label>
+          <input type="text" id="street" placeholder="Rue de Rive 14" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>City <span class="req">*</span></label>
+            <input type="text" id="city" placeholder="Genève" required>
+          </div>
+          <div class="form-group">
+            <label>Postcode <span class="req">*</span></label>
+            <input type="text" id="postcode" placeholder="1204" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Number of rooms (Nbr de pièces) <span class="req">*</span></label>
+            <input type="number" id="rooms" placeholder="3.5" step="0.5" min="1" required>
+          </div>
+          <div class="form-group">
+            <label>Floor (Étage)</label>
+            <input type="text" id="floor" placeholder="2nd">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Desired move-in date <span class="req">*</span></label>
+          <input type="date" id="movein" required>
+        </div>
+      </fieldset>
+
+      <!-- Rent -->
+      <fieldset class="fieldset">
+        <legend>Desired rent (CHF)</legend>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Rent (loyer) <span class="req">*</span></label>
+            <input type="number" id="rent" placeholder="2200" oninput="calcTotal()" required>
+          </div>
+          <div class="form-group">
+            <label>Charges <span class="req">*</span></label>
+            <input type="number" id="charges" placeholder="200" oninput="calcTotal()">
+          </div>
+          <div class="form-group">
+            <label>Total</label>
+            <input type="number" id="total" placeholder="2400" readonly style="background:var(--gray-100);">
+          </div>
+        </div>
+        <div id="eligibility-hint" class="form-hint" style="display:none;"></div>
+      </fieldset>
+
+      <!-- Other -->
+      <fieldset class="fieldset">
+        <legend>Additional information</legend>
+        <div style="display:flex; flex-direction:column; gap:0;">
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Parking desired</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="parking">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">I have visited the property</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="visited" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group mt-16">
+          <label>How did you hear about this property? <span class="req">*</span></label>
+          <select id="heard_via" required>
+            <option value="">Select…</option>
+            <option value="former_tenant">Former tenant</option>
+            <option value="relocation_agency">Relocation agency</option>
+            <option value="website">Agency website</option>
+            <option value="immobilier_ch">immobilier.ch</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <!-- Agency selector -->
+      <fieldset class="fieldset">
+        <legend>Authorised agency</legend>
+        <div class="form-group">
+          <label>Select the régie managing this property <span class="req">*</span></label>
+          <select id="agency" required>
+            <option value="">Search for an agency…</option>
+            <option value="moser_vernet">Moser Vernet & Cie — Genève</option>
+            <option value="naef">Naef Immobilier — Genève</option>
+            <option value="regie_rhone">Régie du Rhône — Genève</option>
+            <option value="asloca">ASLOCA — Genève</option>
+            <option value="immoflex">Immoflex SA — Lausanne</option>
+          </select>
+          <div class="form-hint">Only the selected agency will have access to your full dossier.</div>
+        </div>
+      </fieldset>
+
+      <div class="flex gap-16">
+        <button type="submit" class="btn btn-primary btn-lg">Generate QR certificate</button>
+        <a href="certificates.html" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </main>
+</div>
+
+<!-- Generated certificate modal -->
+<div id="cert-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; display:none; align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:var(--radius); max-width:520px; width:90%; padding:40px; text-align:center; box-shadow:var(--shadow-lg);">
+    <div class="verified-badge mb-16" style="display:inline-flex;">
+      <svg viewBox="0 0 20 20" fill="currentColor" style="width:18px;height:18px;"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+      Certificate generated
+    </div>
+    <h2 class="mb-8">Your QR certificate is ready</h2>
+    <p class="text-sm text-gray mb-24">Share the code or QR code with the agency. They'll see your full verified dossier once they scan it while logged in.</p>
+
+    <!-- Fake QR -->
+    <div style="display:flex; justify-content:center; margin-bottom:20px;">
+      <svg viewBox="0 0 21 21" width="140" height="140" xmlns="http://www.w3.org/2000/svg" style="border:8px solid white; box-shadow:0 0 0 1px var(--gray-200);">
+        <rect width="21" height="21" fill="white"/>
+        <rect x="1" y="1" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
+        <rect x="3" y="3" width="3" height="3" fill="#1A1A1A"/>
+        <rect x="13" y="1" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
+        <rect x="15" y="3" width="3" height="3" fill="#1A1A1A"/>
+        <rect x="1" y="13" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
+        <rect x="3" y="15" width="3" height="3" fill="#1A1A1A"/>
+        <rect x="9" y="1" width="1" height="3" fill="#1A1A1A"/>
+        <rect x="11" y="2" width="1" height="2" fill="#1A1A1A"/>
+        <rect x="9" y="5" width="3" height="1" fill="#1A1A1A"/>
+        <rect x="9" y="9" width="5" height="1" fill="#1A1A1A"/>
+        <rect x="13" y="9" width="1" height="5" fill="#1A1A1A"/>
+        <rect x="15" y="11" width="3" height="1" fill="#1A1A1A"/>
+        <rect x="9" y="13" width="1" height="7" fill="#1A1A1A"/>
+        <rect x="11" y="14" width="3" height="1" fill="#1A1A1A"/>
+        <rect x="17" y="13" width="3" height="3" fill="#1A1A1A"/>
+        <rect x="11" y="17" width="5" height="1" fill="#1A1A1A"/>
+      </svg>
+    </div>
+
+    <div class="font-mono font-bold mb-8" style="font-size:1.5rem; letter-spacing:.12em;">STD-2G7K-X4NP</div>
+    <div class="text-xs text-gray mb-24">Anyone can scan to see your public summary. The agency sees the full dossier.</div>
+
+    <div class="flex gap-12" style="justify-content:center; flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="window.location.href='../cert/cert-view.html'">View certificate →</button>
+      <button class="btn btn-outline" onclick="closeCertModal()">Back to certificates</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function calcTotal() {
+  const rent = parseFloat(document.getElementById('rent').value) || 0;
+  const charges = parseFloat(document.getElementById('charges').value) || 0;
+  const total = rent + charges;
+  document.getElementById('total').value = total || '';
+
+  // Eligibility check (salary 8500 × 3 = 25500/year = 2125/mo threshold is inverted — need salary >= rent*3)
+  const salary = 8500;
+  const hint = document.getElementById('eligibility-hint');
+  if (total > 0) {
+    const needed = total * 3;
+    if (salary >= needed) {
+      hint.style.display = 'block';
+      hint.style.color = 'var(--green)';
+      hint.textContent = `✓ Income eligible — CHF ${salary.toLocaleString()} ≥ 3× CHF ${total.toLocaleString()} (CHF ${needed.toLocaleString()})`;
+    } else {
+      hint.style.display = 'block';
+      hint.style.color = 'var(--red)';
+      hint.textContent = `⚠ Income may not meet eligibility — CHF ${salary.toLocaleString()} < 3× CHF ${total.toLocaleString()} (CHF ${needed.toLocaleString()})`;
+    }
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+function generateCertificate(e) {
+  e.preventDefault();
+  const modal = document.getElementById('cert-modal');
+  modal.style.display = 'flex';
+}
+
+function closeCertModal() {
+  window.location.href = 'certificates.html';
+}
+
+document.getElementById('cert-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeCertModal();
+});
+</script>
+</body>
+</html>

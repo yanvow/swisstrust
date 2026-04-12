@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agency Dashboard — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray">Moser Vernet & Cie</span>
+      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">Agency</div>
+      <a href="dashboard.html" class="sidebar__link sidebar__link--active">
+        <span class="sidebar__icon">⊞</span> Certificate inbox
+      </a>
+      <a href="#" class="sidebar__link">
+        <span class="sidebar__icon">◎</span> Agency profile
+      </a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Tools</div>
+      <a href="../verify.html" class="sidebar__link">
+        <span class="sidebar__icon">✓</span> Verify by code
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="page-title">Certificate inbox</div>
+    <div class="page-subtitle">Tenants who have directed their SwissTrust certificate to Moser Vernet & Cie.</div>
+
+    <!-- Stats -->
+    <div class="stat-grid mb-32">
+      <div class="stat-box">
+        <div class="stat-num">3</div>
+        <div class="stat-lbl">Total certificates</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--green);">2</div>
+        <div class="stat-lbl">Score A (Excellent)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--amber);">1</div>
+        <div class="stat-lbl">Score B (Good)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--green);">3</div>
+        <div class="stat-lbl">Income eligible</div>
+      </div>
+    </div>
+
+    <!-- Filter / sort bar -->
+    <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+      <select style="width:auto; padding:8px 32px 8px 12px; font-size:.875rem;">
+        <option>All Trust Scores</option>
+        <option>Score A only</option>
+        <option>Score B only</option>
+        <option>Score C only</option>
+      </select>
+      <select style="width:auto; padding:8px 32px 8px 12px; font-size:.875rem;">
+        <option>All properties</option>
+        <option>Rue de Rive</option>
+      </select>
+      <select style="width:auto; padding:8px 32px 8px 12px; font-size:.875rem;">
+        <option>Newest first</option>
+        <option>Oldest first</option>
+        <option>Score: A → C</option>
+      </select>
+    </div>
+
+    <!-- Certificate rows -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tenant</th>
+            <th>Property applied for</th>
+            <th>Trust Score</th>
+            <th>Eligibility</th>
+            <th>Cert. date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="font-bold">Sophie Müller</div>
+              <div class="text-xs text-gray">2 occupants · No smoker · No pets</div>
+            </td>
+            <td>
+              <div class="text-sm font-bold">Rue de Rive 14, 1204 Genève</div>
+              <div class="text-xs text-gray">3.5 rooms · CHF 2,400/mo · Move-in 01.06.2026</div>
+            </td>
+            <td><span class="badge trust-a">A</span></td>
+            <td><span class="badge badge-green">✓ Eligible</span></td>
+            <td class="text-sm text-gray">10 Apr 2026</td>
+            <td><a href="dossier.html" class="btn btn-primary btn-sm">View dossier</a></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="font-bold">Marc Durand</div>
+              <div class="text-xs text-gray">1 occupant · No smoker · No pets</div>
+            </td>
+            <td>
+              <div class="text-sm font-bold">Rue de Rive 14, 1204 Genève</div>
+              <div class="text-xs text-gray">3.5 rooms · CHF 2,400/mo · Move-in 01.06.2026</div>
+            </td>
+            <td><span class="badge trust-a">A</span></td>
+            <td><span class="badge badge-green">✓ Eligible</span></td>
+            <td class="text-sm text-gray">09 Apr 2026</td>
+            <td><a href="dossier.html" class="btn btn-primary btn-sm">View dossier</a></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="font-bold">Lukas Bärtsch</div>
+              <div class="text-xs text-gray">3 occupants · No smoker · Has pets</div>
+            </td>
+            <td>
+              <div class="text-sm font-bold">Rue de Rive 14, 1204 Genève</div>
+              <div class="text-xs text-gray">3.5 rooms · CHF 2,400/mo · Move-in 15.05.2026</div>
+            </td>
+            <td><span class="badge trust-b">B</span></td>
+            <td><span class="badge badge-green">✓ Eligible</span></td>
+            <td class="text-sm text-gray">08 Apr 2026</td>
+            <td><a href="dossier.html" class="btn btn-primary btn-sm">View dossier</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Comparison hint -->
+    <div class="card mt-24 card--flat" style="background:var(--gray-100); border:none; padding:14px 16px;">
+      <div class="text-sm text-gray">💡 <strong>Tip:</strong> Click "View dossier" to see the full verified documents for each applicant. All accesses are logged.</div>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

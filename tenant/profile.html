@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray">Sophie Müller</span>
+      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">My dossier</div>
+      <a href="dashboard.html" class="sidebar__link"><span class="sidebar__icon">⊞</span> Dashboard</a>
+      <a href="profile.html" class="sidebar__link sidebar__link--active"><span class="sidebar__icon">◎</span> My profile</a>
+      <a href="documents.html" class="sidebar__link"><span class="sidebar__icon">📄</span> Documents</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Certificates</div>
+      <a href="certificates.html" class="sidebar__link"><span class="sidebar__icon">🪪</span> My certificates</a>
+      <a href="certificate-new.html" class="sidebar__link"><span class="sidebar__icon">＋</span> New certificate</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-title">My profile</div>
+    <div class="page-subtitle">This information is verified and used across all your certificates.</div>
+
+    <div class="alert alert-info mb-24">
+      <span>ℹ️</span>
+      <span>Your profile data is fixed — it won't change between certificates. Only property-specific details vary per certificate.</span>
+    </div>
+
+    <form onsubmit="saveProfile(event)">
+
+      <!-- Personal -->
+      <fieldset class="fieldset">
+        <legend>Personal information</legend>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full name <span class="req">*</span></label>
+            <input type="text" value="Sophie Müller" placeholder="Full legal name">
+          </div>
+          <div class="form-group">
+            <label>Date of birth <span class="req">*</span></label>
+            <input type="date" value="1992-06-14">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nationality <span class="req">*</span></label>
+            <input type="text" value="Swiss" placeholder="e.g. Swiss, German, French">
+          </div>
+          <div class="form-group">
+            <label>Permit type <span class="req">*</span></label>
+            <select>
+              <option value="swiss" selected>Swiss citizen</option>
+              <option value="B">B permit</option>
+              <option value="C">C permit</option>
+              <option value="G">G permit</option>
+              <option value="L">L permit</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Current address <span class="req">*</span></label>
+          <input type="text" value="Rue du Lac 24, 1207 Genève" placeholder="Street, city, postcode">
+        </div>
+      </fieldset>
+
+      <!-- Employment -->
+      <fieldset class="fieldset">
+        <legend>Employment</legend>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Employer name <span class="req">*</span></label>
+            <input type="text" value="Pictet & Cie SA" placeholder="Company name">
+          </div>
+          <div class="form-group">
+            <label>Job title / role <span class="req">*</span></label>
+            <input type="text" value="Financial Analyst" placeholder="Your position">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Employment start date <span class="req">*</span></label>
+            <input type="date" value="2021-03-01">
+          </div>
+          <div class="form-group">
+            <label>Monthly gross salary (CHF) <span class="req">*</span></label>
+            <input type="number" value="8500" placeholder="e.g. 8500">
+            <div class="form-hint">Used to calculate rent eligibility (salary ≥ 3× rent)</div>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Household -->
+      <fieldset class="fieldset">
+        <legend>Household</legend>
+        <div class="form-group">
+          <label>Number of occupants (including yourself) <span class="req">*</span></label>
+          <input type="number" value="2" min="1" max="10" style="max-width:120px;">
+        </div>
+        <div>
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Smoker</div>
+              <div class="text-xs text-gray">Does any occupant smoke?</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Pets</div>
+              <div class="text-xs text-gray">Do you have or plan to have pets?</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="flex gap-16">
+        <button type="submit" class="btn btn-primary">Save profile</button>
+        <a href="documents.html" class="btn btn-outline">Next: Upload documents →</a>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script>
+function saveProfile(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.textContent = '✓ Saved';
+  btn.style.background = 'var(--green)';
+  setTimeout(() => { btn.textContent = 'Save profile'; btn.style.background = ''; }, 2000);
+}
+</script>
+</body>
+</html>

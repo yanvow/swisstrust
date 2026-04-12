@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify a certificate — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="verify-page">
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <div class="nav__links">
+      <a href="auth/login.html" class="nav__link">Sign in</a>
+      <a href="auth/tenant-register.html" class="btn btn-primary btn-sm">Create dossier</a>
+    </div>
+  </div>
+</nav>
+
+<div class="auth-wrap">
+  <div class="verify-card">
+    <div style="text-align:center; margin-bottom:32px;">
+      <div style="font-size:2.5rem; margin-bottom:12px;">🔍</div>
+      <h1 style="font-size:1.5rem; margin-bottom:8px;">Verify a tenant certificate</h1>
+      <p class="text-sm text-gray">Enter the 12-character code from the tenant's certificate. Agencies can also scan the QR code directly.</p>
+    </div>
+
+    <form onsubmit="verifyCert(event)">
+      <div class="form-group">
+        <label style="text-align:center; display:block;">Certificate code</label>
+        <input
+          type="text"
+          id="cert_code"
+          class="code-input"
+          placeholder="STD-XXXX-XXXX"
+          maxlength="12"
+          oninput="formatCode(this)"
+          required
+        >
+        <div class="form-hint text-center mt-8">Format: STD-XXXX-XXXX (e.g. STD-2G7K-X4NP)</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full mt-8">Verify certificate</button>
+    </form>
+
+    <div class="divider"></div>
+
+    <div style="text-align:center;">
+      <p class="text-sm text-gray mb-16">Or scan the tenant's QR code with your phone to open directly.</p>
+      <div class="flex-center gap-8">
+        <span class="text-xs text-gray">Agencies:</span>
+        <a href="auth/login.html" class="text-sm font-bold" style="color:var(--charcoal);">Sign in to see full dossier →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function formatCode(input) {
+  let val = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (val.length > 3) val = val.slice(0,3) + '-' + val.slice(3);
+  if (val.length > 8) val = val.slice(0,8) + '-' + val.slice(8);
+  input.value = val.slice(0, 12);
+}
+
+function verifyCert(e) {
+  e.preventDefault();
+  window.location.href = 'cert/cert-view.html';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certificate STD-2G7K-X4NP — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    body { background: var(--gray-100); }
+    .cert-page { min-height: 100vh; }
+    .tier-banner { padding: 10px 24px; font-size: .8rem; font-weight: 600; text-align: center; letter-spacing: .03em; }
+    .tier-banner--public { background: var(--gray-200); color: var(--gray-600); }
+    .tier-banner--agency { background: #DCFCE7; color: #15803D; border-bottom: 1px solid #86EFAC; }
+  </style>
+</head>
+<body class="cert-page">
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <div class="nav__links" id="nav-actions">
+      <!-- toggled by JS -->
+    </div>
+  </div>
+</nav>
+
+<!-- Access tier banner -->
+<div id="tier-banner" class="tier-banner tier-banner--public">
+  👁 Public view — sign in as the authorised agency to access the full dossier
+</div>
+
+<div class="cert-view">
+
+  <!-- Header -->
+  <div class="cert-view__header">
+    <div class="flex-between flex-wrap gap-16">
+      <div>
+        <div class="text-xs text-gray mb-4" style="letter-spacing:.06em; text-transform:uppercase; font-weight:600;">SwissTrust Certificate</div>
+        <div class="font-mono font-bold" style="font-size:1.1rem; letter-spacing:.1em; color:var(--gray-600);">STD-2G7K-X4NP</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <div class="verified-badge">
+          <svg viewBox="0 0 20 20" fill="currentColor" style="width:18px;height:18px;"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+          Identity Verified
+        </div>
+        <span class="badge trust-a" id="trust-badge">A — Excellent</span>
+      </div>
+    </div>
+    <div class="cert-view__tenant-name">Sophie Müller</div>
+    <div class="text-sm text-gray">Applying for: <strong style="color:var(--charcoal);">Rue de Rive 14, 1204 Genève</strong> · 3.5 rooms · CHF 2,400/mo</div>
+    <div class="text-xs text-gray mt-4">Certificate issued 10 April 2026 · Directed to: Moser Vernet & Cie</div>
+  </div>
+
+  <!-- Public tier — always visible -->
+  <div id="public-section">
+    <h3 class="mb-16" style="font-size:1rem; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-400);">Verified summary</h3>
+
+    <div class="cert-view__public-grid">
+      <div class="cert-view__fact">
+        <div class="cert-view__fact-label">Trust Score</div>
+        <div class="cert-view__fact-value"><span class="badge trust-a">A — Excellent</span></div>
+      </div>
+      <div class="cert-view__fact">
+        <div class="cert-view__fact-label">Rent eligibility</div>
+        <div class="cert-view__fact-value" style="color:var(--green);">✓ Income qualifies</div>
+      </div>
+      <div class="cert-view__fact">
+        <div class="cert-view__fact-label">Occupants</div>
+        <div class="cert-view__fact-value">2</div>
+      </div>
+      <div class="cert-view__fact">
+        <div class="cert-view__fact-label">Smoker</div>
+        <div class="cert-view__fact-value">No</div>
+      </div>
+      <div class="cert-view__fact">
+        <div class="cert-view__fact-label">Pets</div>
+        <div class="cert-view__fact-value">No</div>
+      </div>
+      <div class="cert-view__fact">
+        <div class="cert-view__fact-label">Desired move-in</div>
+        <div class="cert-view__fact-value">01.06.2026</div>
+      </div>
+    </div>
+
+    <div class="card mt-24" style="background:var(--gray-100); border:none; padding:16px;">
+      <div class="text-sm text-gray">
+        🔒 <strong>Full dossier</strong> — ID copy, salary slips, Betreibungsauszug, reference letter, and exact income details are visible only to the authorised agency (Moser Vernet & Cie).
+      </div>
+    </div>
+  </div>
+
+  <!-- Agency tier — shown/hidden by JS -->
+  <div id="agency-section" class="cert-view__agency-section" style="display:none;">
+    <div class="cert-view__agency-header">
+      <div style="width:36px; height:36px; background:var(--green); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;">🔓</div>
+      <div>
+        <div class="font-bold">Full dossier — Agency access</div>
+        <div class="text-xs text-gray">Visible to: Moser Vernet & Cie · Access logged at 10 Apr 2026 14:32</div>
+      </div>
+    </div>
+
+    <!-- Extracted data -->
+    <div class="card mb-24">
+      <div class="card-header">
+        <div class="card-title">Verified employment & income</div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div>
+          <div class="text-xs text-gray mb-2">Employer</div>
+          <div class="font-bold">Pictet & Cie SA</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray mb-2">Job title</div>
+          <div class="font-bold">Financial Analyst</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray mb-2">Monthly gross salary</div>
+          <div class="font-bold" style="color:var(--green);">CHF 8,500</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray mb-2">Employed since</div>
+          <div class="font-bold">01.03.2021 (4+ years)</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray mb-2">Eligibility check</div>
+          <div class="font-bold" style="color:var(--green);">✓ CHF 8,500 ≥ 3× CHF 2,400</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Documents -->
+    <h3 class="mb-16" style="font-size:.9rem; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-400);">Verified documents</h3>
+
+    <!-- Passport -->
+    <div class="doc-viewer">
+      <div class="doc-viewer__head">
+        <div class="doc-viewer__name">🪪 Passport / Swiss ID</div>
+        <span class="badge badge-green">Auto-verified · 96%</span>
+      </div>
+      <div class="doc-viewer__body">
+        <div style="background:var(--gray-100); border-radius:var(--radius); height:120px; display:flex; align-items:center; justify-content:center; color:var(--gray-400); font-size:.8rem; margin-bottom:10px;">
+          [ Document preview — click to download ]
+        </div>
+        <div class="doc-viewer__extracted">
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Full name</span><span class="doc-viewer__field-v">MÜLLER SOPHIE</span></div>
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Date of birth</span><span class="doc-viewer__field-v">14.06.1992</span></div>
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Nationality</span><span class="doc-viewer__field-v">CHE (Swiss)</span></div>
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Document no.</span><span class="doc-viewer__field-v">X4920384</span></div>
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Valid until</span><span class="doc-viewer__field-v">14.06.2032</span></div>
+        </div>
+        <button class="btn btn-outline btn-sm mt-8">Download (expires in 60s)</button>
+      </div>
+    </div>
+
+    <!-- Betreibungsauszug -->
+    <div class="doc-viewer">
+      <div class="doc-viewer__head">
+        <div class="doc-viewer__name">⚖️ Betreibungsauszug</div>
+        <span class="badge badge-green">Auto-verified · 93%</span>
+      </div>
+      <div class="doc-viewer__body">
+        <div class="doc-viewer__extracted">
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Status</span><span class="doc-viewer__field-v" style="color:var(--green); font-weight:700;">✓ CLEAN — aucune poursuite</span></div>
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Issued by</span><span class="doc-viewer__field-v">Office des poursuites Genève</span></div>
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Date issued</span><span class="doc-viewer__field-v">02.04.2026</span></div>
+        </div>
+        <button class="btn btn-outline btn-sm mt-8">Download (expires in 60s)</button>
+      </div>
+    </div>
+
+    <!-- Salary slips -->
+    <div class="doc-viewer">
+      <div class="doc-viewer__head">
+        <div class="doc-viewer__name">💰 Salary slips</div>
+        <span class="badge badge-amber">2/3 — 1 flagged</span>
+      </div>
+      <div class="doc-viewer__body">
+        <div class="doc-viewer__extracted">
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">March 2026 (verified)</span><span class="doc-viewer__field-v">CHF 8,500 gross</span></div>
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">February 2026 (flagged)</span><span class="doc-viewer__field-v">CHF 8,500 — low quality scan</span></div>
+          <div class="doc-viewer__field"><span class="doc-viewer__field-k">January 2026</span><span class="doc-viewer__field-v" style="color:var(--gray-400);">Not uploaded</span></div>
+        </div>
+        <button class="btn btn-outline btn-sm mt-8">Download all (expires in 60s)</button>
+      </div>
+    </div>
+
+    <!-- Reference -->
+    <div class="doc-viewer">
+      <div class="doc-viewer__head">
+        <div class="doc-viewer__name">🏠 Landlord reference letter</div>
+        <span class="badge badge-gray">Not uploaded</span>
+      </div>
+      <div class="doc-viewer__body">
+        <p class="text-sm text-gray">The tenant has not uploaded a landlord reference letter.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Access log note -->
+  <div class="card mt-32 card--flat" style="background:var(--gray-100); border:none; padding:14px 16px;">
+    <div class="text-xs text-gray">🔒 This access has been logged for audit purposes · <a href="../verify.html" style="color:var(--charcoal); font-weight:600;">Verify another certificate</a></div>
+  </div>
+</div>
+
+<script>
+// Demo: toggle between public and agency view
+const isAgencyView = window.location.hash === '#agency';
+
+function setView(agency) {
+  const banner = document.getElementById('tier-banner');
+  const agencySection = document.getElementById('agency-section');
+  const navActions = document.getElementById('nav-actions');
+
+  if (agency) {
+    banner.className = 'tier-banner tier-banner--agency';
+    banner.textContent = '🔓 Agency view — Moser Vernet & Cie — Full dossier access';
+    agencySection.style.display = 'block';
+    navActions.innerHTML = `
+      <span class="text-sm text-gray">Moser Vernet & Cie</span>
+      <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
+      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+    `;
+  } else {
+    banner.className = 'tier-banner tier-banner--public';
+    banner.innerHTML = '👁 Public view — <a href="../auth/login.html" style="color:var(--charcoal); font-weight:600;">Sign in as the authorised agency</a> to access the full dossier';
+    agencySection.style.display = 'none';
+    navActions.innerHTML = `
+      <a href="../auth/login.html" class="nav__link">Sign in</a>
+      <button onclick="setView(true)" class="btn btn-primary btn-sm">Demo: Agency view</button>
+    `;
+  }
+}
+
+setView(isAgencyView);
+</script>
+</body>
+</html>
