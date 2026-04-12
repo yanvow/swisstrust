@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body>
 
@@ -126,7 +127,9 @@
   }
 
   document.getElementById('nav-agency').textContent = agency.company_name;
-  document.getElementById('page-subtitle').textContent = `Tenants who have directed their SwissTrust certificate to ${agency.company_name}.`;
+  document.getElementById('page-subtitle').textContent =
+    window.stI18n?.template('agency_dashboard_subtitle', { agencyName: agency.company_name })
+    || `Tenants who have directed their SwissTrust certificate to ${agency.company_name}.`;
 
   const { data: certs } = await sbHelpers.getCertificatesByAgency(agency.id);
   const tbody = document.getElementById('cert-tbody');
@@ -159,7 +162,7 @@
         <td><span class="badge ${scoreClass}">${c.trust_score || '—'}</span></td>
         <td>${c.is_eligible ? '<span class="badge badge-green">✓ Eligible</span>' : '<span class="badge badge-amber">Review</span>'}</td>
         <td class="text-sm text-gray">${date}</td>
-        <td><a href="../cert/cert-view.html?code=${c.cert_code}" class="btn btn-primary btn-sm">View dossier</a></td>
+        <td><a href="dossier.html?code=${c.cert_code}" class="btn btn-primary btn-sm">View dossier</a></td>
       </tr>`;
   }).join('');
 })();

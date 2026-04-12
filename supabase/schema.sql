@@ -382,6 +382,13 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================================
+-- MIGRATION: make agency_id nullable
+-- Required for Open and On-Request certificate modes.
+-- Run this if you already ran the original schema.
+-- ============================================================
+ALTER TABLE certificates ALTER COLUMN agency_id DROP NOT NULL;
+
+-- ============================================================
 -- Storage buckets
 -- Create these in Supabase dashboard → Storage:
 --   1. "documents"  — Private bucket

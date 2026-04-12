@@ -10,6 +10,7 @@
   <script src="../lib/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script src="../lib/address-autocomplete.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body>
 
@@ -366,18 +367,9 @@ async function generateCertificate(e) {
   const appUrl   = window.location.origin + window.location.pathname.replace(/\/tenant\/.*/, '');
   const qrUrl    = `${appUrl}/cert/cert-view.html?code=${certCode}`;
 
-  // For Directed mode we need an agency_id; for Open/On-Request use any seeded agency as placeholder
-  // In production: Open/On-Request certificates have agency_id = null (schema change needed later)
-  // For now we use the first agency for non-directed
-  let resolvedAgencyId = agencyId;
-  if (!resolvedAgencyId) {
-    const { data: agencies } = await sbHelpers.getAgencies();
-    resolvedAgencyId = agencies?.[0]?.id;
-  }
-
   const { data: cert, error } = await _sb.from('certificates').insert({
     tenant_id:        tenant.id,
-    agency_id:        resolvedAgencyId,
+    agency_id:        agencyId || null,
     property_address: document.getElementById('street').value.trim(),
     property_city:    document.getElementById('city').value.trim(),
     property_postcode:document.getElementById('postcode').value.trim(),
