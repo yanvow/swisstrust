@@ -363,6 +363,35 @@ tr:hover td { background: var(--gray-100); }
 .footer__bottom { border-top: 1px solid var(--gray-800); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; font-size: .8125rem; color: var(--gray-400); }
 .footer__swiss { display: flex; align-items: center; gap: 6px; }
 
+/* ── Address autocomplete ── */
+.addr-wrap { position: relative; }
+.addr-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--white);
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.10);
+  list-style: none;
+  margin: 0; padding: 4px 0;
+  z-index: 999;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.addr-dropdown--open { display: block; }
+.addr-item {
+  padding: 10px 14px;
+  font-size: .875rem;
+  cursor: pointer;
+  color: var(--charcoal);
+  border-bottom: 1px solid var(--gray-100);
+  line-height: 1.4;
+}
+.addr-item:last-child { border-bottom: none; }
+.addr-item:hover, .addr-item--active { background: var(--gray-100); }
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }

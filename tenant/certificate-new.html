@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="../lib/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="../lib/address-autocomplete.js"></script>
 </head>
 <body>
 
@@ -272,6 +273,9 @@ let _generatedCertCode = null;
     document.querySelector('.card.mb-24 .text-sm').innerHTML =
       `Your tenant data is pre-filled: <strong style="color:var(--charcoal);">${tenant.full_name || _user.email}</strong> · CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()}/mo gross · ${tenant.occupant_count || 1} occupant(s) · ${tenant.is_smoker ? 'Smoker' : 'No smoker'} · ${tenant.has_pets ? 'Pets' : 'No pets'}`;
   }
+
+  // Address autocomplete on property street field
+  initAddressAutocomplete('street');
 
   // Load agencies into dropdown
   const { data: agencies } = await sbHelpers.getAgencies();
