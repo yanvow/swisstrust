@@ -261,6 +261,53 @@ CREATE POLICY "access_logs_insert" ON document_access_logs
   FOR INSERT WITH CHECK (true);
 
 -- ============================================================
+-- TABLE: access_requests (for On-Request certificate mode)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS access_requests (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  certificate_id    UUID NOT NULL REFERENCES certificates(id) ON DELETE CASCADE,
+  requester_user_id UUID NOT NULL REFERENCES auth.users(id),
+  requester_type    TEXT NOT NULL CHECK (requester_type IN ('agency', 'owner')),
+  requester_name    TEXT,           -- company name or full name at request time
+  message           TEXT,           -- optional message from requester
+  status            TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'approved', 'denied')),
+  requested_at      TIMESTAMPTZ DEFAULT NOW(),
+  responded_at      TIMESTAMPTZ,
+  UNIQUE(certificate_id, requester_user_id)
+);
+
+ALTER TABLE access_requests ENABLE ROW LEVEL SECURITY;
+
+-- Requester can insert their own request
+CREATE POLICY "access_requests_insert" ON access_requests
+  FOR INSERT WITH CHECK (auth.uid() = requester_user_id);
+
+-- Requester can read their own requests
+CREATE POLICY "access_requests_requester_select" ON access_requests
+  FOR SELECT USING (auth.uid() = requester_user_id);
+
+-- Tenant reads requests for their certificates
+CREATE POLICY "access_requests_tenant_select" ON access_requests
+  FOR SELECT USING (
+    certificate_id IN (
+      SELECT c.id FROM certificates c
+      JOIN tenants t ON t.id = c.tenant_id
+      WHERE t.user_id = auth.uid()
+    )
+  );
+
+-- Tenant can update status (approve / deny) on their certificates
+CREATE POLICY "access_requests_tenant_update" ON access_requests
+  FOR UPDATE USING (
+    certificate_id IN (
+      SELECT c.id FROM certificates c
+      JOIN tenants t ON t.id = c.tenant_id
+      WHERE t.user_id = auth.uid()
+    )
+  );
+
+-- ============================================================
 -- Storage buckets
 -- Create these in Supabase dashboard → Storage:
 --   1. "documents"  — Private bucket

@@ -17,6 +17,7 @@
     .tier-banner--open      { background: #EFF6FF; color: #1D4ED8; border-bottom: 1px solid #BFDBFE; }
     .tier-banner--onrequest { background: #FFF7ED; color: #C2410C; border-bottom: 1px solid #FED7AA; }
   </style>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body class="cert-page">
 
@@ -206,19 +207,51 @@
 
   <!-- On-Request: access request panel (shown instead of agency section for on_request mode) -->
   <div id="onrequest-section" style="display:none;">
-    <div class="card" style="border:2px solid #FED7AA; background:#FFF7ED;">
+    <!-- Not signed in -->
+    <div id="onrequest-anon" class="card" style="border:2px solid #FED7AA; background:#FFF7ED;">
       <div style="display:flex; gap:12px; align-items:flex-start;">
         <div style="font-size:1.5rem;">🔔</div>
         <div style="flex:1;">
           <div class="font-bold mb-4">On-Request certificate</div>
-          <div class="text-sm text-gray mb-16">The tenant controls who accesses this dossier. Sign in as a verified régie or landlord to request full access. The tenant will be notified and can approve or deny your request.</div>
+          <div class="text-sm text-gray mb-16">The tenant controls who accesses this dossier. Sign in as a verified régie or private landlord to request full access.</div>
           <a href="../auth/login.html" class="btn btn-primary btn-sm">Sign in to request access</a>
         </div>
       </div>
     </div>
-    <!-- Demo: approved state -->
-    <div id="onrequest-approved" class="card mt-16" style="display:none; border:2px solid #86EFAC; background:#F0FDF4;">
-      <div class="text-sm" style="color:#15803D;">✓ <strong>Access approved by tenant</strong> — full dossier is now visible below.</div>
+    <!-- Signed in — can request -->
+    <div id="onrequest-form" class="card" style="display:none; border:2px solid #FED7AA; background:#FFF7ED;">
+      <div style="display:flex; gap:12px; align-items:flex-start;">
+        <div style="font-size:1.5rem;">🔔</div>
+        <div style="flex:1;">
+          <div class="font-bold mb-4">Request full dossier access</div>
+          <div class="text-sm text-gray mb-12">The tenant will be notified and can approve or deny your request from their dashboard.</div>
+          <div class="form-group mb-12">
+            <textarea id="request-message" rows="2" placeholder="Optional: briefly introduce yourself or mention the property" style="font-size:.875rem; resize:vertical;"></textarea>
+          </div>
+          <button id="request-btn" onclick="submitAccessRequest()" class="btn btn-primary btn-sm">Request access</button>
+          <div id="request-error" style="display:none; color:var(--red); font-size:.8rem; margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Pending -->
+    <div id="onrequest-pending" class="card" style="display:none; border:2px solid #FED7AA; background:#FFF7ED;">
+      <div style="display:flex; gap:12px; align-items:center;">
+        <div style="font-size:1.5rem;">⏳</div>
+        <div>
+          <div class="font-bold mb-2">Access request sent</div>
+          <div class="text-sm text-gray">The tenant has been notified. You will have full access once they approve your request.</div>
+        </div>
+      </div>
+    </div>
+    <!-- Denied -->
+    <div id="onrequest-denied" class="card" style="display:none; border:2px solid #FECACA; background:#FEF2F2;">
+      <div style="display:flex; gap:12px; align-items:center;">
+        <div style="font-size:1.5rem;">✗</div>
+        <div>
+          <div class="font-bold mb-2" style="color:var(--red);">Access denied</div>
+          <div class="text-sm text-gray">The tenant has declined your access request for this dossier.</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -289,21 +322,29 @@
   let canSeeFull = false;
   let viewerType = 'public';
   let viewerName = '';
+  let accessRequest = null; // for on_request mode
 
   if (session) {
+    viewerName = session.user.user_metadata?.company_name
+      || session.user.user_metadata?.full_name
+      || session.user.email;
+
     if (role === 'agency' || role === 'owner') {
       if (mode === 'open') {
         canSeeFull = true;
         viewerType = 'agency';
-        viewerName = session.user.user_metadata?.company_name || session.user.user_metadata?.full_name || session.user.email;
       } else if (mode === 'directed' && agency.user_id === session.user.id) {
         canSeeFull = true;
         viewerType = 'agency';
-        viewerName = role === 'owner'
-          ? (session.user.user_metadata?.full_name || session.user.email)
-          : agency.company_name;
+      } else if (mode === 'on_request') {
+        // Check if this user already has an approved request
+        const { data: req } = await sbHelpers.getAccessRequestStatus(cert.id, session.user.id);
+        accessRequest = req;
+        if (req?.status === 'approved') {
+          canSeeFull = true;
+          viewerType = 'agency';
+        }
       }
-      // on_request: canSeeFull = false until approved (future feature)
     } else if (role === 'tenant') {
       viewerType = 'tenant';
     }
@@ -312,6 +353,7 @@
   // Log the access
   await sbHelpers.logAccess(cert.id, session?.user?.id || null, viewerType);
 
+  // Save to owner's recent history
   if (role === 'owner' && session) {
     const key = `swisstrust:ownerRecent:${session.user.id}`;
     const entry = {
@@ -322,42 +364,61 @@
       access: canSeeFull ? 'full' : (mode === 'on_request' ? 'request' : 'preview'),
       viewedAt: new Date().toISOString(),
     };
-    const existing = JSON.parse(localStorage.getItem(key) || '[]').filter(item => item.certCode !== entry.certCode);
+    const existing = JSON.parse(localStorage.getItem(key) || '[]').filter(i => i.certCode !== entry.certCode);
     localStorage.setItem(key, JSON.stringify([entry, ...existing].slice(0, 8)));
   }
 
   // Render view
-  const banner      = document.getElementById('tier-banner');
-  const agencySection = document.getElementById('agency-section');
+  const banner         = document.getElementById('tier-banner');
+  const agencySection  = document.getElementById('agency-section');
   const onrequestSection = document.getElementById('onrequest-section');
-  const navActions  = document.getElementById('nav-actions');
-  const dashboardHref = role === 'owner' ? '../owner/dashboard.html' : '../agency/dashboard.html';
+  const navActions     = document.getElementById('nav-actions');
+  const dashboardHref  = role === 'owner' ? '../owner/dashboard.html' : '../agency/dashboard.html';
 
-  agencySection.style.display = 'none';
+  agencySection.style.display  = 'none';
   onrequestSection.style.display = 'none';
 
+  // ── On-Request mode — show appropriate state ──────────────
   if (mode === 'on_request' && !canSeeFull) {
     banner.className = 'tier-banner tier-banner--onrequest';
-    banner.textContent = '🔔 On-Request certificate — request access from the tenant';
+    banner.textContent = '🔔 On-Request certificate — access controlled by the tenant';
     onrequestSection.style.display = 'block';
+
     navActions.innerHTML = session
-      ? `<span class="text-sm text-gray">${session.user.email}</span><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`
+      ? `<span class="text-sm text-gray">${viewerName}</span><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`
       : `<a href="../auth/login.html" class="nav__link">Sign in</a>`;
+
+    // Show the right sub-panel
+    const hide = id => document.getElementById(id).style.display = 'none';
+    const show = id => document.getElementById(id).style.display = 'block';
+
+    if (!session || (role !== 'agency' && role !== 'owner')) {
+      show('onrequest-anon'); hide('onrequest-form'); hide('onrequest-pending'); hide('onrequest-denied');
+    } else if (!accessRequest) {
+      hide('onrequest-anon'); show('onrequest-form'); hide('onrequest-pending'); hide('onrequest-denied');
+      // Store cert id for the submit handler
+      window._pendingCertId = cert.id;
+      window._pendingRole   = role;
+      window._pendingName   = viewerName;
+    } else if (accessRequest.status === 'pending') {
+      hide('onrequest-anon'); hide('onrequest-form'); show('onrequest-pending'); hide('onrequest-denied');
+    } else if (accessRequest.status === 'denied') {
+      hide('onrequest-anon'); hide('onrequest-form'); hide('onrequest-pending'); show('onrequest-denied');
+    }
     return;
   }
 
+  // ── Full dossier access ────────────────────────────────────
   if (canSeeFull) {
+    const modeLabel = mode === 'open' ? '🌐 Open' : mode === 'on_request' ? '✅ On-Request (approved)' : '🔓 Directed';
     banner.className = mode === 'open' ? 'tier-banner tier-banner--open' : 'tier-banner tier-banner--agency';
-    banner.textContent = mode === 'open'
-      ? `🌐 Open certificate — full dossier accessible · ${viewerName}`
-      : `🔓 Directed — ${viewerName} — Full dossier access`;
+    banner.textContent = `${modeLabel} — ${viewerName} — Full dossier access`;
     agencySection.style.display = 'block';
     navActions.innerHTML = `
       <span class="text-sm text-gray">${viewerName}</span>
       <a href="${dashboardHref}" class="btn btn-outline btn-sm">Dashboard</a>
       <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
 
-    // Fill employment card
     const empGrid = document.querySelector('#agency-section .card[class*="mb-24"] > div');
     if (empGrid) {
       empGrid.innerHTML = `
@@ -368,15 +429,43 @@
         <div><div class="text-xs text-gray mb-2">Eligibility check</div><div class="font-bold" style="color:${cert.is_eligible ? 'var(--green)' : 'var(--red)'};">${cert.is_eligible ? '✓' : '✗'} CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()} ${cert.is_eligible ? '≥' : '<'} 3× CHF ${(cert.total_chf || 0).toLocaleString()}</div></div>`;
     }
   } else {
+    // ── Public / no access ─────────────────────────────────
     banner.className = 'tier-banner tier-banner--public';
     banner.innerHTML = mode === 'open'
       ? `🌐 Open certificate — <a href="../auth/login.html" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier`
-      : `👁 Public view · Directed certificate — <a href="../auth/login.html" style="color:var(--charcoal);font-weight:600;">Sign in as ${agency.company_name}</a> to access the full dossier`;
+      : `👁 Public view · Directed certificate — <a href="../auth/login.html" style="color:var(--charcoal);font-weight:600;">Sign in as ${agency.company_name || 'the authorised agency'}</a> to access the full dossier`;
     navActions.innerHTML = session
-      ? `<span class="text-sm text-gray">${session.user.email}</span><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`
+      ? `<span class="text-sm text-gray">${viewerName || session.user.email}</span><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`
       : `<a href="../auth/login.html" class="nav__link">Sign in</a>`;
   }
 })();
+
+async function submitAccessRequest() {
+  const btn = document.getElementById('request-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  sbHelpers.hideError('request-error');
+
+  const message = document.getElementById('request-message').value.trim();
+  const { error } = await sbHelpers.createAccessRequest(
+    window._pendingCertId,
+    (await sbHelpers.getSession()).user.id,
+    window._pendingRole,
+    window._pendingName,
+    message
+  );
+
+  if (error) {
+    sbHelpers.showError('request-error', error.message);
+    btn.disabled = false;
+    btn.textContent = 'Request access';
+    return;
+  }
+
+  // Show pending state
+  document.getElementById('onrequest-form').style.display    = 'none';
+  document.getElementById('onrequest-pending').style.display = 'block';
+}
 </script>
 </body>
 </html>

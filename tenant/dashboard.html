@@ -6,6 +6,8 @@
   <title>Dashboard — SwissTrust Tenant</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
 </head>
 <body>
 
@@ -16,8 +18,8 @@
       SwissTrust
     </a>
     <div class="nav__links">
-      <span class="text-sm text-gray">Sophie Müller</span>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
     </div>
   </div>
 </nav>
@@ -52,12 +54,27 @@
         <span class="sidebar__icon">✓</span> Verify a certificate
       </a>
     </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Notifications</div>
+      <a href="dashboard.html" class="sidebar__link" id="sidebar-notif" style="display:none;">
+        <span class="sidebar__icon">🔔</span> Access requests <span id="sidebar-notif-count" class="badge badge-amber" style="font-size:.7rem; margin-left:4px;"></span>
+      </a>
+    </div>
   </aside>
 
   <!-- MAIN -->
   <main class="main-content">
     <div class="page-title">Dashboard</div>
-    <div class="page-subtitle">Welcome back, Sophie. Here's your dossier status.</div>
+    <div class="page-subtitle" id="page-subtitle">Loading…</div>
+
+    <!-- Access request notifications (On-Request mode) -->
+    <div id="notifications-panel" style="display:none; margin-bottom:24px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+        <div class="font-bold">Access requests</div>
+        <span id="notif-badge" class="badge badge-amber" style="font-size:.7rem;"></span>
+      </div>
+      <div id="notifications-list"></div>
+    </div>
 
     <!-- Dossier completion progress -->
     <div class="card mb-24">
@@ -176,5 +193,86 @@
   </main>
 </div>
 
+<script>
+(async () => {
+  const user = await sbHelpers.requireAuth('tenant');
+  if (!user) return;
+
+  document.getElementById('nav-name').textContent = user.user_metadata?.full_name || user.email;
+  document.getElementById('page-subtitle').textContent =
+    `Welcome back, ${user.user_metadata?.full_name?.split(' ')[0] || 'there'}. Here's your dossier status.`;
+
+  // Load tenant row to get tenant.id
+  const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
+  if (!tenant) return;
+
+  // ── Load pending access requests ──────────────────────────
+  const { data: requests } = await sbHelpers.getPendingRequestsForTenant(tenant.id);
+  const pending = (requests || []).filter(r => r.status === 'pending');
+
+  if (pending.length > 0) {
+    const panel = document.getElementById('notifications-panel');
+    panel.style.display = 'block';
+    document.getElementById('notif-badge').textContent = `${pending.length} pending`;
+    const sidebarNotif = document.getElementById('sidebar-notif');
+    if (sidebarNotif) {
+      sidebarNotif.style.display = 'flex';
+      document.getElementById('sidebar-notif-count').textContent = pending.length;
+    }
+
+    document.getElementById('notifications-list').innerHTML = pending.map(req => {
+      const cert = req.certificates || {};
+      const prop = `${cert.property_address || '—'}${cert.property_city ? ', ' + cert.property_city : ''}`;
+      const when = new Date(req.requested_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+      const typeLabel = req.requester_type === 'owner' ? 'Private owner' : 'Agency';
+      return `
+        <div class="card mb-12" style="border:1.5px solid #FED7AA; background:#FFF7ED;" id="req-${req.id}">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="font-size:1.25rem; flex-shrink:0;">🔔</div>
+            <div style="flex:1;">
+              <div class="font-bold mb-2">${req.requester_name || typeLabel}</div>
+              <div class="text-sm text-gray mb-4">${typeLabel} · Requesting access to <strong>${prop}</strong> (${cert.cert_code || '—'})</div>
+              ${req.message ? `<div class="text-sm mb-8" style="font-style:italic;">"${req.message}"</div>` : ''}
+              <div class="text-xs text-gray mb-12">${when}</div>
+              <div style="display:flex; gap:8px;">
+                <button onclick="respond('${req.id}', 'approved')" class="btn btn-primary btn-sm">Approve</button>
+                <button onclick="respond('${req.id}', 'denied')" class="btn btn-outline btn-sm" style="color:var(--red); border-color:var(--red);">Deny</button>
+              </div>
+              <div id="req-err-${req.id}" style="display:none; color:var(--red); font-size:.8rem; margin-top:6px;"></div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+})();
+
+async function respond(requestId, status) {
+  const appBtn  = document.querySelector(`#req-${requestId} .btn-primary`);
+  const denyBtn = document.querySelector(`#req-${requestId} .btn-outline`);
+  [appBtn, denyBtn].forEach(b => { if (b) b.disabled = true; });
+
+  const { error } = await sbHelpers.respondToAccessRequest(requestId, status);
+  if (error) {
+    sbHelpers.showError(`req-err-${requestId}`, error.message);
+    [appBtn, denyBtn].forEach(b => { if (b) b.disabled = false; });
+    return;
+  }
+
+  // Replace card with confirmation
+  const card = document.getElementById(`req-${requestId}`);
+  const color = status === 'approved' ? '#F0FDF4' : '#FEF2F2';
+  const border = status === 'approved' ? '#86EFAC' : '#FECACA';
+  const icon  = status === 'approved' ? '✓' : '✗';
+  const msg   = status === 'approved' ? 'Access approved — the professional can now view the full dossier.' : 'Access denied.';
+  card.style.background = color;
+  card.style.border = `1.5px solid ${border}`;
+  card.innerHTML = `<div class="text-sm" style="color:var(--charcoal);">${icon} <strong>${msg}</strong></div>`;
+
+  // Update badge count
+  const remaining = document.querySelectorAll('[id^="req-"] .btn-primary:not(:disabled)').length;
+  const badge = document.getElementById('notif-badge');
+  if (badge) badge.textContent = remaining > 0 ? `${remaining} pending` : '';
+}
+</script>
 </body>
 </html>
