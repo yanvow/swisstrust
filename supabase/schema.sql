@@ -261,6 +261,33 @@ CREATE POLICY "access_logs_insert" ON document_access_logs
   FOR INSERT WITH CHECK (true);
 
 -- ============================================================
+-- TABLE: owners (private landlords)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS owners (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name        TEXT NOT NULL,
+  phone            TEXT,
+  property_address TEXT,
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE owners ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read owners (tenants can see requester name/details)
+CREATE POLICY "owners_public_read" ON owners
+  FOR SELECT USING (true);
+
+-- Owner can insert their own row
+CREATE POLICY "owners_own_insert" ON owners
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Owner can update their own row
+CREATE POLICY "owners_own_update" ON owners
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- ============================================================
 -- TABLE: access_requests (for On-Request certificate mode)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS access_requests (
@@ -306,6 +333,53 @@ CREATE POLICY "access_requests_tenant_update" ON access_requests
       WHERE t.user_id = auth.uid()
     )
   );
+
+-- ============================================================
+-- TRIGGER: auto-create profile row on sign-up
+-- Fires after every INSERT into auth.users.
+-- Reads raw_user_meta_data.role to decide which table.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  CASE NEW.raw_user_meta_data->>'role'
+
+    WHEN 'tenant' THEN
+      INSERT INTO public.tenants (user_id, full_name)
+      VALUES (
+        NEW.id,
+        NEW.raw_user_meta_data->>'full_name'
+      );
+
+    WHEN 'agency' THEN
+      INSERT INTO public.agencies (user_id, company_name, address, contact_email)
+      VALUES (
+        NEW.id,
+        COALESCE(NEW.raw_user_meta_data->>'company_name', ''),
+        COALESCE(NEW.raw_user_meta_data->>'address', ''),
+        COALESCE(NEW.raw_user_meta_data->>'contact_email', NEW.email)
+      );
+
+    WHEN 'owner' THEN
+      INSERT INTO public.owners (user_id, full_name, property_address)
+      VALUES (
+        NEW.id,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+        NEW.raw_user_meta_data->>'property_address'
+      );
+
+    ELSE
+      NULL; -- unknown role, do nothing
+
+  END CASE;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================================
 -- Storage buckets

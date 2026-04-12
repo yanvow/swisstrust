@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="../lib/supabase.js"></script>
   <script src="../lib/address-autocomplete.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body class="auth-page">
 
@@ -110,10 +111,12 @@ async function registerOwner(e) {
   const lastName  = document.getElementById('last_name').value.trim();
   const email     = document.getElementById('email').value.trim();
 
-  const { data, error } = await _sb.auth.signUp({
+  const propertyAddress = document.getElementById('property_address').value.trim() || null;
+
+  const { error } = await _sb.auth.signUp({
     email,
     password,
-    options: { data: { role: 'owner', full_name: `${firstName} ${lastName}` } },
+    options: { data: { role: 'owner', full_name: `${firstName} ${lastName}`, property_address: propertyAddress } },
   });
 
   if (error) {

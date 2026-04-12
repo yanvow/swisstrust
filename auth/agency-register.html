@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="../lib/supabase.js"></script>
   <script src="../lib/address-autocomplete.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body class="auth-page">
 
@@ -123,23 +124,13 @@ async function handleRegister(e) {
   const { data, error } = await _sb.auth.signUp({
     email: accountEmail,
     password,
-    options: { data: { role: 'agency', company_name: companyName } },
+    options: { data: { role: 'agency', company_name: companyName, address, contact_email: contactEmail } },
   });
 
   if (error) {
     sbHelpers.showError('error-msg', error.message);
     sbHelpers.setLoading(btn, false, 'Register agency');
     return;
-  }
-
-  if (data.user) {
-    await _sb.from('agencies').insert({
-      user_id: data.user.id,
-      company_name: companyName,
-      address,
-      contact_email: contactEmail,
-      is_verified: false,
-    });
   }
 
   window.location.href = '../agency/dashboard.html';

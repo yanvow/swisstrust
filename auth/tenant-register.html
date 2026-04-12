@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body class="auth-page">
 
@@ -111,14 +112,6 @@ async function handleRegister(e) {
     sbHelpers.showError('error-msg', error.message);
     sbHelpers.setLoading(btn, false, 'Create account & continue');
     return;
-  }
-
-  // Pre-create the tenants row with the name so profile page can load it
-  if (data.user) {
-    await _sb.from('tenants').insert({
-      user_id: data.user.id,
-      full_name: `${firstName} ${lastName}`,
-    });
   }
 
   window.location.href = '../tenant/profile.html';
