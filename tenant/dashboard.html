@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — SwissTrust Tenant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray">Sophie Müller</span>
+      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">My dossier</div>
+      <a href="dashboard.html" class="sidebar__link sidebar__link--active">
+        <span class="sidebar__icon">⊞</span> Dashboard
+      </a>
+      <a href="profile.html" class="sidebar__link">
+        <span class="sidebar__icon">◎</span> My profile
+      </a>
+      <a href="documents.html" class="sidebar__link">
+        <span class="sidebar__icon">📄</span> Documents
+      </a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Certificates</div>
+      <a href="certificates.html" class="sidebar__link">
+        <span class="sidebar__icon">🪪</span> My certificates
+      </a>
+      <a href="certificate-new.html" class="sidebar__link">
+        <span class="sidebar__icon">＋</span> New certificate
+      </a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Other</div>
+      <a href="../verify.html" class="sidebar__link">
+        <span class="sidebar__icon">✓</span> Verify a certificate
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="page-title">Dashboard</div>
+    <div class="page-subtitle">Welcome back, Sophie. Here's your dossier status.</div>
+
+    <!-- Dossier completion progress -->
+    <div class="card mb-24">
+      <div class="flex-between mb-12">
+        <div>
+          <div class="card-title">Dossier completion</div>
+          <div class="card-subtitle">Complete your profile to generate certificates</div>
+        </div>
+        <div class="badge trust-b">75% complete</div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-bar__fill" style="width:75%;"></div>
+      </div>
+      <div class="mt-16" style="display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:center; gap:10px; font-size:.875rem;">
+          <span style="color:var(--green);">✓</span>
+          <span>Personal information complete</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:.875rem;">
+          <span style="color:var(--green);">✓</span>
+          <span>Employment details filled</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:.875rem;">
+          <span style="color:var(--amber);">⚠</span>
+          <span>2 documents pending upload</span>
+          <a href="documents.html" style="font-size:.8rem; color:var(--charcoal); font-weight:600; margin-left:auto;">Upload now →</a>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:.875rem;">
+          <span style="color:var(--gray-400);">○</span>
+          <span style="color:var(--gray-400);">No certificates generated yet</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-grid mb-24">
+      <div class="stat-box">
+        <div class="stat-num">3</div>
+        <div class="stat-lbl">Documents uploaded</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">2</div>
+        <div class="stat-lbl">Verified ✓</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">0</div>
+        <div class="stat-lbl">Certificates</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--amber);">B</div>
+        <div class="stat-lbl">Trust Score (provisional)</div>
+      </div>
+    </div>
+
+    <!-- Document status overview -->
+    <div class="card mb-24">
+      <div class="card-header">
+        <div class="card-title">Document status</div>
+        <div class="card-subtitle">Upload all 5 document types to reach Trust Score A</div>
+      </div>
+      <div class="doc-row doc-row--done">
+        <div class="doc-row__icon">🪪</div>
+        <div class="doc-row__info">
+          <div class="doc-row__name">Passport / Swiss ID</div>
+          <div class="doc-row__desc">Uploaded 10 Apr 2026</div>
+        </div>
+        <span class="badge badge-green">Auto-verified</span>
+      </div>
+      <div class="doc-row doc-row--flagged">
+        <div class="doc-row__icon">📄</div>
+        <div class="doc-row__info">
+          <div class="doc-row__name">Salary slips (3 months)</div>
+          <div class="doc-row__desc">2 of 3 uploaded — 1 flagged for review</div>
+        </div>
+        <span class="badge badge-amber">Flagged</span>
+      </div>
+      <div class="doc-row doc-row--done">
+        <div class="doc-row__icon">⚖️</div>
+        <div class="doc-row__info">
+          <div class="doc-row__name">Betreibungsauszug</div>
+          <div class="doc-row__desc">Clean — auto-verified</div>
+        </div>
+        <span class="badge badge-green">Auto-verified</span>
+      </div>
+      <div class="doc-row doc-row--pending">
+        <div class="doc-row__icon">🏠</div>
+        <div class="doc-row__info">
+          <div class="doc-row__name">Landlord reference letter</div>
+          <div class="doc-row__desc">Not yet uploaded</div>
+        </div>
+        <span class="badge badge-gray">Missing</span>
+      </div>
+      <div class="doc-row doc-row--pending">
+        <div class="doc-row__icon">🪪</div>
+        <div class="doc-row__info">
+          <div class="doc-row__name">Residence permit</div>
+          <div class="doc-row__desc">Not applicable (Swiss citizen)</div>
+        </div>
+        <span class="badge badge-gray">N/A</span>
+      </div>
+      <div class="mt-16">
+        <a href="documents.html" class="btn btn-outline btn-sm">Manage documents</a>
+      </div>
+    </div>
+
+    <!-- CTA to generate certificate -->
+    <div class="card" style="border:2px solid var(--charcoal); background:var(--gray-100);">
+      <div class="flex-between">
+        <div>
+          <div class="card-title">Ready to apply for a flat?</div>
+          <div class="card-subtitle mt-4">Generate a QR certificate for a specific property. Takes 2 minutes.</div>
+        </div>
+        <a href="certificate-new.html" class="btn btn-primary">New certificate →</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register agency — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body class="auth-page">
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <a href="login.html" class="nav__link">Already registered? Sign in</a>
+  </div>
+</nav>
+
+<div class="auth-wrap" style="padding:60px 24px;">
+  <div class="auth-card" style="max-width:520px;">
+    <div class="auth-card__logo">
+      <div class="auth-card__logo-mark">ST</div>
+      SwissTrust
+    </div>
+    <h1 class="auth-card__title">Register your agency</h1>
+    <p class="auth-card__sub">Access verified tenant dossiers. Free registration — your agency appears in the tenant directory immediately.</p>
+
+    <div style="display:flex; gap:16px; margin-bottom:24px;">
+      <div class="card card--flat" style="flex:1; background:var(--gray-100); padding:14px; text-align:center;">
+        <div style="font-size:1.25rem; font-weight:700;">✓</div>
+        <div class="text-xs text-gray mt-4">Verified documents</div>
+      </div>
+      <div class="card card--flat" style="flex:1; background:var(--gray-100); padding:14px; text-align:center;">
+        <div style="font-size:1.25rem; font-weight:700;">🔒</div>
+        <div class="text-xs text-gray mt-4">Secure access</div>
+      </div>
+      <div class="card card--flat" style="flex:1; background:var(--gray-100); padding:14px; text-align:center;">
+        <div style="font-size:1.25rem; font-weight:700;">📋</div>
+        <div class="text-xs text-gray mt-4">Audit trail</div>
+      </div>
+    </div>
+
+    <form onsubmit="handleRegister(event)">
+      <div class="form-group">
+        <label for="company_name">Agency / company name <span class="req">*</span></label>
+        <input type="text" id="company_name" placeholder="Moser Vernet & Cie" required>
+      </div>
+      <div class="form-group">
+        <label for="address">Business address <span class="req">*</span></label>
+        <input type="text" id="address" placeholder="Rue Ami-Lullin 4, 1207 Genève" required>
+      </div>
+      <div class="form-group">
+        <label for="contact_email">Contact email <span class="req">*</span></label>
+        <input type="email" id="contact_email" placeholder="info@agence.ch" required>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="form-group">
+        <label for="account_email">Account email (for login) <span class="req">*</span></label>
+        <input type="email" id="account_email" placeholder="admin@agence.ch" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="password">Password <span class="req">*</span></label>
+          <input type="password" id="password" placeholder="Min. 8 characters" required>
+        </div>
+        <div class="form-group">
+          <label for="confirm_password">Confirm password <span class="req">*</span></label>
+          <input type="password" id="confirm_password" placeholder="Repeat" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <input type="checkbox" id="terms" required style="width:auto; margin-top:3px; flex-shrink:0;">
+          <label for="terms" style="font-size:.875rem; color:var(--gray-600); margin-bottom:0;">
+            I agree to the <a href="#" style="color:var(--charcoal); font-weight:600;">Agency Terms</a> and confirm this agency is authorised to access tenant data in accordance with Swiss data protection law.
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Register agency</button>
+    </form>
+
+    <div class="auth-card__footer">
+      Already registered? <a href="login.html">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function handleRegister(e) {
+  e.preventDefault();
+  window.location.href = '../agency/dashboard.html';
+}
+</script>
+</body>
+</html>

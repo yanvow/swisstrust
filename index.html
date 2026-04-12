@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SwissTrust — Verified Tenant Dossiers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <div class="nav__links">
+      <a href="#how-it-works" class="nav__link">How it works</a>
+      <a href="#agencies" class="nav__link">For agencies</a>
+      <a href="auth/login.html" class="nav__link">Sign in</a>
+      <a href="auth/tenant-register.html" class="btn btn-primary btn-sm">Create dossier</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container grid-2" style="align-items:center; gap:60px;">
+    <div>
+      <div class="hero__eyebrow">Swiss rental identity platform</div>
+      <h1 class="hero__title">One verified dossier.<br>Share it <em>securely</em> with anyone.</h1>
+      <p class="hero__desc">Stop sending your passport, salary slips and debt records to 30 strangers. Verify once. Share a QR certificate. Agencies see exactly what they need — nothing more.</p>
+      <div class="hero__ctas">
+        <a href="auth/tenant-register.html" class="btn btn-primary btn-lg">Create tenant dossier</a>
+        <a href="auth/agency-register.html" class="btn btn-outline btn-lg">Register your agency</a>
+      </div>
+      <p class="text-xs text-gray mt-16">Free for tenants &nbsp;·&nbsp; Swiss data hosting &nbsp;·&nbsp; GDPR compliant</p>
+    </div>
+    <div class="hero__visual" style="display:flex; justify-content:center;">
+      <!-- Certificate preview card -->
+      <div class="cert-card" style="width:340px;">
+        <div class="cert-card__header">
+          <div class="cert-card__logo">
+            <div class="cert-card__logo-mark">ST</div>
+            SwissTrust
+          </div>
+          <div class="cert-card__title">Tenant Verification Certificate</div>
+        </div>
+        <div class="cert-card__body">
+          <div style="display:flex; gap:20px; align-items:flex-start; margin-bottom:16px;">
+            <div>
+              <!-- Fake QR -->
+              <div class="cert-card__qr" style="width:100px; height:100px; font-size:.6rem; text-align:center;">
+                <svg viewBox="0 0 21 21" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="21" height="21" fill="white"/>
+                  <!-- QR pattern simulation -->
+                  <rect x="1" y="1" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
+                  <rect x="3" y="3" width="3" height="3" fill="#1A1A1A"/>
+                  <rect x="13" y="1" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
+                  <rect x="15" y="3" width="3" height="3" fill="#1A1A1A"/>
+                  <rect x="1" y="13" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
+                  <rect x="3" y="15" width="3" height="3" fill="#1A1A1A"/>
+                  <rect x="9" y="1" width="1" height="3" fill="#1A1A1A"/>
+                  <rect x="11" y="2" width="1" height="2" fill="#1A1A1A"/>
+                  <rect x="9" y="5" width="3" height="1" fill="#1A1A1A"/>
+                  <rect x="9" y="9" width="5" height="1" fill="#1A1A1A"/>
+                  <rect x="13" y="9" width="1" height="5" fill="#1A1A1A"/>
+                  <rect x="15" y="11" width="3" height="1" fill="#1A1A1A"/>
+                  <rect x="9" y="13" width="1" height="7" fill="#1A1A1A"/>
+                  <rect x="11" y="14" width="3" height="1" fill="#1A1A1A"/>
+                  <rect x="17" y="13" width="3" height="3" fill="#1A1A1A"/>
+                  <rect x="11" y="17" width="5" height="1" fill="#1A1A1A"/>
+                </svg>
+              </div>
+            </div>
+            <div style="flex:1;">
+              <div class="verified-badge mb-8" style="font-size:.75rem; padding:5px 10px;">
+                <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+                Identity Verified
+              </div>
+              <div class="cert-card__code">STD-2G7K-X4NP</div>
+              <div class="mt-8" style="font-size:.75rem; color:var(--gray-400);">Valid certificate</div>
+            </div>
+          </div>
+          <div>
+            <div class="cert-card__field">
+              <span class="cert-card__field-label">Tenant</span>
+              <span class="cert-card__field-value">Sophie Müller</span>
+            </div>
+            <div class="cert-card__field">
+              <span class="cert-card__field-label">Trust Score</span>
+              <span class="badge trust-a">A — Excellent</span>
+            </div>
+            <div class="cert-card__field">
+              <span class="cert-card__field-label">Eligibility</span>
+              <span class="badge badge-green">✓ Income qualifies</span>
+            </div>
+            <div class="cert-card__field">
+              <span class="cert-card__field-label">Household</span>
+              <span class="cert-card__field-value">2 occupants · No pets</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hero__badge">Trusted by<br><span>180+ agencies</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM STATS -->
+<section class="section section--gray">
+  <div class="container">
+    <div class="section-label">The problem</div>
+    <div class="grid-2" style="gap:60px; align-items:center;">
+      <div>
+        <h2 class="section-title">Swiss flat hunting is a privacy nightmare</h2>
+        <p style="margin-bottom:24px;">For every apartment, tenants hand over their passport, salary slips, debt records and personal references — to complete strangers. Most of those dossiers are never returned. Your data circulates indefinitely.</p>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div style="font-size:1.75rem; font-weight:700; color:var(--red); min-width:60px;">30–50</div>
+            <div class="text-sm text-gray">strangers receive your sensitive documents per flat search</div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div style="font-size:1.75rem; font-weight:700; color:var(--red); min-width:60px;">0%</div>
+            <div class="text-sm text-gray">of agencies have a secure document return policy</div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div style="font-size:1.75rem; font-weight:700; color:var(--red); min-width:60px;">1 in 5</div>
+            <div class="text-sm text-gray">rental applications contain fraudulent documents</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card" style="border-left:3px solid var(--red);">
+          <div class="text-sm font-bold mb-4">Traditional dossier</div>
+          <div class="text-xs text-gray">Passport copy sent to 40 strangers · Salary slips emailed as PDFs · No access control · Data never deleted</div>
+        </div>
+        <div style="text-align:center; font-size:1.5rem;">↓</div>
+        <div class="card" style="border-left:3px solid var(--green);">
+          <div class="text-sm font-bold mb-4" style="color:var(--green);">SwissTrust certificate</div>
+          <div class="text-xs text-gray">Verified once · QR code shared · Agency sees only what they're authorised to see · Full audit trail</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how-it-works">
+  <div class="container">
+    <div class="text-center mb-32">
+      <div class="section-label">How it works</div>
+      <h2>Three steps to a verified dossier</h2>
+      <p class="mt-8">Complete your profile once. Generate a certificate per property. Done.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step__num">1</div>
+        <div class="step__title">Upload documents</div>
+        <div class="step__desc">Passport, salary slips, Betreibungsauszug. Our AI verifies and extracts the data automatically.</div>
+      </div>
+      <div class="step">
+        <div class="step__num">2</div>
+        <div class="step__title">Build your dossier</div>
+        <div class="step__desc">Your verified identity, employment and household data — reviewed once, stored securely.</div>
+      </div>
+      <div class="step">
+        <div class="step__num">3</div>
+        <div class="step__title">Share a QR certificate</div>
+        <div class="step__desc">Generate a certificate for each property. The agency sees the full dossier. Others see only a verified summary.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIERED ACCESS TABLE -->
+<section class="section section--gray">
+  <div class="container">
+    <div class="text-center mb-32">
+      <div class="section-label">Granular access control</div>
+      <h2>You control what agencies see</h2>
+      <p class="mt-8">Every certificate has two access tiers. Public scans show only your summary. The authorised agency unlocks the full dossier.</p>
+    </div>
+    <div class="table-wrap" style="max-width:700px; margin:0 auto;">
+      <table class="tier-table">
+        <thead>
+          <tr>
+            <th>Data point</th>
+            <th style="text-align:center;">Public (anyone)</th>
+            <th style="text-align:center;" class="tier-agency-col">Authorised agency</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Full name</td><td style="text-align:center;" class="tier-check">✓</td><td style="text-align:center;" class="tier-check tier-agency-col">✓</td></tr>
+          <tr><td>Verification badge</td><td style="text-align:center;" class="tier-check">✓</td><td style="text-align:center;" class="tier-check tier-agency-col">✓</td></tr>
+          <tr><td>Rent eligibility (income × 3 rule)</td><td style="text-align:center;" class="tier-check">✓</td><td style="text-align:center;" class="tier-check tier-agency-col">✓</td></tr>
+          <tr><td>Occupants, smoker, pets</td><td style="text-align:center;" class="tier-check">✓</td><td style="text-align:center;" class="tier-check tier-agency-col">✓</td></tr>
+          <tr><td>Trust Score (A / B / C)</td><td style="text-align:center;" class="tier-check">✓</td><td style="text-align:center;" class="tier-check tier-agency-col">✓</td></tr>
+          <tr><td>ID / Passport copy</td><td style="text-align:center;" class="tier-lock">🔒</td><td style="text-align:center;" class="tier-check tier-agency-col">✓</td></tr>
+          <tr><td>Salary slips</td><td style="text-align:center;" class="tier-lock">🔒</td><td style="text-align:center;" class="tier-check tier-agency-col">✓</td></tr>
+          <tr><td>Betreibungsauszug</td><td style="text-align:center;" class="tier-lock">🔒</td><td style="text-align:center;" class="tier-check tier-agency-col">✓</td></tr>
+          <tr><td>Employer &amp; exact income</td><td style="text-align:center;" class="tier-lock">🔒</td><td style="text-align:center;" class="tier-check tier-agency-col">✓</td></tr>
+          <tr><td>Reference letter</td><td style="text-align:center;" class="tier-lock">🔒</td><td style="text-align:center;" class="tier-check tier-agency-col">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST SCORE -->
+<section class="section">
+  <div class="container">
+    <div class="text-center mb-32">
+      <div class="section-label">Trust Score</div>
+      <h2>Instant signal for agencies</h2>
+      <p class="mt-8">Every certificate carries a Trust Score calculated from your verified documents.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card text-center">
+        <div class="badge trust-a mb-16" style="font-size:1.5rem; padding:10px 28px; margin:0 auto;">A</div>
+        <h3 class="mt-16">Excellent</h3>
+        <p class="text-sm mt-8">All documents verified, clean Betreibungsauszug, income ≥ 3× rent. Strongest possible profile.</p>
+      </div>
+      <div class="card text-center">
+        <div class="badge trust-b mb-16" style="font-size:1.5rem; padding:10px 28px; margin:0 auto;">B</div>
+        <h3 class="mt-16">Good</h3>
+        <p class="text-sm mt-8">Most documents verified. Minor gaps or flagged items requiring agency review.</p>
+      </div>
+      <div class="card text-center">
+        <div class="badge trust-c mb-16" style="font-size:1.5rem; padding:10px 28px; margin:0 auto;">C</div>
+        <h3 class="mt-16">Review required</h3>
+        <p class="text-sm mt-8">Significant gaps or unverified documents. Agency should follow up directly with applicant.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AGENCY PITCH -->
+<section class="section section--dark" id="agencies">
+  <div class="container">
+    <div class="grid-2" style="gap:60px; align-items:center;">
+      <div>
+        <div class="section-label" style="color:var(--red);">For agencies</div>
+        <h2 style="color:var(--white);">Stop processing fraudulent dossiers</h2>
+        <p class="mt-16" style="color:var(--gray-200); margin-bottom:32px;">Every SwissTrust certificate is backed by AI-verified documents. You see the original files, extracted data, and a Trust Score — in seconds.</p>
+        <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:32px;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <span style="color:var(--red); font-size:1.2rem; margin-top:2px;">✓</span>
+            <div>
+              <div style="font-weight:600; color:var(--white);">Verified documents only</div>
+              <div style="font-size:.875rem; color:var(--gray-400);">AI confidence scoring flags suspicious or unreadable documents before they reach you.</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <span style="color:var(--red); font-size:1.2rem; margin-top:2px;">✓</span>
+            <div>
+              <div style="font-weight:600; color:var(--white);">Full audit trail</div>
+              <div style="font-size:.875rem; color:var(--gray-400);">Every access is logged. Know exactly who viewed which dossier and when.</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <span style="color:var(--red); font-size:1.2rem; margin-top:2px;">✓</span>
+            <div>
+              <div style="font-weight:600; color:var(--white);">One-click comparison</div>
+              <div style="font-size:.875rem; color:var(--gray-400);">Compare applicants side by side — Trust Score, eligibility, household details — from your dashboard.</div>
+            </div>
+          </div>
+        </div>
+        <a href="auth/agency-register.html" class="btn btn-primary btn-lg">Register your agency — free</a>
+      </div>
+      <div>
+        <!-- Agency dashboard preview -->
+        <div style="background:var(--gray-800); border-radius:var(--radius); padding:20px; border:1px solid #444;">
+          <div style="font-size:.75rem; color:var(--gray-400); margin-bottom:12px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;">Agency dashboard</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="background:#1A1A1A; border:1px solid #333; padding:12px 14px; border-radius:2px; display:flex; align-items:center; justify-content:space-between;">
+              <div>
+                <div style="font-size:.875rem; font-weight:600; color:white;">Sophie Müller</div>
+                <div style="font-size:.75rem; color:var(--gray-400);">Rue de Rive 14 · 3.5 rooms · CHF 2,400</div>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <span class="badge trust-a" style="font-size:.7rem;">A</span>
+                <span class="badge badge-green" style="font-size:.7rem;">Eligible</span>
+              </div>
+            </div>
+            <div style="background:#1A1A1A; border:1px solid #333; padding:12px 14px; border-radius:2px; display:flex; align-items:center; justify-content:space-between;">
+              <div>
+                <div style="font-size:.875rem; font-weight:600; color:white;">Marc Durand</div>
+                <div style="font-size:.75rem; color:var(--gray-400);">Avenue de la Gare 8 · 2.5 rooms · CHF 1,800</div>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <span class="badge trust-b" style="font-size:.7rem;">B</span>
+                <span class="badge badge-green" style="font-size:.7rem;">Eligible</span>
+              </div>
+            </div>
+            <div style="background:#1A1A1A; border:1px solid #333; padding:12px 14px; border-radius:2px; display:flex; align-items:center; justify-content:space-between;">
+              <div>
+                <div style="font-size:.875rem; font-weight:600; color:white;">Lukas Bärtsch</div>
+                <div style="font-size:.75rem; color:var(--gray-400);">Bahnhofstrasse 22 · 4 rooms · CHF 3,200</div>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <span class="badge trust-c" style="font-size:.7rem;">C</span>
+                <span class="badge badge-amber" style="font-size:.7rem;">Review</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="section">
+  <div class="container text-center">
+    <div class="section-label">Get started today</div>
+    <h2 style="max-width:600px; margin:0 auto 16px;">Your dossier. Your data. Your control.</h2>
+    <p style="max-width:480px; margin:0 auto 36px;">Join thousands of tenants who verify once and apply anywhere — without exposing their data to strangers.</p>
+    <div class="flex-center gap-16" style="flex-wrap:wrap;">
+      <a href="auth/tenant-register.html" class="btn btn-primary btn-lg">Create my dossier</a>
+      <a href="auth/agency-register.html" class="btn btn-outline btn-lg">Register agency</a>
+    </div>
+    <p class="text-xs text-gray mt-24">Already have an account? <a href="auth/login.html" style="color:var(--charcoal); font-weight:600;">Sign in →</a></p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__logo">
+          <div class="footer__logo-mark">ST</div>
+          SwissTrust
+        </div>
+        <p class="footer__desc">Verified tenant identity for the Swiss rental market. Build your dossier once. Share securely with anyone.</p>
+      </div>
+      <div>
+        <div class="footer__col-title">Tenants</div>
+        <a href="auth/tenant-register.html" class="footer__link">Create dossier</a>
+        <a href="auth/login.html" class="footer__link">Sign in</a>
+        <a href="verify.html" class="footer__link">Verify a certificate</a>
+      </div>
+      <div>
+        <div class="footer__col-title">Agencies</div>
+        <a href="auth/agency-register.html" class="footer__link">Register</a>
+        <a href="auth/login.html" class="footer__link">Agency login</a>
+      </div>
+      <div>
+        <div class="footer__col-title">Legal</div>
+        <a href="#" class="footer__link">Privacy policy</a>
+        <a href="#" class="footer__link">Terms of service</a>
+        <a href="#" class="footer__link">Data processing</a>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 SwissTrust SA. All rights reserved.</span>
+      <div class="footer__swiss">
+        <span style="color:var(--red);">&#43;</span>&nbsp;Made in Switzerland
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

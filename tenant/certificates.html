@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Certificates — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray">Sophie Müller</span>
+      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">My dossier</div>
+      <a href="dashboard.html" class="sidebar__link"><span class="sidebar__icon">⊞</span> Dashboard</a>
+      <a href="profile.html" class="sidebar__link"><span class="sidebar__icon">◎</span> My profile</a>
+      <a href="documents.html" class="sidebar__link"><span class="sidebar__icon">📄</span> Documents</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Certificates</div>
+      <a href="certificates.html" class="sidebar__link sidebar__link--active"><span class="sidebar__icon">🪪</span> My certificates</a>
+      <a href="certificate-new.html" class="sidebar__link"><span class="sidebar__icon">＋</span> New certificate</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="flex-between mb-24">
+      <div>
+        <div class="page-title">My certificates</div>
+        <div class="page-subtitle">One certificate per property. Share the QR code or manual code with your agency.</div>
+      </div>
+      <a href="certificate-new.html" class="btn btn-primary">+ New certificate</a>
+    </div>
+
+    <!-- Certificate 1 -->
+    <div class="card mb-16" style="border-left: 3px solid var(--green);">
+      <div class="flex-between mb-16">
+        <div>
+          <div style="font-weight:700; font-size:1rem;">Rue de Rive 14, 1204 Genève</div>
+          <div class="text-sm text-gray mt-4">3.5 rooms · Floor 2 · CHF 2,400/mo · Move-in 01.06.2026</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span class="badge trust-a">A</span>
+          <span class="badge badge-green">Active</span>
+        </div>
+      </div>
+      <div class="flex-between" style="flex-wrap:wrap; gap:12px;">
+        <div>
+          <div class="text-xs text-gray mb-4">Certificate code</div>
+          <div class="font-mono font-bold" style="font-size:1.1rem; letter-spacing:.08em;">STD-2G7K-X4NP</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray mb-4">Directed to</div>
+          <div class="text-sm font-bold">Moser Vernet & Cie</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray mb-4">Created</div>
+          <div class="text-sm">10 Apr 2026</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <a href="../cert/cert-view.html" class="btn btn-outline btn-sm">View certificate</a>
+          <button class="btn btn-ghost btn-sm" onclick="copyCode('STD-2G7K-X4NP', this)">Copy code</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Certificate 2 -->
+    <div class="card mb-16" style="border-left: 3px solid var(--amber);">
+      <div class="flex-between mb-16">
+        <div>
+          <div style="font-weight:700; font-size:1rem;">Avenue de la Gare 8, 1003 Lausanne</div>
+          <div class="text-sm text-gray mt-4">2.5 rooms · Floor 4 · CHF 1,950/mo · Move-in 01.05.2026</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span class="badge trust-b">B</span>
+          <span class="badge badge-amber">Pending</span>
+        </div>
+      </div>
+      <div class="flex-between" style="flex-wrap:wrap; gap:12px;">
+        <div>
+          <div class="text-xs text-gray mb-4">Certificate code</div>
+          <div class="font-mono font-bold" style="font-size:1.1rem; letter-spacing:.08em;">STD-9MKP-R3QX</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray mb-4">Directed to</div>
+          <div class="text-sm font-bold">Naef Immobilier</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray mb-4">Created</div>
+          <div class="text-sm">08 Apr 2026</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <a href="../cert/cert-view.html" class="btn btn-outline btn-sm">View certificate</a>
+          <button class="btn btn-ghost btn-sm" onclick="copyCode('STD-9MKP-R3QX', this)">Copy code</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card--flat" style="background:var(--gray-100); text-align:center; padding:40px;">
+      <div style="font-size:2rem; margin-bottom:12px; opacity:.4;">＋</div>
+      <div class="text-sm text-gray mb-16">Applying to another property?</div>
+      <a href="certificate-new.html" class="btn btn-primary btn-sm">Create new certificate</a>
+    </div>
+  </main>
+</div>
+
+<script>
+function copyCode(code, btn) {
+  navigator.clipboard.writeText(code).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+</script>
+</body>
+</html>

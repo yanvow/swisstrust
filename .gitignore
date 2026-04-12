@@ -1,0 +1,23 @@
+# Environment — NEVER commit these
+.env.local
+.env.*.local
+.env
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
