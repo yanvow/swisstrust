@@ -6,6 +6,8 @@
   <title>Sign in — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
 </head>
 <body class="auth-page">
 
@@ -37,7 +39,8 @@
         <input type="password" id="password" placeholder="••••••••" required>
         <div class="form-hint"><a href="#" style="color:var(--charcoal);">Forgot password?</a></div>
       </div>
-      <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;">Sign in</button>
+      <div id="error-msg" style="display:none; color:var(--red); font-size:.875rem; margin-bottom:12px;"></div>
+      <button type="submit" id="submit-btn" class="btn btn-primary btn-full" style="margin-top:8px;">Sign in</button>
     </form>
 
     <div class="auth-divider mt-24"><span>or continue as</span></div>
@@ -54,15 +57,34 @@
 </div>
 
 <script>
-function handleLogin(e) {
+// If already logged in, redirect immediately
+(async () => {
+  const session = await sbHelpers.getSession();
+  if (session) redirectByRole(session.user.user_metadata?.role);
+})();
+
+function redirectByRole(role) {
+  if (role === 'agency') window.location.href = '../agency/dashboard.html';
+  else if (role === 'owner') window.location.href = '../index.html';
+  else window.location.href = '../tenant/dashboard.html';
+}
+
+async function handleLogin(e) {
   e.preventDefault();
-  // Demo: route by email prefix
-  const email = document.getElementById('email').value;
-  if (email.startsWith('agency')) {
-    window.location.href = '../agency/dashboard.html';
-  } else {
-    window.location.href = '../tenant/dashboard.html';
+  const btn = document.getElementById('submit-btn');
+  sbHelpers.setLoading(btn, true, 'Sign in');
+  sbHelpers.hideError('error-msg');
+
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  const { data, error } = await _sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    sbHelpers.showError('error-msg', error.message);
+    sbHelpers.setLoading(btn, false, 'Sign in');
+    return;
   }
+  redirectByRole(data.user.user_metadata?.role);
 }
 </script>
 </body>

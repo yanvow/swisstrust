@@ -6,6 +6,8 @@
   <title>Agency Dashboard — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
 </head>
 <body>
 
@@ -16,8 +18,8 @@
       SwissTrust
     </a>
     <div class="nav__links">
-      <span class="text-sm text-gray">Moser Vernet & Cie</span>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      <span class="text-sm text-gray" id="nav-agency"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
     </div>
   </div>
 </nav>
@@ -45,24 +47,24 @@
   <!-- MAIN -->
   <main class="main-content">
     <div class="page-title">Certificate inbox</div>
-    <div class="page-subtitle">Tenants who have directed their SwissTrust certificate to Moser Vernet & Cie.</div>
+    <div class="page-subtitle" id="page-subtitle">Loading…</div>
 
     <!-- Stats -->
     <div class="stat-grid mb-32">
       <div class="stat-box">
-        <div class="stat-num">3</div>
+        <div class="stat-num" id="stat-total">—</div>
         <div class="stat-lbl">Total certificates</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" style="color:var(--green);">2</div>
+        <div class="stat-num" style="color:var(--green);" id="stat-a">—</div>
         <div class="stat-lbl">Score A (Excellent)</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" style="color:var(--amber);">1</div>
+        <div class="stat-num" style="color:var(--amber);" id="stat-b">—</div>
         <div class="stat-lbl">Score B (Good)</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" style="color:var(--green);">3</div>
+        <div class="stat-num" style="color:var(--green);" id="stat-eligible">—</div>
         <div class="stat-lbl">Income eligible</div>
       </div>
     </div>
@@ -99,59 +101,68 @@
             <th></th>
           </tr>
         </thead>
-        <tbody>
-          <tr>
-            <td>
-              <div class="font-bold">Sophie Müller</div>
-              <div class="text-xs text-gray">2 occupants · No smoker · No pets</div>
-            </td>
-            <td>
-              <div class="text-sm font-bold">Rue de Rive 14, 1204 Genève</div>
-              <div class="text-xs text-gray">3.5 rooms · CHF 2,400/mo · Move-in 01.06.2026</div>
-            </td>
-            <td><span class="badge trust-a">A</span></td>
-            <td><span class="badge badge-green">✓ Eligible</span></td>
-            <td class="text-sm text-gray">10 Apr 2026</td>
-            <td><a href="dossier.html" class="btn btn-primary btn-sm">View dossier</a></td>
-          </tr>
-          <tr>
-            <td>
-              <div class="font-bold">Marc Durand</div>
-              <div class="text-xs text-gray">1 occupant · No smoker · No pets</div>
-            </td>
-            <td>
-              <div class="text-sm font-bold">Rue de Rive 14, 1204 Genève</div>
-              <div class="text-xs text-gray">3.5 rooms · CHF 2,400/mo · Move-in 01.06.2026</div>
-            </td>
-            <td><span class="badge trust-a">A</span></td>
-            <td><span class="badge badge-green">✓ Eligible</span></td>
-            <td class="text-sm text-gray">09 Apr 2026</td>
-            <td><a href="dossier.html" class="btn btn-primary btn-sm">View dossier</a></td>
-          </tr>
-          <tr>
-            <td>
-              <div class="font-bold">Lukas Bärtsch</div>
-              <div class="text-xs text-gray">3 occupants · No smoker · Has pets</div>
-            </td>
-            <td>
-              <div class="text-sm font-bold">Rue de Rive 14, 1204 Genève</div>
-              <div class="text-xs text-gray">3.5 rooms · CHF 2,400/mo · Move-in 15.05.2026</div>
-            </td>
-            <td><span class="badge trust-b">B</span></td>
-            <td><span class="badge badge-green">✓ Eligible</span></td>
-            <td class="text-sm text-gray">08 Apr 2026</td>
-            <td><a href="dossier.html" class="btn btn-primary btn-sm">View dossier</a></td>
-          </tr>
+        <tbody id="cert-tbody">
+          <tr><td colspan="6" class="text-gray text-sm" style="padding:24px; text-align:center;">Loading…</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Comparison hint -->
     <div class="card mt-24 card--flat" style="background:var(--gray-100); border:none; padding:14px 16px;">
       <div class="text-sm text-gray">💡 <strong>Tip:</strong> Click "View dossier" to see the full verified documents for each applicant. All accesses are logged.</div>
     </div>
   </main>
 </div>
 
+<script>
+(async () => {
+  const user = await sbHelpers.requireAuth('agency');
+  if (!user) return;
+
+  // Get this agency's row
+  const { data: agency } = await _sb.from('agencies').select('id, company_name').eq('user_id', user.id).single();
+  if (!agency) {
+    document.getElementById('page-subtitle').textContent = 'Agency profile not found.';
+    return;
+  }
+
+  document.getElementById('nav-agency').textContent = agency.company_name;
+  document.getElementById('page-subtitle').textContent = `Tenants who have directed their SwissTrust certificate to ${agency.company_name}.`;
+
+  const { data: certs } = await sbHelpers.getCertificatesByAgency(agency.id);
+  const tbody = document.getElementById('cert-tbody');
+
+  if (!certs || certs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-gray text-sm" style="padding:24px; text-align:center;">No certificates yet.</td></tr>';
+    ['stat-total','stat-a','stat-b','stat-eligible'].forEach(id => document.getElementById(id).textContent = '0');
+    return;
+  }
+
+  document.getElementById('stat-total').textContent = certs.length;
+  document.getElementById('stat-a').textContent = certs.filter(c => c.trust_score === 'A').length;
+  document.getElementById('stat-b').textContent = certs.filter(c => c.trust_score === 'B').length;
+  document.getElementById('stat-eligible').textContent = certs.filter(c => c.is_eligible).length;
+
+  tbody.innerHTML = certs.map(c => {
+    const t = c.tenants || {};
+    const scoreClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[c.trust_score] || 'trust-b';
+    const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+    return `
+      <tr>
+        <td>
+          <div class="font-bold">${t.full_name || '—'}</div>
+          <div class="text-xs text-gray">${t.occupant_count || 1} occupant(s) · ${t.is_smoker ? 'Smoker' : 'No smoker'} · ${t.has_pets ? 'Pets' : 'No pets'}</div>
+        </td>
+        <td>
+          <div class="text-sm font-bold">${c.property_address}${c.property_city ? ', ' + c.property_city : ''}</div>
+          <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo${c.move_in_date ? ' · Move-in ' + new Date(c.move_in_date).toLocaleDateString('de-CH') : ''}</div>
+        </td>
+        <td><span class="badge ${scoreClass}">${c.trust_score || '—'}</span></td>
+        <td>${c.is_eligible ? '<span class="badge badge-green">✓ Eligible</span>' : '<span class="badge badge-amber">Review</span>'}</td>
+        <td class="text-sm text-gray">${date}</td>
+        <td><a href="../cert/cert-view.html?code=${c.cert_code}" class="btn btn-primary btn-sm">View dossier</a></td>
+      </tr>`;
+  }).join('');
+})();
+</script>
 </body>
 </html>

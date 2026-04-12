@@ -6,6 +6,8 @@
   <title>Register as private owner — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
 </head>
 <body class="auth-page">
 
@@ -84,18 +86,38 @@
 </div>
 
 <script>
-function registerOwner(e) {
+async function registerOwner(e) {
   e.preventDefault();
-  const pw = document.getElementById('password').value;
-  const pw2 = document.getElementById('password2').value;
-  const err = document.getElementById('error-msg');
-  if (pw !== pw2) {
-    err.style.display = 'block';
-    err.textContent = 'Passwords do not match.';
+  const btn = document.getElementById('submit-btn');
+  sbHelpers.setLoading(btn, true, 'Create owner account');
+  sbHelpers.hideError('error-msg');
+
+  const password = document.getElementById('password').value;
+  const password2 = document.getElementById('password2').value;
+
+  if (password !== password2) {
+    sbHelpers.showError('error-msg', 'Passwords do not match.');
+    sbHelpers.setLoading(btn, false, 'Create owner account');
     return;
   }
-  err.style.display = 'none';
-  // In production: supabase.auth.signUp({ email, password, options: { data: { role: 'owner' } } })
+
+  const inputs = e.target.querySelectorAll('input[type=text], input[type=email]');
+  const firstName = inputs[0].value.trim();
+  const lastName  = inputs[1].value.trim();
+  const email     = inputs[2].value.trim();
+
+  const { data, error } = await _sb.auth.signUp({
+    email,
+    password,
+    options: { data: { role: 'owner', full_name: `${firstName} ${lastName}` } },
+  });
+
+  if (error) {
+    sbHelpers.showError('error-msg', error.message);
+    sbHelpers.setLoading(btn, false, 'Create owner account');
+    return;
+  }
+
   window.location.href = '../index.html';
 }
 </script>

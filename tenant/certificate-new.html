@@ -6,6 +6,9 @@
   <title>New Certificate — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -182,12 +185,7 @@
         <div class="form-group">
           <label>Select the régie managing this property <span class="req">*</span></label>
           <select id="agency">
-            <option value="">Search for an agency…</option>
-            <option value="moser_vernet">Moser Vernet & Cie — Genève</option>
-            <option value="naef">Naef Immobilier — Genève</option>
-            <option value="regie_rhone">Régie du Rhône — Genève</option>
-            <option value="asloca">ASLOCA — Genève</option>
-            <option value="immoflex">Immoflex SA — Lausanne</option>
+            <option value="">Loading agencies…</option>
           </select>
           <div class="form-hint">Only the selected agency will have access to your full dossier.</div>
         </div>
@@ -221,34 +219,15 @@
     <h2 class="mb-8">Your QR certificate is ready</h2>
     <p class="text-sm text-gray mb-24">Share the code or QR code with the agency. They'll see your full verified dossier once they scan it while logged in.</p>
 
-    <!-- Fake QR -->
     <div style="display:flex; justify-content:center; margin-bottom:20px;">
-      <svg viewBox="0 0 21 21" width="140" height="140" xmlns="http://www.w3.org/2000/svg" style="border:8px solid white; box-shadow:0 0 0 1px var(--gray-200);">
-        <rect width="21" height="21" fill="white"/>
-        <rect x="1" y="1" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
-        <rect x="3" y="3" width="3" height="3" fill="#1A1A1A"/>
-        <rect x="13" y="1" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
-        <rect x="15" y="3" width="3" height="3" fill="#1A1A1A"/>
-        <rect x="1" y="13" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
-        <rect x="3" y="15" width="3" height="3" fill="#1A1A1A"/>
-        <rect x="9" y="1" width="1" height="3" fill="#1A1A1A"/>
-        <rect x="11" y="2" width="1" height="2" fill="#1A1A1A"/>
-        <rect x="9" y="5" width="3" height="1" fill="#1A1A1A"/>
-        <rect x="9" y="9" width="5" height="1" fill="#1A1A1A"/>
-        <rect x="13" y="9" width="1" height="5" fill="#1A1A1A"/>
-        <rect x="15" y="11" width="3" height="1" fill="#1A1A1A"/>
-        <rect x="9" y="13" width="1" height="7" fill="#1A1A1A"/>
-        <rect x="11" y="14" width="3" height="1" fill="#1A1A1A"/>
-        <rect x="17" y="13" width="3" height="3" fill="#1A1A1A"/>
-        <rect x="11" y="17" width="5" height="1" fill="#1A1A1A"/>
-      </svg>
+      <div id="qr-canvas" style="border:8px solid white; box-shadow:0 0 0 1px var(--gray-200); display:inline-block;"></div>
     </div>
 
-    <div class="font-mono font-bold mb-8" style="font-size:1.5rem; letter-spacing:.12em;">STD-2G7K-X4NP</div>
+    <div class="font-mono font-bold mb-8" style="font-size:1.5rem; letter-spacing:.12em;" id="modal-cert-code">—</div>
     <div class="text-xs text-gray mb-24" id="modal-mode-desc">Anyone can scan to see your public summary. The agency sees the full dossier.</div>
 
     <div class="flex gap-12" style="justify-content:center; flex-wrap:wrap;">
-      <button class="btn btn-primary" onclick="window.location.href='../cert/cert-view.html'">View certificate →</button>
+      <button class="btn btn-primary" id="view-cert-btn" onclick="viewCert()">View certificate →</button>
       <button class="btn btn-outline" onclick="closeCertModal()">Back to certificates</button>
     </div>
   </div>
@@ -275,6 +254,38 @@
 </style>
 <script>
 let currentMode = 'directed';
+let _user = null;
+let _tenant = null;
+let _generatedCertCode = null;
+
+// Init: auth check + load agencies + load tenant profile
+(async () => {
+  _user = await sbHelpers.requireAuth('tenant');
+  if (!_user) return;
+
+  // Load tenant profile for eligibility calc
+  const { data: tenant } = await sbHelpers.getTenantByUserId(_user.id);
+  _tenant = tenant;
+
+  // Update profile preview
+  if (tenant) {
+    document.querySelector('.card.mb-24 .text-sm').innerHTML =
+      `Your tenant data is pre-filled: <strong style="color:var(--charcoal);">${tenant.full_name || _user.email}</strong> · CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()}/mo gross · ${tenant.occupant_count || 1} occupant(s) · ${tenant.is_smoker ? 'Smoker' : 'No smoker'} · ${tenant.has_pets ? 'Pets' : 'No pets'}`;
+  }
+
+  // Load agencies into dropdown
+  const { data: agencies } = await sbHelpers.getAgencies();
+  const select = document.getElementById('agency');
+  select.innerHTML = '<option value="">Select an agency…</option>';
+  if (agencies) {
+    agencies.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `${a.company_name} — ${(a.address || '').split(',').pop()?.trim() || ''}`;
+      select.appendChild(opt);
+    });
+  }
+})();
 
 function selectMode(mode) {
   currentMode = mode;
@@ -319,16 +330,102 @@ function calcTotal() {
   }
 }
 
-function generateCertificate(e) {
+async function generateCertificate(e) {
   e.preventDefault();
+  const submitBtn = e.target.querySelector('button[type=submit]');
+  sbHelpers.setLoading(submitBtn, true, 'Generate QR certificate');
+
+  const agencyId = currentMode === 'directed' ? document.getElementById('agency').value : null;
+  if (currentMode === 'directed' && !agencyId) {
+    sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+    alert('Please select an agency.');
+    return;
+  }
+
+  // Get tenant row
+  const { data: tenant } = await sbHelpers.getTenantByUserId(_user.id);
+  if (!tenant) {
+    sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+    alert('Please complete your profile first.');
+    return;
+  }
+
+  const rent   = parseFloat(document.getElementById('rent').value) || 0;
+  const total  = parseFloat(document.getElementById('total').value) || rent;
+  const salary = tenant.monthly_gross_salary || 0;
+  const isEligible = salary >= total * 3;
+
+  // Simple trust score from profile completeness (real calc done server-side in future)
+  const trustScore = 'B'; // provisional until documents are verified
+
+  const certCode = sbHelpers.generateCertCode();
+  const appUrl   = window.location.origin + window.location.pathname.replace(/\/tenant\/.*/, '');
+  const qrUrl    = `${appUrl}/cert/cert-view.html?code=${certCode}`;
+
+  // For Directed mode we need an agency_id; for Open/On-Request use any seeded agency as placeholder
+  // In production: Open/On-Request certificates have agency_id = null (schema change needed later)
+  // For now we use the first agency for non-directed
+  let resolvedAgencyId = agencyId;
+  if (!resolvedAgencyId) {
+    const { data: agencies } = await sbHelpers.getAgencies();
+    resolvedAgencyId = agencies?.[0]?.id;
+  }
+
+  const { data: cert, error } = await _sb.from('certificates').insert({
+    tenant_id:        tenant.id,
+    agency_id:        resolvedAgencyId,
+    property_address: document.getElementById('street').value.trim(),
+    property_city:    document.getElementById('city').value.trim(),
+    property_postcode:document.getElementById('postcode').value.trim(),
+    rooms:            parseFloat(document.getElementById('rooms').value) || null,
+    floor:            document.getElementById('floor').value.trim() || null,
+    move_in_date:     document.getElementById('movein').value || null,
+    rent_chf:         parseFloat(document.getElementById('rent').value) || null,
+    charges_chf:      parseFloat(document.getElementById('charges').value) || null,
+    total_chf:        total,
+    parking_desired:  document.getElementById('parking').checked,
+    has_visited:      document.getElementById('visited').checked,
+    heard_about:      document.getElementById('heard_via').value || null,
+    mode:             currentMode,
+    trust_score:      trustScore,
+    is_eligible:      isEligible,
+    cert_code:        certCode,
+    qr_url:           qrUrl,
+  }).select().single();
+
+  sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+
+  if (error) {
+    alert('Error generating certificate: ' + error.message);
+    return;
+  }
+
+  // Render QR code
+  _generatedCertCode = certCode;
+  document.getElementById('modal-cert-code').textContent = certCode;
+  document.getElementById('qr-canvas').innerHTML = '';
+  new QRCode(document.getElementById('qr-canvas'), {
+    text: qrUrl,
+    width: 140,
+    height: 140,
+    colorDark: '#1A1A1A',
+    colorLight: '#FFFFFF',
+  });
+
   const modeDescs = {
     directed: 'Directed certificate — only the selected agency can access your full dossier.',
     open: 'Open certificate — any verified régie or landlord on SwissTrust can access your full dossier.',
     on_request: 'On-Request certificate — professionals see your public summary and must request access. Check your dashboard to approve.'
   };
   document.getElementById('modal-mode-desc').textContent = modeDescs[currentMode];
-  const modal = document.getElementById('cert-modal');
-  modal.style.display = 'flex';
+
+  document.getElementById('cert-modal').style.display = 'flex';
+}
+
+function viewCert() {
+  if (_generatedCertCode) {
+    window.location.href = `../cert/cert-view.html?code=${_generatedCertCode}`;
+  }
 }
 
 function closeCertModal() {

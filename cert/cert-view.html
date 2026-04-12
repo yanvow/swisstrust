@@ -6,6 +6,8 @@
   <title>Certificate STD-2G7K-X4NP — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
   <style>
     body { background: var(--gray-100); }
     .cert-page { min-height: 100vh; }
@@ -227,93 +229,137 @@
 </div>
 
 <script>
-// Demo modes: #agency = directed agency view, #open = open view, #onrequest = on-request view
-const hash = window.location.hash;
+(async () => {
+  // Read cert code from URL: ?code=STD-XXXX-XXXX
+  const params   = new URLSearchParams(window.location.search);
+  const certCode = params.get('code');
 
-// Certificate mode: 'directed' | 'open' | 'on_request'
-// In production this comes from the DB; for demo we infer from hash
-function getCertMode() {
-  if (hash === '#open') return 'open';
-  if (hash === '#onrequest') return 'on_request';
-  return 'directed';
-}
+  if (!certCode) {
+    document.querySelector('.cert-view__header').innerHTML = '<p class="text-gray">No certificate code provided. <a href="../verify.html">Enter a code →</a></p>';
+    return;
+  }
 
-function setView(mode, isAuthenticated) {
-  const banner = document.getElementById('tier-banner');
+  // Fetch certificate (public RLS allows this)
+  const { data: cert, error } = await sbHelpers.getCertificateByCode(certCode);
+  if (error || !cert) {
+    document.querySelector('.cert-view__header').innerHTML = '<p class="text-gray">Certificate not found or has been revoked.</p>';
+    return;
+  }
+
+  const tenant = cert.tenants || {};
+  const agency = cert.agencies || {};
+
+  // Populate public section
+  document.querySelector('.font-mono.font-bold').textContent = cert.cert_code;
+  document.querySelector('.cert-view__tenant-name').textContent = tenant.full_name || '—';
+  document.querySelector('.cert-view__header .text-sm').innerHTML =
+    `Applying for: <strong style="color:var(--charcoal);">${cert.property_address}${cert.property_city ? ', ' + cert.property_city : ''}</strong>${cert.rooms ? ' · ' + cert.rooms + ' rooms' : ''}${cert.total_chf ? ' · CHF ' + cert.total_chf.toLocaleString() + '/mo' : ''}`;
+  document.querySelector('.cert-view__header .text-xs').textContent =
+    `Certificate issued ${new Date(cert.created_at).toLocaleDateString('en-CH', {day:'2-digit',month:'long',year:'numeric'})} · Directed to: ${agency.company_name || '—'}`;
+
+  const scoreClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[cert.trust_score] || 'trust-b';
+  document.getElementById('trust-badge').className = `badge ${scoreClass}`;
+  document.getElementById('trust-badge').textContent = cert.trust_score === 'A' ? 'A — Excellent' : cert.trust_score === 'B' ? 'B — Good' : 'C — Review';
+
+  // Public facts
+  document.querySelectorAll('.cert-view__fact').forEach(fact => {
+    const label = fact.querySelector('.cert-view__fact-label')?.textContent;
+    const val   = fact.querySelector('.cert-view__fact-value');
+    if (!val) return;
+    if (label === 'Trust Score') { val.innerHTML = `<span class="badge ${scoreClass}">${cert.trust_score} — ${cert.trust_score === 'A' ? 'Excellent' : cert.trust_score === 'B' ? 'Good' : 'Review'}</span>`; }
+    if (label === 'Rent eligibility') { val.textContent = cert.is_eligible ? '✓ Income qualifies' : '⚠ Review required'; val.style.color = cert.is_eligible ? 'var(--green)' : 'var(--red)'; }
+    if (label === 'Occupants') { val.textContent = tenant.occupant_count || '—'; }
+    if (label === 'Smoker') { val.textContent = tenant.is_smoker ? 'Yes' : 'No'; }
+    if (label === 'Pets') { val.textContent = tenant.has_pets ? 'Yes' : 'No'; }
+    if (label === 'Desired move-in') { val.textContent = cert.move_in_date ? new Date(cert.move_in_date).toLocaleDateString('de-CH') : '—'; }
+  });
+
+  // Lock note
+  document.querySelector('#public-section .card .text-sm').innerHTML =
+    `🔒 <strong>Full dossier</strong> — ID copy, salary slips, Betreibungsauszug, reference letter, and exact income details are visible only to the authorised agency (${agency.company_name || '—'}).`;
+
+  // Fill agency section employment data
+  document.querySelector('#agency-section .card .font-bold').textContent = tenant.employer_name || '—';
+  const agencyFields = document.querySelectorAll('#agency-section .card [class*="font-bold"]');
+
+  // Determine access level
+  const session = await sbHelpers.getSession();
+  const mode    = cert.mode || 'directed';
+  let canSeeFull = false;
+  let viewerType = 'public';
+  let viewerName = '';
+
+  if (session) {
+    const role = session.user.user_metadata?.role;
+    if (role === 'agency' || role === 'owner') {
+      if (mode === 'open') {
+        canSeeFull = true;
+        viewerType = 'agency';
+        viewerName = session.user.user_metadata?.company_name || session.user.email;
+      } else if (mode === 'directed' && agency.user_id === session.user.id) {
+        canSeeFull = true;
+        viewerType = 'agency';
+        viewerName = agency.company_name;
+      }
+      // on_request: canSeeFull = false until approved (future feature)
+    } else if (role === 'tenant') {
+      viewerType = 'tenant';
+    }
+  }
+
+  // Log the access
+  await sbHelpers.logAccess(cert.id, session?.user?.id || null, viewerType);
+
+  // Render view
+  const banner      = document.getElementById('tier-banner');
   const agencySection = document.getElementById('agency-section');
   const onrequestSection = document.getElementById('onrequest-section');
-  const navActions = document.getElementById('nav-actions');
-  const publicLockNote = document.querySelector('#public-section .card');
+  const navActions  = document.getElementById('nav-actions');
 
-  // Reset
   agencySection.style.display = 'none';
   onrequestSection.style.display = 'none';
 
-  if (mode === 'directed') {
-    if (isAuthenticated) {
-      banner.className = 'tier-banner tier-banner--agency';
-      banner.textContent = '🔓 Directed — Moser Vernet & Cie — Full dossier access';
-      agencySection.style.display = 'block';
-      navActions.innerHTML = `
-        <span class="text-sm text-gray">Moser Vernet & Cie</span>
-        <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
-        <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
-      `;
-    } else {
-      banner.className = 'tier-banner tier-banner--public';
-      banner.innerHTML = '👁 Public view · Directed certificate — <a href="../auth/login.html" style="color:var(--charcoal);font-weight:600;">Sign in as Moser Vernet & Cie</a> to access the full dossier';
-      navActions.innerHTML = `
-        <a href="../auth/login.html" class="nav__link">Sign in</a>
-        <button onclick="setView('directed',true)" class="btn btn-primary btn-sm">Demo: Agency view</button>
-      `;
-    }
-
-  } else if (mode === 'open') {
-    if (isAuthenticated) {
-      banner.className = 'tier-banner tier-banner--open';
-      banner.textContent = '🌐 Open certificate — full dossier accessible to all verified professionals';
-      agencySection.style.display = 'block';
-      navActions.innerHTML = `
-        <span class="text-sm text-gray">Naef Immobilier</span>
-        <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
-        <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
-      `;
-    } else {
-      banner.className = 'tier-banner tier-banner--open';
-      banner.innerHTML = '🌐 Open certificate — <a href="../auth/login.html" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier';
-      navActions.innerHTML = `
-        <a href="../auth/login.html" class="nav__link">Sign in</a>
-        <button onclick="setView('open',true)" class="btn btn-primary btn-sm">Demo: Verified professional view</button>
-      `;
-    }
-
-  } else if (mode === 'on_request') {
+  if (mode === 'on_request' && !canSeeFull) {
+    banner.className = 'tier-banner tier-banner--onrequest';
+    banner.textContent = '🔔 On-Request certificate — request access from the tenant';
     onrequestSection.style.display = 'block';
-    if (isAuthenticated) {
-      // Show approved state for demo
-      document.getElementById('onrequest-approved').style.display = 'block';
-      agencySection.style.display = 'block';
-      banner.className = 'tier-banner tier-banner--onrequest';
-      banner.textContent = '🔔 On-Request — access approved by tenant · Moser Vernet & Cie';
-      navActions.innerHTML = `
-        <span class="text-sm text-gray">Moser Vernet & Cie</span>
-        <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
-        <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
-      `;
-    } else {
-      banner.className = 'tier-banner tier-banner--onrequest';
-      banner.textContent = '🔔 On-Request certificate — request access from the tenant';
-      navActions.innerHTML = `
-        <a href="../auth/login.html" class="nav__link">Sign in</a>
-        <button onclick="setView('on_request',true)" class="btn btn-ghost btn-sm">Demo: Approved view</button>
-      `;
-    }
+    navActions.innerHTML = session
+      ? `<span class="text-sm text-gray">${session.user.email}</span><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`
+      : `<a href="../auth/login.html" class="nav__link">Sign in</a>`;
+    return;
   }
-}
 
-const certMode = getCertMode();
-const isAuth = hash === '#agency' || hash === '#open' || hash === '#onrequest';
-setView(certMode, isAuth);
+  if (canSeeFull) {
+    banner.className = mode === 'open' ? 'tier-banner tier-banner--open' : 'tier-banner tier-banner--agency';
+    banner.textContent = mode === 'open'
+      ? `🌐 Open certificate — full dossier accessible · ${viewerName}`
+      : `🔓 Directed — ${viewerName} — Full dossier access`;
+    agencySection.style.display = 'block';
+    navActions.innerHTML = `
+      <span class="text-sm text-gray">${viewerName}</span>
+      <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
+
+    // Fill employment card
+    const empGrid = document.querySelector('#agency-section .card[class*="mb-24"] > div');
+    if (empGrid) {
+      empGrid.innerHTML = `
+        <div><div class="text-xs text-gray mb-2">Employer</div><div class="font-bold">${tenant.employer_name || '—'}</div></div>
+        <div><div class="text-xs text-gray mb-2">Job title</div><div class="font-bold">${tenant.job_role || '—'}</div></div>
+        <div><div class="text-xs text-gray mb-2">Monthly gross salary</div><div class="font-bold" style="color:var(--green);">CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()}</div></div>
+        <div><div class="text-xs text-gray mb-2">Employed since</div><div class="font-bold">${tenant.employment_start_date ? new Date(tenant.employment_start_date).toLocaleDateString('de-CH') : '—'}</div></div>
+        <div><div class="text-xs text-gray mb-2">Eligibility check</div><div class="font-bold" style="color:${cert.is_eligible ? 'var(--green)' : 'var(--red)'};">${cert.is_eligible ? '✓' : '✗'} CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()} ${cert.is_eligible ? '≥' : '<'} 3× CHF ${(cert.total_chf || 0).toLocaleString()}</div></div>`;
+    }
+  } else {
+    banner.className = 'tier-banner tier-banner--public';
+    banner.innerHTML = mode === 'open'
+      ? `🌐 Open certificate — <a href="../auth/login.html" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier`
+      : `👁 Public view · Directed certificate — <a href="../auth/login.html" style="color:var(--charcoal);font-weight:600;">Sign in as ${agency.company_name}</a> to access the full dossier`;
+    navActions.innerHTML = session
+      ? `<span class="text-sm text-gray">${session.user.email}</span><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`
+      : `<a href="../auth/login.html" class="nav__link">Sign in</a>`;
+  }
+})();
 </script>
 </body>
 </html>
