@@ -425,6 +425,41 @@ CREATE POLICY "certificates_agency_claim_ghost" ON certificates
   ) WITH CHECK (true);
 
 -- ============================================================
+-- ADMIN RLS POLICIES
+-- Admin users have role='admin' in user_metadata (set via Supabase dashboard).
+-- To create an admin: Supabase dashboard → Authentication → Users → edit user
+--   → set raw_user_meta_data to {"role":"admin"}
+-- ============================================================
+
+CREATE POLICY "tenants_admin_all" ON tenants FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "agencies_admin_all" ON agencies FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "documents_admin_all" ON documents FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "certificates_admin_all" ON certificates FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "access_logs_admin_all" ON document_access_logs FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "access_requests_admin_all" ON access_requests FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "owners_admin_all" ON owners FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+-- ============================================================
 -- Storage buckets
 -- Create these in Supabase dashboard → Storage:
 --   1. "documents"  — Private bucket
