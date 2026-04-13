@@ -200,73 +200,100 @@
 
 <script>
 (async () => {
-  // Read cert code from URL: ?code=STD-XXXX-XXXX
   const params   = new URLSearchParams(window.location.search);
   const certCode = params.get('code');
 
   if (!certCode) {
-    document.querySelector('.cert-view__header').innerHTML = '<p class="text-gray">No certificate code provided. <a href="../verify.html">Enter a code →</a></p>';
+    document.querySelector('.cert-view__header').innerHTML =
+      '<p class="text-gray">No certificate code provided. <a href="../verify.html">Enter a code →</a></p>';
     return;
   }
 
-  // Fetch certificate (public RLS allows this)
   const { data: cert, error } = await sbHelpers.getCertificateByCode(certCode);
   if (error || !cert) {
-    document.querySelector('.cert-view__header').innerHTML = '<p class="text-gray">Certificate not found or has been revoked.</p>';
+    document.querySelector('.cert-view__header').innerHTML =
+      '<p class="text-gray">Certificate not found or has been revoked.</p>';
     return;
   }
 
-  const tenant = cert.tenants || {};
+  const tenant = cert.tenants  || {};
   const agency = cert.agencies || {};
+  const mode   = cert.mode     || 'directed';
 
-  // Populate public section
+  // ── Header: cert code + property line ──────────────────────
   document.querySelector('.font-mono.font-bold').textContent = cert.cert_code;
   document.querySelector('.cert-view__tenant-name').textContent = tenant.full_name || '—';
   document.querySelector('.cert-view__header .text-sm').innerHTML =
     `Applying for: <strong style="color:var(--charcoal);">${cert.property_address}${cert.property_city ? ', ' + cert.property_city : ''}</strong>${cert.rooms ? ' · ' + cert.rooms + ' rooms' : ''}${cert.total_chf ? ' · CHF ' + cert.total_chf.toLocaleString() + '/mo' : ''}`;
-  document.querySelector('.cert-view__header .text-xs').textContent =
-    `Certificate issued ${new Date(cert.created_at).toLocaleDateString('en-CH', {day:'2-digit',month:'long',year:'numeric'})} · Directed to: ${agency.company_name || '—'}`;
 
+  // "Directed to / mode" sub-line
+  let directedLabel = '';
+  if (mode === 'directed') {
+    if (agency.company_name)   directedLabel = `Directed to: ${agency.company_name}`;
+    else if (cert.owner_email) directedLabel = `Directed to: private landlord`;
+    else                       directedLabel = 'Directed certificate';
+  } else if (mode === 'open') {
+    directedLabel = 'Open certificate';
+  } else {
+    directedLabel = 'On-Request certificate';
+  }
+  document.querySelector('.cert-view__header .text-xs').textContent =
+    `Certificate issued ${new Date(cert.created_at).toLocaleDateString('en-CH', {day:'2-digit',month:'long',year:'numeric'})} · ${directedLabel}`;
+
+  // ── Trust score badge ───────────────────────────────────────
   const scoreClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[cert.trust_score] || 'trust-b';
   document.getElementById('trust-badge').className = `badge ${scoreClass}`;
-  document.getElementById('trust-badge').textContent = cert.trust_score === 'A' ? 'A — Excellent' : cert.trust_score === 'B' ? 'B — Good' : 'C — Review';
+  document.getElementById('trust-badge').textContent =
+    cert.trust_score === 'A' ? 'A — Excellent' : cert.trust_score === 'B' ? 'B — Good' : 'C — Review';
 
-  // Public facts
+  // ── Public facts grid ───────────────────────────────────────
   document.querySelectorAll('.cert-view__fact').forEach(fact => {
     const label = fact.querySelector('.cert-view__fact-label')?.textContent;
     const val   = fact.querySelector('.cert-view__fact-value');
     if (!val) return;
-    if (label === 'Trust Score') { val.innerHTML = `<span class="badge ${scoreClass}">${cert.trust_score} — ${cert.trust_score === 'A' ? 'Excellent' : cert.trust_score === 'B' ? 'Good' : 'Review'}</span>`; }
+    if (label === 'Trust Score')      { val.innerHTML = `<span class="badge ${scoreClass}">${cert.trust_score} — ${cert.trust_score === 'A' ? 'Excellent' : cert.trust_score === 'B' ? 'Good' : 'Review'}</span>`; }
     if (label === 'Rent eligibility') { val.textContent = cert.is_eligible ? '✓ Income qualifies' : '⚠ Review required'; val.style.color = cert.is_eligible ? 'var(--green)' : 'var(--red)'; }
-    if (label === 'Occupants') { val.textContent = tenant.occupant_count || '—'; }
-    if (label === 'Smoker') { val.textContent = tenant.is_smoker ? 'Yes' : 'No'; }
-    if (label === 'Pets') { val.textContent = tenant.has_pets ? 'Yes' : 'No'; }
-    if (label === 'Desired move-in') { val.textContent = cert.move_in_date ? new Date(cert.move_in_date).toLocaleDateString('de-CH') : '—'; }
+    if (label === 'Occupants')        { val.textContent = tenant.occupant_count || '—'; }
+    if (label === 'Smoker')           { val.textContent = tenant.is_smoker ? 'Yes' : 'No'; }
+    if (label === 'Pets')             { val.textContent = tenant.has_pets   ? 'Yes' : 'No'; }
+    if (label === 'Desired move-in')  { val.textContent = cert.move_in_date ? new Date(cert.move_in_date).toLocaleDateString('de-CH') : '—'; }
   });
 
-  // Lock note
-  document.querySelector('#public-section .card .text-sm').innerHTML =
-    `🔒 <strong>Full dossier</strong> — ID copy, salary slips, Betreibungsauszug, reference letter, and exact income details are visible only to the authorised agency (${agency.company_name || '—'}).`;
+  // ── Public lock note ────────────────────────────────────────
+  let lockNote = '';
+  if (mode === 'directed' && agency.company_name) {
+    lockNote = `🔒 <strong>Full dossier</strong> — ID copy, salary slips, Betreibungsauszug and exact income details are visible only to <strong>${agency.company_name}</strong>.`;
+  } else if (mode === 'directed' && cert.owner_email) {
+    lockNote = `🔒 <strong>Full dossier</strong> — visible only to the authorised private landlord.`;
+  } else if (mode === 'open') {
+    lockNote = `🔒 <strong>Full dossier</strong> — visible to any verified régie or landlord signed in to SwissTrust.`;
+  } else {
+    lockNote = `🔒 <strong>Full dossier</strong> — visible once the tenant approves an access request.`;
+  }
+  document.querySelector('#public-section .card .text-sm').innerHTML = lockNote;
 
-  // Fill agency section employment data
-  document.querySelector('#agency-section .card .font-bold').textContent = tenant.employer_name || '—';
-  const agencyFields = document.querySelectorAll('#agency-section .card [class*="font-bold"]');
-
-  // Determine access level
+  // ── Determine viewer & access level ────────────────────────
   const session = await sbHelpers.getSession();
   const role    = session?.user?.user_metadata?.role || null;
-  const mode    = cert.mode || 'directed';
-  let canSeeFull = false;
-  let viewerType = 'public';
-  let viewerName = '';
-  let accessRequest = null; // for on_request mode
+
+  let canSeeFull    = false;
+  let viewerType    = 'public';
+  let viewerName    = '';
+  let isOwnTenant   = false;
+  let accessRequest = null;
 
   if (session) {
     viewerName = session.user.user_metadata?.company_name
       || session.user.user_metadata?.full_name
       || session.user.email;
 
-    if (role === 'agency' || role === 'owner') {
+    if (role === 'tenant') {
+      // Check if this tenant owns the certificate
+      const { data: myTenant } = await sbHelpers.getTenantByUserId(session.user.id);
+      isOwnTenant = !!(myTenant && myTenant.id === cert.tenant_id);
+      viewerType  = isOwnTenant ? 'own_tenant' : 'tenant';
+
+    } else if (role === 'agency') {
       if (mode === 'open') {
         canSeeFull = true;
         viewerType = 'agency';
@@ -274,25 +301,33 @@
         canSeeFull = true;
         viewerType = 'agency';
       } else if (mode === 'on_request') {
-        // Check if this user already has an approved request
         const { data: req } = await sbHelpers.getAccessRequestStatus(cert.id, session.user.id);
         accessRequest = req;
-        if (req?.status === 'approved') {
-          canSeeFull = true;
-          viewerType = 'agency';
-        }
+        if (req?.status === 'approved') { canSeeFull = true; viewerType = 'agency'; }
       }
-    } else if (role === 'tenant') {
-      viewerType = 'tenant';
+
+    } else if (role === 'owner') {
+      if (mode === 'open') {
+        canSeeFull = true;
+        viewerType = 'owner';
+      } else if (mode === 'directed' && cert.owner_email &&
+                 cert.owner_email.toLowerCase() === session.user.email.toLowerCase()) {
+        canSeeFull = true;
+        viewerType = 'owner';
+      } else if (mode === 'on_request') {
+        const { data: req } = await sbHelpers.getAccessRequestStatus(cert.id, session.user.id);
+        accessRequest = req;
+        if (req?.status === 'approved') { canSeeFull = true; viewerType = 'owner'; }
+      }
     }
   }
 
-  // Log the access
+  // ── Log access ──────────────────────────────────────────────
   await sbHelpers.logAccess(cert.id, session?.user?.id || null, viewerType);
 
-  // Save to owner's recent history
+  // Save to owner's recent history (localStorage)
   if (role === 'owner' && session) {
-    const key = `swisstrust:ownerRecent:${session.user.id}`;
+    const key   = `swisstrust:ownerRecent:${session.user.id}`;
     const entry = {
       certCode: cert.cert_code,
       tenantName: tenant.full_name || '—',
@@ -305,79 +340,113 @@
     localStorage.setItem(key, JSON.stringify([entry, ...existing].slice(0, 8)));
   }
 
-  // Render view
-  const banner         = document.getElementById('tier-banner');
-  const agencySection  = document.getElementById('agency-section');
-  const onrequestSection = document.getElementById('onrequest-section');
-  const navActions     = document.getElementById('nav-actions');
-  const dashboardHref  = role === 'owner' ? '../owner/dashboard.html' : '../agency/dashboard.html';
+  // ── UI refs ─────────────────────────────────────────────────
+  const banner            = document.getElementById('tier-banner');
+  const agencySection     = document.getElementById('agency-section');
+  const onrequestSection  = document.getElementById('onrequest-section');
+  const navActions        = document.getElementById('nav-actions');
+  const dashboardHref     = role === 'owner' ? '../owner/dashboard.html' : '../agency/dashboard.html';
 
-  agencySection.style.display  = 'none';
+  agencySection.style.display    = 'none';
   onrequestSection.style.display = 'none';
 
-  // ── On-Request mode — show appropriate state ──────────────
+  const navSignedIn = session
+    ? `<span class="text-sm text-gray">${escHtml(viewerName)}</span><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`
+    : `<a href="../auth/login.html" class="nav__link">Sign in</a>`;
+  const navWithDash = `<span class="text-sm text-gray">${escHtml(viewerName)}</span><a href="${dashboardHref}" class="btn btn-outline btn-sm">Dashboard</a><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
+
+  // ── UC4/UC18: Tenant viewing their own certificate ──────────
+  if (isOwnTenant) {
+    banner.className   = 'tier-banner tier-banner--public';
+    banner.textContent = '🪪 This is your certificate — manage it from your dashboard';
+    navActions.innerHTML = `<span class="text-sm text-gray">${escHtml(viewerName)}</span><a href="../tenant/certificates.html" class="btn btn-outline btn-sm">My certificates</a><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
+    return;
+  }
+
+  // ── UC5/UC12/UC15: Tenant (not own cert) or any public role ─
+  // Tenants who don't own the cert see the public tier, no special message — fall through to public block below.
+
+  // ── UC13–UC17 / UC19–UC20: On-Request (not yet approved) ───
   if (mode === 'on_request' && !canSeeFull) {
-    banner.className = 'tier-banner tier-banner--onrequest';
+    banner.className   = 'tier-banner tier-banner--onrequest';
     banner.textContent = '🔔 On-Request certificate — access controlled by the tenant';
     onrequestSection.style.display = 'block';
+    navActions.innerHTML = navSignedIn;
 
-    navActions.innerHTML = session
-      ? `<span class="text-sm text-gray">${viewerName}</span><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`
-      : `<a href="../auth/login.html" class="nav__link">Sign in</a>`;
-
-    // Show the right sub-panel
     const hide = id => document.getElementById(id).style.display = 'none';
     const show = id => document.getElementById(id).style.display = 'block';
 
     if (!session || (role !== 'agency' && role !== 'owner')) {
+      // UC13: anon or wrong role
       show('onrequest-anon'); hide('onrequest-form'); hide('onrequest-pending'); hide('onrequest-denied');
     } else if (!accessRequest) {
+      // UC14: logged-in agency/owner, no prior request
       hide('onrequest-anon'); show('onrequest-form'); hide('onrequest-pending'); hide('onrequest-denied');
-      // Store cert id for the submit handler
       window._pendingCertId = cert.id;
       window._pendingRole   = role;
       window._pendingName   = viewerName;
     } else if (accessRequest.status === 'pending') {
+      // UC15
       hide('onrequest-anon'); hide('onrequest-form'); show('onrequest-pending'); hide('onrequest-denied');
     } else if (accessRequest.status === 'denied') {
+      // UC17
       hide('onrequest-anon'); hide('onrequest-form'); hide('onrequest-pending'); show('onrequest-denied');
     }
     return;
   }
 
-  // ── Full dossier access ────────────────────────────────────
+  // ── UC2/UC7/UC8/UC11/UC13/UC16: Full dossier access ─────────
   if (canSeeFull) {
-    const modeLabel = mode === 'open' ? '🌐 Open' : mode === 'on_request' ? '✅ On-Request (approved)' : '🔓 Directed';
-    banner.className = mode === 'open' ? 'tier-banner tier-banner--open' : 'tier-banner tier-banner--agency';
+    const modeLabel = mode === 'open'       ? '🌐 Open'
+                    : mode === 'on_request' ? '✅ On-Request (approved)'
+                    : '🔓 Directed';
+    banner.className   = mode === 'open' ? 'tier-banner tier-banner--open' : 'tier-banner tier-banner--agency';
     banner.textContent = `${modeLabel} — ${viewerName} — Full dossier access`;
     agencySection.style.display = 'block';
-    navActions.innerHTML = `
-      <span class="text-sm text-gray">${viewerName}</span>
-      <a href="${dashboardHref}" class="btn btn-outline btn-sm">Dashboard</a>
-      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
+    navActions.innerHTML = navWithDash;
 
     const empGrid = document.querySelector('#agency-section .card[class*="mb-24"] > div');
     if (empGrid) {
       empGrid.innerHTML = `
-        <div><div class="text-xs text-gray mb-2">Employer</div><div class="font-bold">${tenant.employer_name || '—'}</div></div>
-        <div><div class="text-xs text-gray mb-2">Job title</div><div class="font-bold">${tenant.job_role || '—'}</div></div>
+        <div><div class="text-xs text-gray mb-2">Employer</div><div class="font-bold">${escHtml(tenant.employer_name || '—')}</div></div>
+        <div><div class="text-xs text-gray mb-2">Job title</div><div class="font-bold">${escHtml(tenant.job_role || '—')}</div></div>
         <div><div class="text-xs text-gray mb-2">Monthly gross salary</div><div class="font-bold" style="color:var(--green);">CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()}</div></div>
         <div><div class="text-xs text-gray mb-2">Employed since</div><div class="font-bold">${tenant.employment_start_date ? new Date(tenant.employment_start_date).toLocaleDateString('de-CH') : '—'}</div></div>
         <div><div class="text-xs text-gray mb-2">Eligibility check</div><div class="font-bold" style="color:${cert.is_eligible ? 'var(--green)' : 'var(--red)'};">${cert.is_eligible ? '✓' : '✗'} CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()} ${cert.is_eligible ? '≥' : '<'} 3× CHF ${(cert.total_chf || 0).toLocaleString()}</div></div>`;
     }
 
-    // Load and render real documents
     const { data: tenantDocs } = await sbHelpers.getDocumentsByTenant(cert.tenant_id);
     renderDocViewers(tenantDocs || []);
-  } else {
-    // ── Public / no access ─────────────────────────────────
-    banner.className = 'tier-banner tier-banner--public';
-    banner.innerHTML = mode === 'open'
-      ? `🌐 Open certificate — <a href="../auth/login.html" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier`
-      : `👁 Public view · Directed certificate — <a href="../auth/login.html" style="color:var(--charcoal);font-weight:600;">Sign in as ${agency.company_name || 'the authorised agency'}</a> to access the full dossier`;
-    navActions.innerHTML = session
-      ? `<span class="text-sm text-gray">${viewerName || session.user.email}</span><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`
-      : `<a href="../auth/login.html" class="nav__link">Sign in</a>`;
+    return;
+  }
+
+  // ── Public / no access (all remaining cases) ────────────────
+  // UC1: directed→agency, anon
+  // UC3: directed→agency, wrong entity logged in
+  // UC6: directed→owner, anon
+  // UC8: directed→owner, wrong entity
+  // UC9: directed→owner, any agency
+  // UC10: open, anon
+  // UC12: open, tenant
+  // UC5: tenant, not own cert (on any mode)
+  navActions.innerHTML = navSignedIn;
+  banner.className = 'tier-banner tier-banner--public';
+
+  if (mode === 'open') {
+    // UC10/UC12
+    banner.innerHTML = `🌐 Open certificate — <a href="../auth/login.html" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier`;
+  } else if (mode === 'directed') {
+    if (session && (role === 'agency' || role === 'owner')) {
+      // UC3/UC8/UC9: logged in but wrong entity
+      const recipientDesc = agency.company_name || (cert.owner_email ? 'a private landlord' : 'the authorised recipient');
+      banner.textContent = `🔒 This certificate is directed to ${recipientDesc} — you do not have access`;
+    } else {
+      // UC1/UC6: anon (or tenant)
+      const recipientDesc = agency.company_name
+        ? `Sign in as ${agency.company_name}`
+        : `Sign in as the authorised landlord`;
+      banner.innerHTML = `👁 Directed certificate — <a href="../auth/login.html" style="color:var(--charcoal);font-weight:600;">${escHtml(recipientDesc)}</a> to access the full dossier`;
+    }
   }
 })();
 

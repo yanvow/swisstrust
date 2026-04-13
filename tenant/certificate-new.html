@@ -182,15 +182,30 @@
         </div>
       </fieldset>
 
-      <!-- Agency selector — only for Directed mode -->
+      <!-- Directed recipient — only for Directed mode -->
       <fieldset class="fieldset" id="agency-fieldset">
-        <legend>Authorised agency</legend>
-        <div class="form-group">
+        <legend>Authorised recipient</legend>
+
+        <!-- Toggle: agency vs private landlord -->
+        <div style="display:flex; gap:8px; margin-bottom:20px;">
+          <button type="button" class="directed-type-btn directed-type-btn--active" id="btn-directed-agency" onclick="setDirectedType('agency')">🏢 Agency / régie</button>
+          <button type="button" class="directed-type-btn" id="btn-directed-owner" onclick="setDirectedType('owner')">👤 Private landlord</button>
+        </div>
+
+        <!-- Agency dropdown -->
+        <div id="directed-agency-wrap" class="form-group mb-0">
           <label>Select the régie managing this property <span class="req">*</span></label>
           <select id="agency">
             <option value="">Loading agencies…</option>
           </select>
-          <div class="form-hint">Only the selected agency will have access to your full dossier.</div>
+          <div class="form-hint">Only this agency will have access to your full dossier.</div>
+        </div>
+
+        <!-- Owner email input -->
+        <div id="directed-owner-wrap" class="form-group mb-0" style="display:none;">
+          <label>Landlord email address <span class="req">*</span></label>
+          <input type="email" id="owner_email" placeholder="landlord@example.com">
+          <div class="form-hint">The landlord must sign in with this exact email to access your full dossier.</div>
         </div>
       </fieldset>
 
@@ -254,13 +269,32 @@
 .mode-card__title { font-weight: 700; font-size: .95rem; }
 .mode-card__desc { font-size: .78rem; color: var(--gray-500); line-height: 1.4; }
 .mode-card__badge { font-size: .72rem; font-weight: 600; margin-top: 4px; }
+.directed-type-btn {
+  padding: 8px 16px; font-size: .875rem; font-weight: 600; font-family: var(--font);
+  border: 1.5px solid var(--gray-200); border-radius: var(--radius);
+  background: white; color: var(--gray-500); cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.directed-type-btn:hover { border-color: var(--gray-400); color: var(--charcoal); }
+.directed-type-btn--active { border-color: var(--charcoal); color: var(--charcoal); background: var(--gray-100); }
 </style>
 <script>
-let currentMode = 'directed';
+let currentMode    = 'directed';
+let directedType   = 'agency'; // 'agency' | 'owner'
 let _user   = null;
 let _tenant = null;
 let _docs   = [];
 let _generatedCertCode = null;
+
+function setDirectedType(type) {
+  directedType = type;
+  document.getElementById('btn-directed-agency').classList.toggle('directed-type-btn--active', type === 'agency');
+  document.getElementById('btn-directed-owner').classList.toggle('directed-type-btn--active', type === 'owner');
+  document.getElementById('directed-agency-wrap').style.display = type === 'agency' ? '' : 'none';
+  document.getElementById('directed-owner-wrap').style.display  = type === 'owner'  ? '' : 'none';
+  document.getElementById('agency').required      = type === 'agency';
+  document.getElementById('owner_email').required = type === 'owner';
+}
 
 function computeTrustGrade(docs) {
   const byType = {};
@@ -376,11 +410,24 @@ async function generateCertificate(e) {
   const submitBtn = e.target.querySelector('button[type=submit]');
   sbHelpers.setLoading(submitBtn, true, 'Generate QR certificate');
 
-  const agencyId = currentMode === 'directed' ? document.getElementById('agency').value : null;
-  if (currentMode === 'directed' && !agencyId) {
-    sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
-    alert('Please select an agency.');
-    return;
+  let agencyId   = null;
+  let ownerEmail = null;
+  if (currentMode === 'directed') {
+    if (directedType === 'agency') {
+      agencyId = document.getElementById('agency').value;
+      if (!agencyId) {
+        sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+        alert('Please select an agency.');
+        return;
+      }
+    } else {
+      ownerEmail = document.getElementById('owner_email').value.trim().toLowerCase();
+      if (!ownerEmail) {
+        sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+        alert('Please enter the landlord email address.');
+        return;
+      }
+    }
   }
 
   // Get tenant row
@@ -406,7 +453,8 @@ async function generateCertificate(e) {
 
   const { data: cert, error } = await _sb.from('certificates').insert({
     tenant_id:        tenant.id,
-    agency_id:        agencyId || null,
+    agency_id:        agencyId   || null,
+    owner_email:      ownerEmail || null,
     property_address: document.getElementById('street').value.trim(),
     property_city:    document.getElementById('city').value.trim(),
     property_postcode:document.getElementById('postcode').value.trim(),
@@ -446,11 +494,13 @@ async function generateCertificate(e) {
   });
 
   const modeDescs = {
-    directed: 'Directed certificate — only the selected agency can access your full dossier.',
-    open: 'Open certificate — any verified régie or landlord on SwissTrust can access your full dossier.',
-    on_request: 'On-Request certificate — professionals see your public summary and must request access. Check your dashboard to approve.'
+    directed_agency: 'Directed certificate — only the selected agency can access your full dossier.',
+    directed_owner:  `Directed certificate — only the landlord at ${ownerEmail} can access your full dossier.`,
+    open:            'Open certificate — any verified régie or landlord on SwissTrust can access your full dossier.',
+    on_request:      'On-Request certificate — professionals see your public summary and must request access. Check your dashboard to approve.',
   };
-  document.getElementById('modal-mode-desc').textContent = modeDescs[currentMode];
+  const descKey = currentMode === 'directed' ? `directed_${directedType}` : currentMode;
+  document.getElementById('modal-mode-desc').textContent = modeDescs[descKey];
 
   document.getElementById('cert-modal').style.display = 'flex';
 }
