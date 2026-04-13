@@ -189,6 +189,8 @@ CREATE TABLE IF NOT EXISTS certificates (
 
   -- Certificate sharing mode (from strategy: Directed / Open / On-Request)
   mode              certificate_mode DEFAULT 'directed',
+  -- For directed mode: either agency_id OR owner_email is set
+  owner_email       TEXT,            -- directed to private landlord by email
   -- For on_request mode: null = pending, 'approved' = approved, 'denied' = denied
   approval_status   TEXT CHECK (approval_status IN ('pending', 'approved', 'denied')),
 
@@ -387,6 +389,13 @@ CREATE TRIGGER on_auth_user_created
 -- Run this if you already ran the original schema.
 -- ============================================================
 ALTER TABLE certificates ALTER COLUMN agency_id DROP NOT NULL;
+
+-- ============================================================
+-- MIGRATION: add owner_email column to certificates
+-- Required for Directed-to-private-landlord mode.
+-- Run this if you already ran the original schema.
+-- ============================================================
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS owner_email TEXT;
 
 -- ============================================================
 -- Storage buckets
