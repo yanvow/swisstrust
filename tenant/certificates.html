@@ -104,11 +104,14 @@ let _tenantName  = '';
     const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
     const mode = c.mode || 'directed';
 
+    const unregisteredName = c.unregistered_agency_name;
     let recipientHtml;
     if (agencyName) {
-      recipientHtml = `<div><div class="text-xs text-gray mb-4">Directed to</div><div class="text-sm font-bold">${agencyName}</div></div>`;
+      recipientHtml = `<div><div class="text-xs text-gray mb-4">Directed to</div><div class="text-sm font-bold">${escHtml(agencyName)}</div></div>`;
     } else if (ownerEmail) {
       recipientHtml = `<div><div class="text-xs text-gray mb-4">Directed to</div><div class="text-sm font-bold">${escHtml(ownerEmail)}</div></div>`;
+    } else if (unregisteredName) {
+      recipientHtml = `<div><div class="text-xs text-gray mb-4">Pending delivery</div><div class="text-sm font-bold">${escHtml(unregisteredName)}</div><div class="text-xs" style="color:var(--amber);">Not yet on SwissTrust</div></div>`;
     } else {
       recipientHtml = `<div><div class="text-xs text-gray mb-4">Mode</div><div class="text-sm font-bold">${modeLabels[mode]}</div></div>`;
     }

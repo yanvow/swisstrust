@@ -119,6 +119,29 @@
     <div class="card mt-24 card--flat" style="background:var(--gray-100); border:none; padding:14px 16px;">
       <div class="text-sm text-gray">💡 <strong>Tip:</strong> Click "View dossier" to see the full verified documents for each applicant. All accesses are logged.</div>
     </div>
+
+    <!-- Ghost deliveries: tenants who directed to this agency before it joined -->
+    <div id="ghost-section" style="display:none; margin-top:32px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <div class="page-title" style="font-size:1.1rem; margin:0;">Pending deliveries</div>
+        <span id="ghost-badge" class="badge badge-amber" style="font-size:.7rem;"></span>
+      </div>
+      <div class="text-sm text-gray mb-16">These tenants directed their certificate to your agency before you joined SwissTrust. Claim them to add them to your inbox.</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tenant</th>
+              <th>Property applied for</th>
+              <th>Trust Score</th>
+              <th>Cert. date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="ghost-tbody"></tbody>
+        </table>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -186,7 +209,47 @@ let _agencyId = null;
       + `These applicants directed their verified SwissTrust certificate to ${agency.company_name} before you signed up.`;
     document.getElementById('aha-banner').style.display = 'block';
   }
+
+  // Load ghost certs (directed by agency name, agency not yet registered at the time)
+  const { data: ghosts } = await sbHelpers.getGhostCertsByAgency();
+  if (ghosts && ghosts.length > 0) {
+    document.getElementById('ghost-section').style.display = 'block';
+    document.getElementById('ghost-badge').textContent = `${ghosts.length} unclaimed`;
+    document.getElementById('ghost-tbody').innerHTML = ghosts.map(c => {
+      const t = c.tenants || {};
+      const scoreClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[c.trust_score] || 'trust-b';
+      const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+      return `
+        <tr id="ghost-row-${c.id}">
+          <td>
+            <div class="font-bold">${t.full_name || '—'}</div>
+            <div class="text-xs text-gray">${t.occupant_count || 1} occupant(s) · ${t.is_smoker ? 'Smoker' : 'No smoker'} · ${t.has_pets ? 'Pets' : 'No pets'}</div>
+          </td>
+          <td>
+            <div class="text-sm font-bold">${c.property_address}${c.property_city ? ', ' + c.property_city : ''}</div>
+            <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo</div>
+          </td>
+          <td><span class="badge ${scoreClass}">${c.trust_score || '—'}</span></td>
+          <td class="text-sm text-gray">${date}</td>
+          <td><button class="btn btn-primary btn-sm" onclick="claimGhost('${c.id}', '${c.cert_code}', this)">Claim →</button></td>
+        </tr>`;
+    }).join('');
+  }
 })();
+
+async function claimGhost(certId, certCode, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Claiming…';
+  const { error } = await sbHelpers.claimGhostCert(certId, _agencyId);
+  if (error) {
+    btn.disabled = false;
+    btn.textContent = 'Claim →';
+    alert('Could not claim: ' + error.message);
+    return;
+  }
+  // Move row to main table by reloading the page
+  window.location.reload();
+}
 
 function dismissAha() {
   document.getElementById('aha-banner').style.display = 'none';

@@ -206,10 +206,20 @@
           <!-- Not-found panel (hidden until search yields no match) -->
           <div id="agency-notfound" style="display:none; margin-top:12px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:var(--radius); padding:14px 16px;">
             <div style="font-weight:600; font-size:.875rem; margin-bottom:6px;">Agency not on SwissTrust yet?</div>
-            <div class="text-sm text-gray mb-12">You can still apply — choose a different sharing mode or invite them:</div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <div class="text-sm text-gray mb-12">You can still apply — choose one of these options:</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
               <button type="button" class="btn btn-outline btn-sm" onclick="switchToOpen()">Switch to Open mode</button>
               <button type="button" class="btn btn-ghost btn-sm" id="invite-btn" onclick="copyInvite(this)">📋 Copy invite link</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="toggleGhostForm()">📨 Direct by name anyway</button>
+            </div>
+            <!-- Ghost cert form -->
+            <div id="ghost-form" style="display:none; border-top:1px solid #FED7AA; padding-top:12px; margin-top:4px;">
+              <div class="text-sm text-gray mb-8">Your certificate will be held for this agency. They'll see it the moment they join SwissTrust — no action needed on your part.</div>
+              <div class="form-group mb-8">
+                <label style="font-size:.8125rem;">Agency name (as it will appear) <span class="req">*</span></label>
+                <input type="text" id="ghost-agency-name" placeholder="e.g. Agence Dupont & Fils" style="font-size:.875rem;">
+              </div>
+              <div style="font-size:.75rem; color:var(--gray-400);">The certificate will be created in <strong>Directed</strong> mode. The agency must sign up with this exact name to claim it.</div>
             </div>
           </div>
         </div>
@@ -298,7 +308,8 @@ let directedType   = 'agency'; // 'agency' | 'owner'
 let _user   = null;
 let _tenant = null;
 let _docs   = [];
-let _generatedCertCode = null;
+let _generatedCertCode       = null;
+let unregisteredAgencyName   = null;
 
 function setDirectedType(type) {
   directedType = type;
@@ -430,9 +441,20 @@ function scheduleCloseDrop() {
 
 function switchToOpen() {
   selectMode('open');
-  // Also update the radio card UI
   document.getElementById('card-open').classList.add('mode-card--selected');
   document.getElementById('card-directed').classList.remove('mode-card--selected');
+}
+
+function toggleGhostForm() {
+  const form = document.getElementById('ghost-form');
+  const isHidden = form.style.display === 'none';
+  form.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    // Pre-fill with whatever the user typed
+    const typed = document.getElementById('agency-search').value.trim();
+    document.getElementById('ghost-agency-name').value = typed;
+    document.getElementById('ghost-agency-name').focus();
+  }
 }
 
 function copyInvite(btn) {
@@ -499,10 +521,17 @@ async function generateCertificate(e) {
     if (directedType === 'agency') {
       agencyId = document.getElementById('agency-id').value;
       if (!agencyId) {
-        sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
-        document.getElementById('agency-search').focus();
-        sbHelpers.showError('agency-hint', 'Please select an agency from the list.');
-        return;
+        // Check if ghost delivery was chosen instead
+        const ghostName = document.getElementById('ghost-agency-name')?.value.trim();
+        if (ghostName && document.getElementById('ghost-form')?.style.display !== 'none') {
+          unregisteredAgencyName = ghostName;
+          // agencyId stays null — ghost cert
+        } else {
+          sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+          document.getElementById('agency-search').focus();
+          sbHelpers.showError('agency-hint', 'Please select an agency from the list, or use one of the options below.');
+          return;
+        }
       }
       sbHelpers.hideError('agency-hint');
     } else {
@@ -538,8 +567,9 @@ async function generateCertificate(e) {
 
   const { data: cert, error } = await _sb.from('certificates').insert({
     tenant_id:        tenant.id,
-    agency_id:        agencyId   || null,
-    owner_email:      ownerEmail || null,
+    agency_id:                agencyId             || null,
+    owner_email:              ownerEmail           || null,
+    unregistered_agency_name: unregisteredAgencyName || null,
     property_address: document.getElementById('street').value.trim(),
     property_city:    document.getElementById('city').value.trim(),
     property_postcode:document.getElementById('postcode').value.trim(),

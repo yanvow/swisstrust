@@ -398,6 +398,33 @@ ALTER TABLE certificates ALTER COLUMN agency_id DROP NOT NULL;
 ALTER TABLE certificates ADD COLUMN IF NOT EXISTS owner_email TEXT;
 
 -- ============================================================
+-- MIGRATION: ghost delivery tracking
+-- Allows tenants to direct certs to agencies not yet on SwissTrust.
+-- Run this if you already ran the original schema.
+-- ============================================================
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS unregistered_agency_name TEXT;
+
+-- Agencies can SELECT ghost certs where their company name matches
+CREATE POLICY "certificates_ghost_agency_select" ON certificates
+  FOR SELECT USING (
+    is_active = TRUE
+    AND unregistered_agency_name IS NOT NULL
+    AND LOWER(unregistered_agency_name) = LOWER(
+      (SELECT company_name FROM agencies WHERE user_id = auth.uid() LIMIT 1)
+    )
+  );
+
+-- Agencies can claim (UPDATE agency_id) ghost certs directed to their name
+CREATE POLICY "certificates_agency_claim_ghost" ON certificates
+  FOR UPDATE USING (
+    unregistered_agency_name IS NOT NULL
+    AND agency_id IS NULL
+    AND LOWER(unregistered_agency_name) = LOWER(
+      (SELECT company_name FROM agencies WHERE user_id = auth.uid() LIMIT 1)
+    )
+  ) WITH CHECK (true);
+
+-- ============================================================
 -- Storage buckets
 -- Create these in Supabase dashboard → Storage:
 --   1. "documents"  — Private bucket
