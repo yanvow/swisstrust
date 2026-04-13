@@ -43,7 +43,7 @@ Confidence threshold: ≥0.90 = auto-verified | 0.65–0.89 = flagged for review
 Once profile is validated, tenant fills in the following per-property fields (variable per certificate, modelled on real régie forms like Moser Vernet):
 
 *Property details:*
-- Property address (street, city, postcode)
+- Property address (street, city, postcode, country)
 - Number of rooms (Nbr de pièces)
 - Floor (Etage)
 - Desired move-in date
