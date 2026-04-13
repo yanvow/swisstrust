@@ -175,14 +175,27 @@ function renderAll() {
   container.innerHTML = DOC_TYPES.map(t => renderDocCard(t)).join('');
 }
 
+// Returns days since a date string, or null
+function daysSince(dateStr) {
+  if (!dateStr) return null;
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+}
+
 function renderDocCard(type) {
   const doc = _docsMap[type.key];
   const sc  = doc ? (STATUS_CONFIG[doc.status] || STATUS_CONFIG.pending) : null;
 
-  const headClass = doc ? sc.cardClass : '';
-  const badgeHtml = doc
-    ? `<span class="${sc.badge}">${sc.label}</span>`
-    : `<span class="badge badge-gray">Not uploaded</span>`;
+  // Betreibungsauszug freshness check (must be ≤ 90 days old)
+  const isStale = type.key === 'betreibungsauszug' && doc
+    && daysSince(doc.created_at) > 90;
+
+  // Override card styling when stale (even if auto_verified)
+  const headClass = isStale ? 'doc-card--rejected' : (doc ? sc.cardClass : '');
+  const badgeHtml = isStale
+    ? `<span class="badge badge-red">Expired — renew now</span>`
+    : doc
+      ? `<span class="${sc.badge}">${sc.label}</span>`
+      : `<span class="badge badge-gray">Not uploaded</span>`;
 
   let bodyHtml;
   if (doc) {
@@ -190,8 +203,21 @@ function renderDocCard(type) {
     const uploadDate = new Date(doc.created_at).toLocaleDateString('en-CH', { day: '2-digit', month: 'short', year: 'numeric' });
     const confPct = doc.confidence_score != null ? Math.round(doc.confidence_score * 100) : null;
     const barColor = confPct >= 90 ? 'var(--green)' : confPct >= 65 ? 'var(--amber)' : 'var(--red)';
+    const age = type.key === 'betreibungsauszug' ? daysSince(doc.created_at) : null;
 
     const ocrSection = buildOcrSection(doc);
+
+    const expiryAlert = isStale
+      ? `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+           <span>⚠️</span>
+           <span>This Betreibungsauszug is <strong>${age} days old</strong> — most landlords require one issued within the last 3 months. Please obtain a new one from your local Betreibungsamt and re-upload.</span>
+         </div>`
+      : age !== null && age > 60
+        ? `<div class="alert mt-12" style="background:#FFFBEB; border:1px solid #FCD34D; display:flex; gap:8px; padding:12px 14px; border-radius:var(--radius); font-size:.875rem;">
+             <span>⏳</span>
+             <span>This extract is <strong>${age} days old</strong> — it will expire in ${90 - age} day${90 - age !== 1 ? 's' : ''}. Consider renewing soon.</span>
+           </div>`
+        : '';
 
     bodyHtml = `
       <div class="file-info mb-12">
@@ -206,6 +232,7 @@ function renderDocCard(type) {
         <div class="text-xs text-gray mb-4">${confPct}% confidence</div>
       ` : ''}
       ${ocrSection}
+      ${expiryAlert}
       ${doc.rejection_reason ? `<div class="alert alert-error mt-12"><span>⚠️</span><span>${escHtml(doc.rejection_reason)}</span></div>` : ''}
       <div class="upload-btn-row">
         <button class="btn btn-outline btn-sm" onclick="startUpload('${type.key}', this)">Replace</button>
