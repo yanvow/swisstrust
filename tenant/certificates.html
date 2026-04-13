@@ -66,17 +66,25 @@ const modeColors = { directed: 'var(--charcoal)', open: 'var(--green)', on_reque
 const VIEWER_LABEL = { public: 'Anonymous scan', agency: 'Agency login', owner: 'Owner login', tenant: 'You (owner)' };
 const VIEWER_ICON  = { public: '👁', agency: '🏢', owner: '👤', tenant: '🪪' };
 
+// Keyed by cert_code so the print function can look them up
+const _certsById = {};
+let _tenantName  = '';
+
 (async () => {
   const user = await sbHelpers.requireAuth('tenant');
   if (!user) return;
 
-  document.getElementById('nav-name').textContent = user.user_metadata?.full_name || user.email;
+  _tenantName = user.user_metadata?.full_name || user.email;
+  document.getElementById('nav-name').textContent = _tenantName;
 
   const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
   if (!tenant) return;
 
   const { data: certs, error } = await sbHelpers.getCertificatesByTenant(tenant.id);
   const list = document.getElementById('certs-list');
+
+  // Store for print access
+  (certs || []).forEach(c => { _certsById[c.cert_code] = c; });
 
   if (error || !certs || certs.length === 0) {
     list.innerHTML = `
@@ -128,9 +136,10 @@ const VIEWER_ICON  = { public: '👁', agency: '🏢', owner: '👤', tenant: '�
             <div class="text-xs text-gray mb-4">Created</div>
             <div class="text-sm">${date}</div>
           </div>
-          <div style="display:flex; gap:8px; align-items:center;">
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <a href="../cert/cert-view.html?code=${c.cert_code}" class="btn btn-outline btn-sm">View certificate</a>
             <button class="btn btn-ghost btn-sm" onclick="copyCode('${c.cert_code}', this)">Copy code</button>
+            <button class="btn btn-ghost btn-sm" onclick="printCert('${c.cert_code}')">⬇ Download PDF</button>
           </div>
         </div>
         <!-- Access log toggle -->
@@ -190,6 +199,129 @@ function copyCode(code, btn) {
     btn.textContent = '✓ Copied';
     setTimeout(() => btn.textContent = orig, 1500);
   });
+}
+
+function printCert(certCode) {
+  const c = _certsById[certCode];
+  if (!c) return;
+
+  const mode = c.mode || 'directed';
+  const agencyName  = c.agencies?.company_name || null;
+  const ownerEmail  = c.owner_email || null;
+  const trustGrade  = c.trust_score || '—';
+  const trustColor  = { A: '#16a34a', B: '#d97706', C: '#dc2626' }[trustGrade] || '#374151';
+  const eligible    = c.is_eligible;
+  const date        = new Date(c.created_at).toLocaleDateString('en-CH', { day: '2-digit', month: 'long', year: 'numeric' });
+  const property    = [c.property_address, c.property_city].filter(Boolean).join(', ');
+  const details     = [
+    c.rooms ? `${c.rooms} rooms` : null,
+    c.floor ? `Floor ${c.floor}` : null,
+    c.total_chf ? `CHF ${Number(c.total_chf).toLocaleString()}/mo` : null,
+    c.move_in_date ? `Move-in ${new Date(c.move_in_date).toLocaleDateString('de-CH')}` : null,
+  ].filter(Boolean).join(' · ');
+
+  let recipientLine = '';
+  if (agencyName)  recipientLine = `Directed to: <strong>${escHtml(agencyName)}</strong>`;
+  else if (ownerEmail) recipientLine = `Directed to: <strong>${escHtml(ownerEmail)}</strong>`;
+  else recipientLine = `Mode: <strong>${modeLabels[mode]}</strong>`;
+
+  // Verify URL encoded in the QR
+  const qrUrl = c.qr_url || `${window.location.origin}/cert/cert-view.html?code=${certCode}`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SwissTrust Certificate — ${certCode}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"><\/script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: white; color: #111827; padding: 48px; max-width: 680px; margin: 0 auto; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #111827; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.25rem; }
+    .logo-mark { background: #111827; color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .875rem; font-weight: 900; }
+    .verified { display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; color: #15803d; border: 1px solid #86efac; border-radius: 20px; padding: 5px 14px; font-size: .8rem; font-weight: 600; }
+    .body { display: flex; gap: 40px; align-items: flex-start; margin-bottom: 32px; }
+    .qr-wrap { flex-shrink: 0; border: 8px solid white; box-shadow: 0 0 0 1px #e5e7eb; display: inline-block; }
+    .info { flex: 1; }
+    .cert-code { font-family: monospace; font-size: 1.75rem; font-weight: 700; letter-spacing: .12em; margin-bottom: 6px; }
+    .property { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .details { color: #6b7280; font-size: .875rem; margin-bottom: 16px; }
+    .meta-row { display: flex; gap: 24px; margin-bottom: 16px; }
+    .meta-box { }
+    .meta-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; margin-bottom: 3px; }
+    .meta-val { font-size: .9375rem; font-weight: 600; }
+    .trust-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-weight: 700; font-size: 1rem; color: white; background: ${trustColor}; }
+    .elig-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-weight: 600; font-size: .875rem; background: ${eligible ? '#f0fdf4' : '#fffbeb'}; color: ${eligible ? '#15803d' : '#b45309'}; border: 1px solid ${eligible ? '#86efac' : '#fcd34d'}; }
+    .recipient { font-size: .875rem; color: #374151; margin-bottom: 16px; }
+    .footer { border-top: 1px solid #e5e7eb; padding-top: 16px; font-size: .75rem; color: #9ca3af; display: flex; justify-content: space-between; }
+    .scan-hint { font-size: .75rem; color: #9ca3af; margin-top: 6px; text-align: center; }
+    @media print {
+      body { padding: 24px; }
+      @page { margin: 1cm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-mark">ST</div>
+      SwissTrust
+    </div>
+    <div class="verified">✓ Identity Verified</div>
+  </div>
+
+  <div class="body">
+    <div>
+      <canvas id="qr"></canvas>
+      <div class="scan-hint">Scan to verify</div>
+    </div>
+    <div class="info">
+      <div class="cert-code">${escHtml(certCode)}</div>
+      <div class="property">${escHtml(property || '—')}</div>
+      <div class="details">${escHtml(details)}</div>
+      <div class="meta-row">
+        <div class="meta-box">
+          <div class="meta-label">Tenant</div>
+          <div class="meta-val">${escHtml(_tenantName)}</div>
+        </div>
+        <div class="meta-box">
+          <div class="meta-label">Issued</div>
+          <div class="meta-val">${date}</div>
+        </div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-box">
+          <div class="meta-label">Trust Score</div>
+          <div><span class="trust-badge">${trustGrade}</span></div>
+        </div>
+        <div class="meta-box">
+          <div class="meta-label">Income eligibility</div>
+          <div><span class="elig-badge">${eligible ? '✓ Eligible' : 'Review required'}</span></div>
+        </div>
+      </div>
+      <div class="recipient">${recipientLine}</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Issued via SwissTrust · swisstrust.ch</span>
+    <span>Verify at: ${escHtml(qrUrl)}</span>
+  </div>
+
+  <script>
+    QRCode.toCanvas(document.getElementById('qr'), ${JSON.stringify(qrUrl)}, { width: 160, margin: 1 }, function() {
+      window.focus();
+      window.print();
+    });
+  <\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
 }
 
 function escHtml(str) {
