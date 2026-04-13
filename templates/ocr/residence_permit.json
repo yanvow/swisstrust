@@ -1,0 +1,144 @@
+{
+  "template_version": "1.0",
+  "document_type": "residence_permit",
+  "document_label": "Residence permit",
+  "maps_to_profile_fields": [
+    "full_name",
+    "date_of_birth",
+    "nationality",
+    "permit_type"
+  ],
+  "output_schema": {
+    "document_meta": {
+      "permit_card_type": null,
+      "permit_number": null,
+      "issuing_country": null,
+      "issuing_canton": null
+    },
+    "identity": {
+      "full_name": null,
+      "first_name": null,
+      "last_name": null,
+      "date_of_birth": null,
+      "nationality": null
+    },
+    "permit_details": {
+      "permit_type": null,
+      "issue_date": null,
+      "expiry_date": null,
+      "place_of_residence": null,
+      "work_authorized": null
+    },
+    "verification": {
+      "name_matches_profile": null,
+      "dob_matches_profile": null,
+      "nationality_matches_profile": null,
+      "permit_is_expired": null
+    },
+    "confidence": {
+      "permit_number": null,
+      "full_name": null,
+      "date_of_birth": null,
+      "nationality": null,
+      "permit_type": null,
+      "expiry_date": null
+    }
+  },
+  "field_definitions": [
+    {
+      "path": "document_meta.permit_card_type",
+      "type": "string",
+      "required": true,
+      "description": "Best document classification, such as residence permit or foreign national permit card."
+    },
+    {
+      "path": "document_meta.permit_number",
+      "type": "string",
+      "required": true,
+      "description": "Residence permit card or document number."
+    },
+    {
+      "path": "document_meta.issuing_country",
+      "type": "string",
+      "required": true,
+      "description": "Usually Switzerland."
+    },
+    {
+      "path": "document_meta.issuing_canton",
+      "type": "string",
+      "required": false,
+      "description": "Issuing canton if visible."
+    },
+    {
+      "path": "identity.full_name",
+      "type": "string",
+      "required": true,
+      "maps_to": "tenants.full_name",
+      "description": "Full legal name."
+    },
+    {
+      "path": "identity.first_name",
+      "type": "string",
+      "required": false,
+      "description": "Given name(s) if separable."
+    },
+    {
+      "path": "identity.last_name",
+      "type": "string",
+      "required": false,
+      "description": "Surname if separable."
+    },
+    {
+      "path": "identity.date_of_birth",
+      "type": "date",
+      "required": true,
+      "maps_to": "tenants.date_of_birth",
+      "description": "Date of birth."
+    },
+    {
+      "path": "identity.nationality",
+      "type": "string",
+      "required": true,
+      "maps_to": "tenants.nationality",
+      "description": "Nationality shown on the permit."
+    },
+    {
+      "path": "permit_details.permit_type",
+      "type": "string",
+      "required": true,
+      "maps_to": "tenants.permit_type",
+      "allowed_values": [
+        "B",
+        "C",
+        "G",
+        "L",
+        "other"
+      ],
+      "description": "Normalized Swiss permit type."
+    },
+    {
+      "path": "permit_details.issue_date",
+      "type": "date",
+      "required": false,
+      "description": "Permit issue date."
+    },
+    {
+      "path": "permit_details.expiry_date",
+      "type": "date",
+      "required": true,
+      "description": "Permit expiry date."
+    },
+    {
+      "path": "permit_details.place_of_residence",
+      "type": "string",
+      "required": false,
+      "description": "Residence or commune listed on the permit."
+    },
+    {
+      "path": "permit_details.work_authorized",
+      "type": "boolean",
+      "required": false,
+      "description": "Whether work authorization is explicitly indicated."
+    }
+  ]
+}

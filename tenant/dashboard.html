@@ -6,6 +6,8 @@
   <title>Dashboard — SwissTrust Tenant</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
 </head>
 <body>
 
@@ -16,8 +18,8 @@
       SwissTrust
     </a>
     <div class="nav__links">
-      <span class="text-sm text-gray">Sophie Müller</span>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
     </div>
   </div>
 </nav>
@@ -52,62 +54,61 @@
         <span class="sidebar__icon">✓</span> Verify a certificate
       </a>
     </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Notifications</div>
+      <a href="dashboard.html" class="sidebar__link" id="sidebar-notif" style="display:none;">
+        <span class="sidebar__icon">🔔</span> Access requests <span id="sidebar-notif-count" class="badge badge-amber" style="font-size:.7rem; margin-left:4px;"></span>
+      </a>
+    </div>
   </aside>
 
   <!-- MAIN -->
   <main class="main-content">
     <div class="page-title">Dashboard</div>
-    <div class="page-subtitle">Welcome back, Sophie. Here's your dossier status.</div>
+    <div class="page-subtitle" id="page-subtitle">Loading…</div>
+
+    <!-- Access request notifications (On-Request mode) -->
+    <div id="notifications-panel" style="display:none; margin-bottom:24px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+        <div class="font-bold">Access requests</div>
+        <span id="notif-badge" class="badge badge-amber" style="font-size:.7rem;"></span>
+      </div>
+      <div id="notifications-list"></div>
+    </div>
 
     <!-- Dossier completion progress -->
-    <div class="card mb-24">
+    <div class="card mb-24" id="progress-card">
       <div class="flex-between mb-12">
         <div>
           <div class="card-title">Dossier completion</div>
           <div class="card-subtitle">Complete your profile to generate certificates</div>
         </div>
-        <div class="badge trust-b">75% complete</div>
+        <div class="badge trust-b" id="progress-badge">Loading…</div>
       </div>
       <div class="progress-bar">
-        <div class="progress-bar__fill" style="width:75%;"></div>
+        <div class="progress-bar__fill" id="progress-fill" style="width:0%;"></div>
       </div>
-      <div class="mt-16" style="display:flex; flex-direction:column; gap:8px;">
-        <div style="display:flex; align-items:center; gap:10px; font-size:.875rem;">
-          <span style="color:var(--green);">✓</span>
-          <span>Personal information complete</span>
-        </div>
-        <div style="display:flex; align-items:center; gap:10px; font-size:.875rem;">
-          <span style="color:var(--green);">✓</span>
-          <span>Employment details filled</span>
-        </div>
-        <div style="display:flex; align-items:center; gap:10px; font-size:.875rem;">
-          <span style="color:var(--amber);">⚠</span>
-          <span>2 documents pending upload</span>
-          <a href="documents.html" style="font-size:.8rem; color:var(--charcoal); font-weight:600; margin-left:auto;">Upload now →</a>
-        </div>
-        <div style="display:flex; align-items:center; gap:10px; font-size:.875rem;">
-          <span style="color:var(--gray-400);">○</span>
-          <span style="color:var(--gray-400);">No certificates generated yet</span>
-        </div>
+      <div class="mt-16" id="progress-checklist" style="display:flex; flex-direction:column; gap:8px;">
+        <div class="text-sm text-gray">Calculating…</div>
       </div>
     </div>
 
     <!-- Stats -->
     <div class="stat-grid mb-24">
       <div class="stat-box">
-        <div class="stat-num">3</div>
+        <div class="stat-num" id="stat-docs">—</div>
         <div class="stat-lbl">Documents uploaded</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num">2</div>
+        <div class="stat-num" id="stat-verified">—</div>
         <div class="stat-lbl">Verified ✓</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num">0</div>
+        <div class="stat-num" id="stat-certs">—</div>
         <div class="stat-lbl">Certificates</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" style="color:var(--amber);">B</div>
+        <div class="stat-num" id="stat-trust" style="color:var(--amber);">—</div>
         <div class="stat-lbl">Trust Score (provisional)</div>
       </div>
     </div>
@@ -116,48 +117,9 @@
     <div class="card mb-24">
       <div class="card-header">
         <div class="card-title">Document status</div>
-        <div class="card-subtitle">Upload all 5 document types to reach Trust Score A</div>
+        <div class="card-subtitle">Upload all required documents to generate a certificate</div>
       </div>
-      <div class="doc-row doc-row--done">
-        <div class="doc-row__icon">🪪</div>
-        <div class="doc-row__info">
-          <div class="doc-row__name">Passport / Swiss ID</div>
-          <div class="doc-row__desc">Uploaded 10 Apr 2026</div>
-        </div>
-        <span class="badge badge-green">Auto-verified</span>
-      </div>
-      <div class="doc-row doc-row--flagged">
-        <div class="doc-row__icon">📄</div>
-        <div class="doc-row__info">
-          <div class="doc-row__name">Salary slips (3 months)</div>
-          <div class="doc-row__desc">2 of 3 uploaded — 1 flagged for review</div>
-        </div>
-        <span class="badge badge-amber">Flagged</span>
-      </div>
-      <div class="doc-row doc-row--done">
-        <div class="doc-row__icon">⚖️</div>
-        <div class="doc-row__info">
-          <div class="doc-row__name">Betreibungsauszug</div>
-          <div class="doc-row__desc">Clean — auto-verified</div>
-        </div>
-        <span class="badge badge-green">Auto-verified</span>
-      </div>
-      <div class="doc-row doc-row--pending">
-        <div class="doc-row__icon">🏠</div>
-        <div class="doc-row__info">
-          <div class="doc-row__name">Landlord reference letter</div>
-          <div class="doc-row__desc">Not yet uploaded</div>
-        </div>
-        <span class="badge badge-gray">Missing</span>
-      </div>
-      <div class="doc-row doc-row--pending">
-        <div class="doc-row__icon">🪪</div>
-        <div class="doc-row__info">
-          <div class="doc-row__name">Residence permit</div>
-          <div class="doc-row__desc">Not applicable (Swiss citizen)</div>
-        </div>
-        <span class="badge badge-gray">N/A</span>
-      </div>
+      <div id="doc-status-list"><div class="text-sm text-gray" style="padding:12px 0;">Loading…</div></div>
       <div class="mt-16">
         <a href="documents.html" class="btn btn-outline btn-sm">Manage documents</a>
       </div>
@@ -176,5 +138,227 @@
   </main>
 </div>
 
+<script>
+// ── Document type definitions (mirrors documents.html) ───────
+const DOC_TYPE_META = [
+  { key: 'passport_id',       label: 'Passport / Swiss ID',           icon: '🪪' },
+  { key: 'residence_permit',  label: 'Residence permit',               icon: '📋' },
+  { key: 'salary_slip_1',     label: 'Salary slip — month 1',          icon: '💰' },
+  { key: 'salary_slip_2',     label: 'Salary slip — month 2',          icon: '💰' },
+  { key: 'salary_slip_3',     label: 'Salary slip — month 3',          icon: '💰' },
+  { key: 'betreibungsauszug', label: 'Betreibungsauszug',              icon: '⚖️' },
+  { key: 'reference_letter',  label: 'Landlord reference letter',      icon: '🏠' },
+];
+
+// ── Trust score (provisional — same formula as certificate generation) ──
+function computeProvisionalTrust(docsMap) {
+  let score = 100;
+
+  const b = docsMap['betreibungsauszug'];
+  if (!b)                            score -= 20;
+  else if (b.status === 'rejected')  score -= 40;
+  else if (b.status !== 'auto_verified') score -= 10;
+
+  ['salary_slip_1', 'salary_slip_2', 'salary_slip_3'].forEach(k => {
+    const s = docsMap[k];
+    if (!s)                            score -= 10;
+    else if (s.status !== 'auto_verified') score -= 5;
+  });
+
+  const id = docsMap['passport_id'];
+  if (!id)                            score -= 15;
+  else if (id.status !== 'auto_verified') score -= 8;
+
+  if (!docsMap['reference_letter']) score -= 5;
+
+  const clamped = Math.max(0, score);
+  const grade   = clamped >= 80 ? 'A' : clamped >= 60 ? 'B' : 'C';
+  return { score: clamped, grade };
+}
+
+// ── Status badge helpers ──────────────────────────────────────
+const STATUS_LABEL = {
+  pending:       'Pending review',
+  processing:    'Processing…',
+  auto_verified: 'Auto-verified',
+  flagged:       'Flagged',
+  rejected:      'Rejected',
+};
+const STATUS_BADGE = {
+  pending:       'badge badge-amber',
+  processing:    'badge badge-blue',
+  auto_verified: 'badge badge-green',
+  flagged:       'badge badge-amber',
+  rejected:      'badge badge-red',
+};
+const STATUS_ROW = {
+  pending:       'doc-row',
+  processing:    'doc-row',
+  auto_verified: 'doc-row doc-row--done',
+  flagged:       'doc-row doc-row--flagged',
+  rejected:      'doc-row doc-row--pending',
+};
+
+(async () => {
+  const user = await sbHelpers.requireAuth('tenant');
+  if (!user) return;
+
+  document.getElementById('nav-name').textContent = user.user_metadata?.full_name || user.email;
+  document.getElementById('page-subtitle').textContent =
+    `Welcome back, ${user.user_metadata?.full_name?.split(' ')[0] || 'there'}. Here's your dossier status.`;
+
+  // Load tenant row to get tenant.id
+  const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
+  if (!tenant) return;
+
+  // ── Load documents ────────────────────────────────────────
+  const { data: docs } = await sbHelpers.getDocumentsByTenant(tenant.id);
+  const docsMap = {};
+  (docs || []).forEach(d => { docsMap[d.doc_type] = d; });
+
+  const uploadedCount  = Object.keys(docsMap).length;
+  const verifiedCount  = Object.values(docsMap).filter(d => d.status === 'auto_verified').length;
+  const { score, grade } = computeProvisionalTrust(docsMap);
+
+  // ── Load certificates ─────────────────────────────────────
+  const { data: certs } = await sbHelpers.getCertificatesByTenant(tenant.id);
+  const certCount = (certs || []).length;
+
+  // ── Stats grid ────────────────────────────────────────────
+  document.getElementById('stat-docs').textContent     = uploadedCount;
+  document.getElementById('stat-verified').textContent = verifiedCount;
+  document.getElementById('stat-certs').textContent    = certCount;
+  const trustEl = document.getElementById('stat-trust');
+  trustEl.textContent  = grade;
+  trustEl.style.color  = grade === 'A' ? 'var(--green)' : grade === 'B' ? 'var(--amber)' : 'var(--red)';
+
+  // ── Progress card ─────────────────────────────────────────
+  const profileComplete = !!tenant.profile_complete;
+  const hasEmployment   = !!(tenant.employer_name && tenant.monthly_gross_salary);
+  const requiredDocs    = ['passport_id','salary_slip_1','salary_slip_2','salary_slip_3','betreibungsauszug'];
+  const uploadedRequired = requiredDocs.filter(k => !!docsMap[k]).length;
+  const missingRequired  = requiredDocs.length - uploadedRequired;
+
+  // 4 checkpoints: profile, employment, required docs, at least 1 cert
+  const checks = [profileComplete, hasEmployment, missingRequired === 0, certCount > 0];
+  const pct = Math.round((checks.filter(Boolean).length / checks.length) * 100);
+
+  document.getElementById('progress-badge').textContent = `${pct}% complete`;
+  document.getElementById('progress-fill').style.width  = `${pct}%`;
+
+  const checkItems = [
+    { done: profileComplete, label: 'Personal information complete',    link: 'profile.html' },
+    { done: hasEmployment,   label: 'Employment details filled',        link: 'profile.html' },
+    { done: missingRequired === 0,
+      label: missingRequired === 0
+        ? 'All required documents uploaded'
+        : `${missingRequired} required document${missingRequired > 1 ? 's' : ''} still missing`,
+      link: 'documents.html',
+      linkLabel: 'Upload now →' },
+    { done: certCount > 0,  label: certCount > 0 ? `${certCount} certificate${certCount > 1 ? 's' : ''} generated` : 'No certificates yet', link: 'certificate-new.html', linkLabel: 'Generate →' },
+  ];
+
+  document.getElementById('progress-checklist').innerHTML = checkItems.map(item => `
+    <div style="display:flex; align-items:center; gap:10px; font-size:.875rem;">
+      <span style="color:${item.done ? 'var(--green)' : 'var(--gray-400)'};">${item.done ? '✓' : '○'}</span>
+      <span style="color:${item.done ? 'inherit' : 'var(--gray-400)'};">${item.label}</span>
+      ${!item.done && item.link ? `<a href="${item.link}" style="font-size:.8rem; color:var(--charcoal); font-weight:600; margin-left:auto;">${item.linkLabel || 'Fix →'}</a>` : ''}
+    </div>`).join('');
+
+  // ── Document status list ──────────────────────────────────
+  document.getElementById('doc-status-list').innerHTML = DOC_TYPE_META.map(t => {
+    const doc = docsMap[t.key];
+    if (!doc) {
+      return `
+        <div class="doc-row doc-row--pending">
+          <div class="doc-row__icon">${t.icon}</div>
+          <div class="doc-row__info">
+            <div class="doc-row__name">${t.label}</div>
+            <div class="doc-row__desc">Not yet uploaded</div>
+          </div>
+          <span class="badge badge-gray">Missing</span>
+        </div>`;
+    }
+    const uploadDate = new Date(doc.created_at).toLocaleDateString('en-CH', { day: '2-digit', month: 'short', year: 'numeric' });
+    const confPct    = doc.confidence_score != null ? Math.round(doc.confidence_score * 100) + '% confidence · ' : '';
+    return `
+      <div class="${STATUS_ROW[doc.status] || 'doc-row'}">
+        <div class="doc-row__icon">${t.icon}</div>
+        <div class="doc-row__info">
+          <div class="doc-row__name">${t.label}</div>
+          <div class="doc-row__desc">${confPct}Uploaded ${uploadDate}</div>
+        </div>
+        <span class="${STATUS_BADGE[doc.status] || 'badge badge-gray'}">${STATUS_LABEL[doc.status] || doc.status}</span>
+      </div>`;
+  }).join('');
+
+  // ── Load pending access requests ──────────────────────────
+  const { data: requests } = await sbHelpers.getPendingRequestsForTenant(tenant.id);
+  const pending = (requests || []).filter(r => r.status === 'pending');
+
+  if (pending.length > 0) {
+    const panel = document.getElementById('notifications-panel');
+    panel.style.display = 'block';
+    document.getElementById('notif-badge').textContent = `${pending.length} pending`;
+    const sidebarNotif = document.getElementById('sidebar-notif');
+    if (sidebarNotif) {
+      sidebarNotif.style.display = 'flex';
+      document.getElementById('sidebar-notif-count').textContent = pending.length;
+    }
+
+    document.getElementById('notifications-list').innerHTML = pending.map(req => {
+      const cert = req.certificates || {};
+      const prop = `${cert.property_address || '—'}${cert.property_city ? ', ' + cert.property_city : ''}`;
+      const when = new Date(req.requested_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+      const typeLabel = req.requester_type === 'owner' ? 'Private owner' : 'Agency';
+      return `
+        <div class="card mb-12" style="border:1.5px solid #FED7AA; background:#FFF7ED;" id="req-${req.id}">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="font-size:1.25rem; flex-shrink:0;">🔔</div>
+            <div style="flex:1;">
+              <div class="font-bold mb-2">${req.requester_name || typeLabel}</div>
+              <div class="text-sm text-gray mb-4">${typeLabel} · Requesting access to <strong>${prop}</strong> (${cert.cert_code || '—'})</div>
+              ${req.message ? `<div class="text-sm mb-8" style="font-style:italic;">"${req.message}"</div>` : ''}
+              <div class="text-xs text-gray mb-12">${when}</div>
+              <div style="display:flex; gap:8px;">
+                <button onclick="respond('${req.id}', 'approved')" class="btn btn-primary btn-sm">Approve</button>
+                <button onclick="respond('${req.id}', 'denied')" class="btn btn-outline btn-sm" style="color:var(--red); border-color:var(--red);">Deny</button>
+              </div>
+              <div id="req-err-${req.id}" style="display:none; color:var(--red); font-size:.8rem; margin-top:6px;"></div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+})();
+
+async function respond(requestId, status) {
+  const appBtn  = document.querySelector(`#req-${requestId} .btn-primary`);
+  const denyBtn = document.querySelector(`#req-${requestId} .btn-outline`);
+  [appBtn, denyBtn].forEach(b => { if (b) b.disabled = true; });
+
+  const { error } = await sbHelpers.respondToAccessRequest(requestId, status);
+  if (error) {
+    sbHelpers.showError(`req-err-${requestId}`, error.message);
+    [appBtn, denyBtn].forEach(b => { if (b) b.disabled = false; });
+    return;
+  }
+
+  // Replace card with confirmation
+  const card = document.getElementById(`req-${requestId}`);
+  const color = status === 'approved' ? '#F0FDF4' : '#FEF2F2';
+  const border = status === 'approved' ? '#86EFAC' : '#FECACA';
+  const icon  = status === 'approved' ? '✓' : '✗';
+  const msg   = status === 'approved' ? 'Access approved — the professional can now view the full dossier.' : 'Access denied.';
+  card.style.background = color;
+  card.style.border = `1.5px solid ${border}`;
+  card.innerHTML = `<div class="text-sm" style="color:var(--charcoal);">${icon} <strong>${msg}</strong></div>`;
+
+  // Update badge count
+  const remaining = document.querySelectorAll('[id^="req-"] .btn-primary:not(:disabled)').length;
+  const badge = document.getElementById('notif-badge');
+  if (badge) badge.textContent = remaining > 0 ? `${remaining} pending` : '';
+}
+</script>
 </body>
 </html>

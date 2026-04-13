@@ -6,6 +6,9 @@
   <title>Create tenant account — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body class="auth-page">
 
@@ -70,7 +73,8 @@
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary btn-full">Create account &amp; continue</button>
+      <div id="error-msg" style="display:none; color:var(--red); font-size:.875rem; margin-bottom:12px;"></div>
+      <button type="submit" id="submit-btn" class="btn btn-primary btn-full">Create account &amp; continue</button>
     </form>
 
     <div class="auth-card__footer">
@@ -80,8 +84,36 @@
 </div>
 
 <script>
-function handleRegister(e) {
+async function handleRegister(e) {
   e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  sbHelpers.setLoading(btn, true, 'Create account & continue');
+  sbHelpers.hideError('error-msg');
+
+  const firstName = document.getElementById('first_name').value.trim();
+  const lastName  = document.getElementById('last_name').value.trim();
+  const email     = document.getElementById('email').value.trim();
+  const password  = document.getElementById('password').value;
+  const confirm   = document.getElementById('confirm_password').value;
+
+  if (password !== confirm) {
+    sbHelpers.showError('error-msg', 'Passwords do not match.');
+    sbHelpers.setLoading(btn, false, 'Create account & continue');
+    return;
+  }
+
+  const { data, error } = await _sb.auth.signUp({
+    email,
+    password,
+    options: { data: { role: 'tenant', full_name: `${firstName} ${lastName}` } },
+  });
+
+  if (error) {
+    sbHelpers.showError('error-msg', error.message);
+    sbHelpers.setLoading(btn, false, 'Create account & continue');
+    return;
+  }
+
   window.location.href = '../tenant/profile.html';
 }
 </script>

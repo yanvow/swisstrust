@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owners — SwissTrust Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <style>
+    .admin-badge { display:inline-block; background:#FF0000; color:white; font-size:.65rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:4px; vertical-align:middle; margin-left:6px; }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:white; border-radius:var(--radius); width:100%; max-width:480px; padding:32px; box-shadow:var(--shadow-lg); }
+    .modal-title { font-weight:700; font-size:1.1rem; margin-bottom:20px; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust <span class="admin-badge">Admin</span>
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">Overview</div>
+      <a href="dashboard.html" class="sidebar__link"><span class="sidebar__icon">⊞</span> Dashboard</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Users</div>
+      <a href="tenants.html" class="sidebar__link"><span class="sidebar__icon">👤</span> Tenants</a>
+      <a href="agencies.html" class="sidebar__link"><span class="sidebar__icon">🏢</span> Agencies</a>
+      <a href="owners.html" class="sidebar__link sidebar__link--active"><span class="sidebar__icon">🏠</span> Owners</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Content</div>
+      <a href="documents.html" class="sidebar__link"><span class="sidebar__icon">📄</span> Documents</a>
+      <a href="certificates.html" class="sidebar__link"><span class="sidebar__icon">🪪</span> Certificates</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="flex-between mb-16">
+      <div>
+        <div class="page-title">Owners</div>
+        <div class="page-subtitle" id="page-subtitle">Loading…</div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:20px;">
+      <input type="text" id="search" placeholder="Search by name, address…" oninput="filterTable()" style="flex:1;">
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Property address</th>
+            <th>Joined</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="5" class="text-gray text-sm" style="padding:24px;text-align:center;">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- Edit modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="flex-between mb-20">
+      <div class="modal-title" id="modal-title">Edit owner</div>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray-400);">×</button>
+    </div>
+    <div id="modal-err" style="display:none;color:var(--red);font-size:.875rem;margin-bottom:12px;"></div>
+    <div class="form-group"><label>Full name</label><input id="f-full_name" type="text"></div>
+    <div class="form-group"><label>Phone</label><input id="f-phone" type="tel"></div>
+    <div class="form-group"><label>Property address</label><input id="f-property_address" type="text"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-primary" id="save-btn" onclick="saveEdit()">Save changes</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _all = [];
+let _editingId = null;
+
+(async () => {
+  const user = await sbHelpers.requireAdmin();
+  if (!user) return;
+  document.getElementById('nav-name').textContent = user.email;
+
+  const { data, error } = await sbHelpers.adminGetOwners();
+  if (error) { document.getElementById('page-subtitle').textContent = 'Error: ' + error.message; return; }
+  _all = data || [];
+  document.getElementById('page-subtitle').textContent =
+    `${_all.length} owner${_all.length !== 1 ? 's' : ''} registered`;
+  renderTable(_all);
+})();
+
+function filterTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  let rows = _all;
+  if (q) rows = rows.filter(o =>
+    (o.full_name||'').toLowerCase().includes(q) ||
+    (o.property_address||'').toLowerCase().includes(q) ||
+    (o.phone||'').toLowerCase().includes(q)
+  );
+  renderTable(rows);
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-gray text-sm" style="padding:24px;text-align:center;">No owners found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(o => `
+    <tr>
+      <td><div class="font-bold">${esc(o.full_name||'—')}</div></td>
+      <td class="text-sm">${esc(o.phone||'—')}</td>
+      <td class="text-sm text-gray">${esc(o.property_address||'—')}</td>
+      <td class="text-sm text-gray">${new Date(o.created_at).toLocaleDateString('en-CH',{day:'2-digit',month:'short',year:'numeric'})}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openEdit('${o.id}')">Edit</button></td>
+    </tr>`).join('');
+}
+
+function openEdit(id) {
+  const o = _all.find(x => x.id === id);
+  if (!o) return;
+  _editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit — ' + (o.full_name || 'Unnamed owner');
+  document.getElementById('modal-err').style.display = 'none';
+  document.getElementById('f-full_name').value       = o.full_name || '';
+  document.getElementById('f-phone').value            = o.phone || '';
+  document.getElementById('f-property_address').value = o.property_address || '';
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); _editingId = null; }
+
+async function saveEdit() {
+  if (!_editingId) return;
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const fields = {
+    full_name:        document.getElementById('f-full_name').value.trim() || null,
+    phone:            document.getElementById('f-phone').value.trim() || null,
+    property_address: document.getElementById('f-property_address').value.trim() || null,
+  };
+  const { data, error } = await sbHelpers.adminUpdateOwner(_editingId, fields);
+  btn.disabled = false; btn.textContent = 'Save changes';
+  if (error) { document.getElementById('modal-err').textContent = error.message; document.getElementById('modal-err').style.display='block'; return; }
+  const idx = _all.findIndex(o => o.id === _editingId);
+  if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
+  filterTable();
+  closeModal();
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

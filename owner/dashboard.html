@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Dashboard — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray" id="nav-owner"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">Private owner</div>
+      <a href="dashboard.html" class="sidebar__link sidebar__link--active">
+        <span class="sidebar__icon">⊞</span> Dashboard
+      </a>
+      <a href="#verify-card" class="sidebar__link">
+        <span class="sidebar__icon">✓</span> Verify certificate
+      </a>
+      <a href="#recent-section" class="sidebar__link">
+        <span class="sidebar__icon">◷</span> Recent activity
+      </a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Links</div>
+      <a href="../verify.html" class="sidebar__link">
+        <span class="sidebar__icon">⌕</span> Public verify page
+      </a>
+      <a href="../index.html#owners" class="sidebar__link">
+        <span class="sidebar__icon">⌂</span> Owner overview
+      </a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-title">Owner dashboard</div>
+    <div class="page-subtitle" id="page-subtitle">Verify tenant certificates for your properties.</div>
+
+    <div class="alert alert-info">
+      <div>🏠</div>
+      <div>
+        <strong>Simple landlord workflow.</strong> Enter a certificate code or scan a SwissTrust QR code to open the tenant dossier.
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-lookups">0</div>
+        <div class="stat-lbl">Recent lookups</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-full" style="color:var(--green);">0</div>
+        <div class="stat-lbl">Full dossiers unlocked</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-limited" style="color:var(--amber);">0</div>
+        <div class="stat-lbl">Limited or pending access</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num text-sm" id="stat-last">No activity</div>
+        <div class="stat-lbl">Last activity</div>
+      </div>
+    </div>
+
+    <div class="card mb-24" id="verify-card">
+      <div class="card-header">
+        <div class="card-title">Verify a tenant certificate</div>
+        <div class="card-subtitle">SwissTrust private owners use certificate codes and QR links rather than an agency inbox.</div>
+      </div>
+
+      <form onsubmit="verifyOwnerCert(event)">
+        <div class="form-row" style="align-items:end;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="cert_code">Certificate code</label>
+            <input
+              type="text"
+              id="cert_code"
+              class="code-input"
+              placeholder="STD-XXXX-XXXX"
+              maxlength="12"
+              oninput="formatCode(this)"
+              required
+            >
+            <div class="form-hint">Format: STD-XXXX-XXXX</div>
+          </div>
+          <button type="submit" class="btn btn-primary">Open certificate</button>
+        </div>
+      </form>
+
+      <div class="card mt-24 card--flat" style="background:var(--gray-100); border:none; padding:14px 16px;">
+        <div class="text-sm text-gray">Tip: if a tenant shares a QR code, opening it directly lands on the same certificate view and your dashboard keeps a local history of what you checked.</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="gap:24px; margin-bottom:24px;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Access modes</div>
+          <div class="card-subtitle">The dashboard is designed around SwissTrust’s certificate model.</div>
+        </div>
+        <div class="doc-row doc-row--done">
+          <div class="doc-row__icon">🌐</div>
+          <div class="doc-row__info">
+            <div class="doc-row__name">Open certificate</div>
+            <div class="doc-row__desc">You can see the full dossier as a signed-in owner.</div>
+          </div>
+          <span class="badge badge-green">Full access</span>
+        </div>
+        <div class="doc-row doc-row--pending">
+          <div class="doc-row__icon">🔔</div>
+          <div class="doc-row__info">
+            <div class="doc-row__name">On-request certificate</div>
+            <div class="doc-row__desc">You can open the public summary. Full access depends on tenant approval.</div>
+          </div>
+          <span class="badge badge-amber">Approval needed</span>
+        </div>
+        <div class="doc-row doc-row--pending" style="margin-bottom:0;">
+          <div class="doc-row__icon">🎯</div>
+          <div class="doc-row__info">
+            <div class="doc-row__name">Directed certificate</div>
+            <div class="doc-row__desc">If the tenant directed it to a régie account, private owners only see the public summary.</div>
+          </div>
+          <span class="badge badge-gray">Limited view</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">How owners use SwissTrust</div>
+          <div class="card-subtitle">Keep the owner experience simple and verification-first.</div>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="step__num">1</div>
+            <div class="step__title">Receive certificate</div>
+            <div class="step__desc">Ask the tenant for a QR code or certificate code.</div>
+          </div>
+          <div class="step">
+            <div class="step__num">2</div>
+            <div class="step__title">Open dossier</div>
+            <div class="step__desc">Verify the code and review the public or full view.</div>
+          </div>
+          <div class="step">
+            <div class="step__num">3</div>
+            <div class="step__title">Decide faster</div>
+            <div class="step__desc">Use Trust Score, eligibility and documents to shortlist tenants.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="recent-section">
+      <div class="card-header">
+        <div class="card-title">Recent certificates viewed</div>
+        <div class="card-subtitle">Stored locally in this browser for the signed-in owner account.</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Certificate</th>
+              <th>Tenant</th>
+              <th>Property</th>
+              <th>Outcome</th>
+              <th>Viewed</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="recent-tbody">
+            <tr><td colspan="6" class="text-gray text-sm" style="padding:24px; text-align:center;">No certificates viewed yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+function formatCode(input) {
+  let val = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (val.length > 3) val = val.slice(0, 3) + '-' + val.slice(3);
+  if (val.length > 8) val = val.slice(0, 8) + '-' + val.slice(8);
+  input.value = val.slice(0, 12);
+}
+
+function verifyOwnerCert(e) {
+  e.preventDefault();
+  const code = document.getElementById('cert_code').value.trim().toUpperCase();
+  if (code.length !== 12) {
+    alert(window.stI18n?.t('Please enter the full 12-character code (STD-XXXX-XXXX).') || 'Please enter the full 12-character code (STD-XXXX-XXXX).');
+    return;
+  }
+  window.location.href = `../cert/cert-view.html?code=${encodeURIComponent(code)}`;
+}
+
+function historyKey(userId) {
+  return `swisstrust:ownerRecent:${userId}`;
+}
+
+function renderHistory(history) {
+  document.getElementById('stat-lookups').textContent = history.length;
+  document.getElementById('stat-full').textContent = history.filter(item => item.access === 'full').length;
+  document.getElementById('stat-limited').textContent = history.filter(item => item.access !== 'full').length;
+  document.getElementById('stat-last').textContent = history[0]
+    ? new Date(history[0].viewedAt).toLocaleDateString('en-CH', { day: '2-digit', month: 'short', year: 'numeric' })
+    : 'No activity';
+
+  const tbody = document.getElementById('recent-tbody');
+  if (!history.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-gray text-sm" style="padding:24px; text-align:center;">No certificates viewed yet.</td></tr>';
+    return;
+  }
+
+  const modeLabel = {
+    open: '<span class="badge badge-green">Open</span>',
+    on_request: '<span class="badge badge-amber">On-request</span>',
+    directed: '<span class="badge badge-gray">Directed</span>',
+  };
+
+  const accessLabel = {
+    full: '<span class="badge badge-green">Full dossier</span>',
+    request: '<span class="badge badge-amber">Approval needed</span>',
+    preview: '<span class="badge badge-gray">Public summary</span>',
+  };
+
+  tbody.innerHTML = history.map(item => `
+    <tr>
+      <td>
+        <div class="font-bold font-mono">${item.certCode}</div>
+        <div class="text-xs text-gray">${modeLabel[item.mode] || ''}</div>
+      </td>
+      <td>${item.tenantName || '—'}</td>
+      <td>${item.property || '—'}</td>
+      <td>${accessLabel[item.access] || '<span class="badge badge-gray">Viewed</span>'}</td>
+      <td class="text-sm text-gray">${new Date(item.viewedAt).toLocaleDateString('en-CH', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+      <td><a href="../cert/cert-view.html?code=${encodeURIComponent(item.certCode)}" class="btn btn-outline btn-sm">Open</a></td>
+    </tr>
+  `).join('');
+}
+
+(async () => {
+  const user = await sbHelpers.requireAuth('owner');
+  if (!user) return;
+
+  const fullName = user.user_metadata?.full_name || user.email;
+
+  document.getElementById('nav-owner').textContent = fullName;
+  document.getElementById('page-subtitle').textContent =
+    window.stI18n?.template('owner_dashboard_welcome', { name: fullName })
+    || `Welcome back, ${fullName}. Verify codes, open dossiers, and review your recent checks.`;
+
+  const history = JSON.parse(localStorage.getItem(historyKey(user.id)) || '[]');
+  renderHistory(history);
+})();
+</script>
+</body>
+</html>

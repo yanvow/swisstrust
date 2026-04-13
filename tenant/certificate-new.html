@@ -6,6 +6,11 @@
   <title>New Certificate — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="../lib/address-autocomplete.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body>
 
@@ -16,8 +21,8 @@
       SwissTrust
     </a>
     <div class="nav__links">
-      <span class="text-sm text-gray">Sophie Müller</span>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
     </div>
   </div>
 </nav>
@@ -48,7 +53,7 @@
           <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
           Identity Verified
         </div>
-        <span class="badge trust-b">B Score (provisional)</span>
+        <span class="badge trust-b" id="profile-trust-badge">— Score</span>
       </div>
       <div class="text-sm text-gray">Your tenant data is pre-filled: <strong style="color:var(--charcoal);">Sophie Müller</strong> · CHF 8,500/mo gross · 2 occupants · No smoker · No pets</div>
     </div>
@@ -92,16 +97,17 @@
         <legend>Property details</legend>
         <div class="form-group">
           <label>Property street address <span class="req">*</span></label>
-          <input type="text" id="street" placeholder="Rue de Rive 14" required>
+          <input type="text" id="street" placeholder="Start typing a Swiss address…" required>
+          <div class="form-hint">Select from the dropdown — city, canton and postcode will fill automatically.</div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>City <span class="req">*</span></label>
-            <input type="text" id="city" placeholder="Genève" required>
+            <input type="text" id="city" placeholder="—" readonly required class="input-autofilled">
           </div>
           <div class="form-group">
             <label>Postcode <span class="req">*</span></label>
-            <input type="text" id="postcode" placeholder="1204" required>
+            <input type="text" id="postcode" placeholder="—" readonly required class="input-autofilled">
           </div>
         </div>
         <div class="form-row">
@@ -176,20 +182,53 @@
         </div>
       </fieldset>
 
-      <!-- Agency selector — only for Directed mode -->
+      <!-- Directed recipient — only for Directed mode -->
       <fieldset class="fieldset" id="agency-fieldset">
-        <legend>Authorised agency</legend>
-        <div class="form-group">
+        <legend>Authorised recipient</legend>
+
+        <!-- Toggle: agency vs private landlord -->
+        <div style="display:flex; gap:8px; margin-bottom:20px;">
+          <button type="button" class="directed-type-btn directed-type-btn--active" id="btn-directed-agency" onclick="setDirectedType('agency')">🏢 Agency / régie</button>
+          <button type="button" class="directed-type-btn" id="btn-directed-owner" onclick="setDirectedType('owner')">👤 Private landlord</button>
+        </div>
+
+        <!-- Agency searchable picker -->
+        <div id="directed-agency-wrap" class="form-group mb-0">
           <label>Select the régie managing this property <span class="req">*</span></label>
-          <select id="agency">
-            <option value="">Search for an agency…</option>
-            <option value="moser_vernet">Moser Vernet & Cie — Genève</option>
-            <option value="naef">Naef Immobilier — Genève</option>
-            <option value="regie_rhone">Régie du Rhône — Genève</option>
-            <option value="asloca">ASLOCA — Genève</option>
-            <option value="immoflex">Immoflex SA — Lausanne</option>
-          </select>
-          <div class="form-hint">Only the selected agency will have access to your full dossier.</div>
+          <div style="position:relative;">
+            <input type="text" id="agency-search" placeholder="Type to search agencies…" autocomplete="off"
+              oninput="filterAgencies()" onfocus="openAgencyDrop()" onblur="scheduleCloseDrop()">
+            <input type="hidden" id="agency-id">
+            <div id="agency-drop" style="display:none; position:absolute; left:0; right:0; top:100%; background:white; border:1px solid var(--gray-200); border-top:none; border-radius:0 0 var(--radius) var(--radius); max-height:220px; overflow-y:auto; z-index:50; box-shadow:var(--shadow);"></div>
+          </div>
+          <div class="form-hint" id="agency-hint">Only this agency will have access to your full dossier.</div>
+
+          <!-- Not-found panel (hidden until search yields no match) -->
+          <div id="agency-notfound" style="display:none; margin-top:12px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:var(--radius); padding:14px 16px;">
+            <div style="font-weight:600; font-size:.875rem; margin-bottom:6px;">Agency not on SwissTrust yet?</div>
+            <div class="text-sm text-gray mb-12">You can still apply — choose one of these options:</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="switchToOpen()">Switch to Open mode</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="invite-btn" onclick="copyInvite(this)">📋 Copy invite link</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="toggleGhostForm()">📨 Direct by name anyway</button>
+            </div>
+            <!-- Ghost cert form -->
+            <div id="ghost-form" style="display:none; border-top:1px solid #FED7AA; padding-top:12px; margin-top:4px;">
+              <div class="text-sm text-gray mb-8">Your certificate will be held for this agency. They'll see it the moment they join SwissTrust — no action needed on your part.</div>
+              <div class="form-group mb-8">
+                <label style="font-size:.8125rem;">Agency name (as it will appear) <span class="req">*</span></label>
+                <input type="text" id="ghost-agency-name" placeholder="e.g. Agence Dupont & Fils" style="font-size:.875rem;">
+              </div>
+              <div style="font-size:.75rem; color:var(--gray-400);">The certificate will be created in <strong>Directed</strong> mode. The agency must sign up with this exact name to claim it.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Owner email input -->
+        <div id="directed-owner-wrap" class="form-group mb-0" style="display:none;">
+          <label>Landlord email address <span class="req">*</span></label>
+          <input type="email" id="owner_email" placeholder="landlord@example.com">
+          <div class="form-hint">The landlord must sign in with this exact email to access your full dossier.</div>
         </div>
       </fieldset>
 
@@ -221,34 +260,15 @@
     <h2 class="mb-8">Your QR certificate is ready</h2>
     <p class="text-sm text-gray mb-24">Share the code or QR code with the agency. They'll see your full verified dossier once they scan it while logged in.</p>
 
-    <!-- Fake QR -->
     <div style="display:flex; justify-content:center; margin-bottom:20px;">
-      <svg viewBox="0 0 21 21" width="140" height="140" xmlns="http://www.w3.org/2000/svg" style="border:8px solid white; box-shadow:0 0 0 1px var(--gray-200);">
-        <rect width="21" height="21" fill="white"/>
-        <rect x="1" y="1" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
-        <rect x="3" y="3" width="3" height="3" fill="#1A1A1A"/>
-        <rect x="13" y="1" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
-        <rect x="15" y="3" width="3" height="3" fill="#1A1A1A"/>
-        <rect x="1" y="13" width="7" height="7" fill="none" stroke="#1A1A1A" stroke-width="1"/>
-        <rect x="3" y="15" width="3" height="3" fill="#1A1A1A"/>
-        <rect x="9" y="1" width="1" height="3" fill="#1A1A1A"/>
-        <rect x="11" y="2" width="1" height="2" fill="#1A1A1A"/>
-        <rect x="9" y="5" width="3" height="1" fill="#1A1A1A"/>
-        <rect x="9" y="9" width="5" height="1" fill="#1A1A1A"/>
-        <rect x="13" y="9" width="1" height="5" fill="#1A1A1A"/>
-        <rect x="15" y="11" width="3" height="1" fill="#1A1A1A"/>
-        <rect x="9" y="13" width="1" height="7" fill="#1A1A1A"/>
-        <rect x="11" y="14" width="3" height="1" fill="#1A1A1A"/>
-        <rect x="17" y="13" width="3" height="3" fill="#1A1A1A"/>
-        <rect x="11" y="17" width="5" height="1" fill="#1A1A1A"/>
-      </svg>
+      <div id="qr-canvas" style="border:8px solid white; box-shadow:0 0 0 1px var(--gray-200); display:inline-block;"></div>
     </div>
 
-    <div class="font-mono font-bold mb-8" style="font-size:1.5rem; letter-spacing:.12em;">STD-2G7K-X4NP</div>
+    <div class="font-mono font-bold mb-8" style="font-size:1.5rem; letter-spacing:.12em;" id="modal-cert-code">—</div>
     <div class="text-xs text-gray mb-24" id="modal-mode-desc">Anyone can scan to see your public summary. The agency sees the full dossier.</div>
 
     <div class="flex gap-12" style="justify-content:center; flex-wrap:wrap;">
-      <button class="btn btn-primary" onclick="window.location.href='../cert/cert-view.html'">View certificate →</button>
+      <button class="btn btn-primary" id="view-cert-btn" onclick="viewCert()">View certificate →</button>
       <button class="btn btn-outline" onclick="closeCertModal()">Back to certificates</button>
     </div>
   </div>
@@ -272,9 +292,183 @@
 .mode-card__title { font-weight: 700; font-size: .95rem; }
 .mode-card__desc { font-size: .78rem; color: var(--gray-500); line-height: 1.4; }
 .mode-card__badge { font-size: .72rem; font-weight: 600; margin-top: 4px; }
+.directed-type-btn {
+  padding: 8px 16px; font-size: .875rem; font-weight: 600; font-family: var(--font);
+  border: 1.5px solid var(--gray-200); border-radius: var(--radius);
+  background: white; color: var(--gray-500); cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.directed-type-btn:hover { border-color: var(--gray-400); color: var(--charcoal); }
+.directed-type-btn--active { border-color: var(--charcoal); color: var(--charcoal); background: var(--gray-100); }
+.agency-opt:hover { background: var(--gray-100); }
 </style>
 <script>
-let currentMode = 'directed';
+let currentMode    = 'directed';
+let directedType   = 'agency'; // 'agency' | 'owner'
+let _user   = null;
+let _tenant = null;
+let _docs   = [];
+let _generatedCertCode       = null;
+let unregisteredAgencyName   = null;
+
+function setDirectedType(type) {
+  directedType = type;
+  document.getElementById('btn-directed-agency').classList.toggle('directed-type-btn--active', type === 'agency');
+  document.getElementById('btn-directed-owner').classList.toggle('directed-type-btn--active', type === 'owner');
+  document.getElementById('directed-agency-wrap').style.display = type === 'agency' ? '' : 'none';
+  document.getElementById('directed-owner-wrap').style.display  = type === 'owner'  ? '' : 'none';
+  document.getElementById('owner_email').required = type === 'owner';
+}
+
+function computeTrustGrade(docs) {
+  const byType = {};
+  (docs || []).forEach(d => { byType[d.doc_type] = d; });
+  let score = 100;
+  const b = byType['betreibungsauszug'];
+  if (!b)                            score -= 20;
+  else if (b.status === 'rejected')  score -= 40;
+  else if (b.status !== 'auto_verified') score -= 10;
+  ['salary_slip_1','salary_slip_2','salary_slip_3'].forEach(k => {
+    const s = byType[k];
+    if (!s)                            score -= 10;
+    else if (s.status !== 'auto_verified') score -= 5;
+  });
+  const id = byType['passport_id'];
+  if (!id)                            score -= 15;
+  else if (id.status !== 'auto_verified') score -= 8;
+  if (!byType['reference_letter']) score -= 5;
+  const clamped = Math.max(0, score);
+  return { grade: clamped >= 80 ? 'A' : clamped >= 60 ? 'B' : 'C' };
+}
+
+// Init: auth check + load agencies + load tenant profile
+(async () => {
+  _user = await sbHelpers.requireAuth('tenant');
+  if (!_user) return;
+
+  document.getElementById('nav-name').textContent = _user.user_metadata?.full_name || _user.email;
+
+  // Load tenant profile for eligibility calc
+  const { data: tenant } = await sbHelpers.getTenantByUserId(_user.id);
+  _tenant = tenant;
+
+  if (tenant) {
+    // Load documents to compute provisional trust score
+    const { data: docs } = await sbHelpers.getDocumentsByTenant(tenant.id);
+    _docs = docs || [];
+    const { grade } = computeTrustGrade(_docs);
+    const badge = document.getElementById('profile-trust-badge');
+    badge.className = `badge trust-${grade.toLowerCase()}`;
+    badge.textContent = `${grade} Score (provisional)`;
+
+    document.querySelector('.card.mb-24 .text-sm').innerHTML =
+      `Your tenant data is pre-filled: <strong style="color:var(--charcoal);">${tenant.full_name || _user.email}</strong> · CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()}/mo gross · ${tenant.occupant_count || 1} occupant(s) · ${tenant.is_smoker ? 'Smoker' : 'No smoker'} · ${tenant.has_pets ? 'Pets' : 'No pets'}`;
+  }
+
+  // Address autocomplete: fills street only; auto-fills city/canton/postcode
+  initAddressAutocomplete('street', {
+    onSelect: ({ city, postcode }) => {
+      document.getElementById('city').value     = city;
+      document.getElementById('postcode').value = postcode;
+    }
+  });
+
+  // Load agencies into in-memory list for the searchable picker
+  const { data: agencies } = await sbHelpers.getAgencies();
+  _agencies = (agencies || []).map(a => ({
+    id:    a.id,
+    label: a.company_name,
+    sub:   (a.address || '').split(',').slice(-1)[0]?.trim() || '',
+  }));
+  renderAgencyDrop('');
+})();
+
+// ── Agency searchable picker ──────────────────────────────────
+let _agencies      = [];
+let _dropCloseTimer = null;
+
+function filterAgencies() {
+  const q = document.getElementById('agency-search').value.trim();
+  // Clear selection when user types
+  document.getElementById('agency-id').value = '';
+  renderAgencyDrop(q);
+  openAgencyDrop();
+}
+
+function renderAgencyDrop(q) {
+  const drop = document.getElementById('agency-drop');
+  const notFound = document.getElementById('agency-notfound');
+  const lower = q.toLowerCase();
+  const matches = q
+    ? _agencies.filter(a => a.label.toLowerCase().includes(lower) || a.sub.toLowerCase().includes(lower))
+    : _agencies;
+
+  if (matches.length === 0 && q.length > 1) {
+    drop.style.display = 'none';
+    notFound.style.display = 'block';
+    return;
+  }
+  notFound.style.display = 'none';
+
+  drop.innerHTML = matches.map(a => `
+    <div class="agency-opt" data-id="${a.id}" data-label="${a.label.replace(/"/g,'&quot;')}"
+      onmousedown="selectAgency('${a.id}', this.dataset.label)"
+      style="padding:10px 14px; cursor:pointer; font-size:.875rem; border-bottom:1px solid var(--gray-100);">
+      <div style="font-weight:600;">${a.label}</div>
+      ${a.sub ? `<div style="font-size:.78rem; color:var(--gray-400);">${a.sub}</div>` : ''}
+    </div>`).join('');
+}
+
+function selectAgency(id, label) {
+  document.getElementById('agency-id').value    = id;
+  document.getElementById('agency-search').value = label;
+  document.getElementById('agency-drop').style.display = 'none';
+  document.getElementById('agency-notfound').style.display = 'none';
+}
+
+function openAgencyDrop() {
+  clearTimeout(_dropCloseTimer);
+  const drop = document.getElementById('agency-drop');
+  if (document.getElementById('agency-id').value) return; // already selected
+  if (drop.children.length) drop.style.display = 'block';
+}
+
+function scheduleCloseDrop() {
+  _dropCloseTimer = setTimeout(() => {
+    document.getElementById('agency-drop').style.display = 'none';
+  }, 150);
+}
+
+function switchToOpen() {
+  selectMode('open');
+  document.getElementById('card-open').classList.add('mode-card--selected');
+  document.getElementById('card-directed').classList.remove('mode-card--selected');
+}
+
+function toggleGhostForm() {
+  const form = document.getElementById('ghost-form');
+  const isHidden = form.style.display === 'none';
+  form.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    // Pre-fill with whatever the user typed
+    const typed = document.getElementById('agency-search').value.trim();
+    document.getElementById('ghost-agency-name').value = typed;
+    document.getElementById('ghost-agency-name').focus();
+  }
+}
+
+function copyInvite(btn) {
+  const agencyName = document.getElementById('agency-search').value.trim();
+  const regUrl = window.location.origin + window.location.pathname.replace(/\/tenant\/.*/, '') + '/auth/agency-register.html';
+  const msg = agencyName
+    ? `Hi, I'd like to share my SwissTrust tenant dossier with ${agencyName}. Please register your agency at: ${regUrl}`
+    : `Register your agency on SwissTrust to receive verified tenant dossiers: ${regUrl}`;
+  navigator.clipboard.writeText(msg).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
 
 function selectMode(mode) {
   currentMode = mode;
@@ -286,12 +480,10 @@ function selectMode(mode) {
   const agencyFieldset = document.getElementById('agency-fieldset');
   const openNotice = document.getElementById('open-notice');
   const onrequestNotice = document.getElementById('onrequest-notice');
-  const agencySelect = document.getElementById('agency');
 
   agencyFieldset.style.display = mode === 'directed' ? '' : 'none';
   openNotice.style.display = mode === 'open' ? '' : 'none';
   onrequestNotice.style.display = mode === 'on_request' ? '' : 'none';
-  agencySelect.required = mode === 'directed';
 }
 
 function calcTotal() {
@@ -300,8 +492,7 @@ function calcTotal() {
   const total = rent + charges;
   document.getElementById('total').value = total || '';
 
-  // Eligibility check (salary 8500 × 3 = 25500/year = 2125/mo threshold is inverted — need salary >= rent*3)
-  const salary = 8500;
+  const salary = _tenant?.monthly_gross_salary || 0;
   const hint = document.getElementById('eligibility-hint');
   if (total > 0) {
     const needed = total * 3;
@@ -319,16 +510,120 @@ function calcTotal() {
   }
 }
 
-function generateCertificate(e) {
+async function generateCertificate(e) {
   e.preventDefault();
+  const submitBtn = e.target.querySelector('button[type=submit]');
+  sbHelpers.setLoading(submitBtn, true, 'Generate QR certificate');
+
+  let agencyId   = null;
+  let ownerEmail = null;
+  if (currentMode === 'directed') {
+    if (directedType === 'agency') {
+      agencyId = document.getElementById('agency-id').value;
+      if (!agencyId) {
+        // Check if ghost delivery was chosen instead
+        const ghostName = document.getElementById('ghost-agency-name')?.value.trim();
+        if (ghostName && document.getElementById('ghost-form')?.style.display !== 'none') {
+          unregisteredAgencyName = ghostName;
+          // agencyId stays null — ghost cert
+        } else {
+          sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+          document.getElementById('agency-search').focus();
+          sbHelpers.showError('agency-hint', 'Please select an agency from the list, or use one of the options below.');
+          return;
+        }
+      }
+      sbHelpers.hideError('agency-hint');
+    } else {
+      ownerEmail = document.getElementById('owner_email').value.trim().toLowerCase();
+      if (!ownerEmail) {
+        sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+        alert('Please enter the landlord email address.');
+        return;
+      }
+    }
+  }
+
+  // Get tenant row
+  const { data: tenant } = await sbHelpers.getTenantByUserId(_user.id);
+  if (!tenant) {
+    sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+    alert('Please complete your profile first.');
+    return;
+  }
+
+  const rent   = parseFloat(document.getElementById('rent').value) || 0;
+  const total  = parseFloat(document.getElementById('total').value) || rent;
+  const salary = tenant.monthly_gross_salary || 0;
+  const isEligible = salary >= total * 3;
+
+  // Compute trust score from current document statuses
+  const { data: latestDocs } = await sbHelpers.getDocumentsByTenant(tenant.id);
+  const { grade: trustScore } = computeTrustGrade(latestDocs || []);
+
+  const certCode = sbHelpers.generateCertCode();
+  const appUrl   = window.location.origin + window.location.pathname.replace(/\/tenant\/.*/, '');
+  const qrUrl    = `${appUrl}/cert/cert-view.html?code=${certCode}`;
+
+  const { data: cert, error } = await _sb.from('certificates').insert({
+    tenant_id:        tenant.id,
+    agency_id:                agencyId             || null,
+    owner_email:              ownerEmail           || null,
+    unregistered_agency_name: unregisteredAgencyName || null,
+    property_address: document.getElementById('street').value.trim(),
+    property_city:    document.getElementById('city').value.trim(),
+    property_postcode:document.getElementById('postcode').value.trim(),
+    rooms:            parseFloat(document.getElementById('rooms').value) || null,
+    floor:            document.getElementById('floor').value.trim() || null,
+    move_in_date:     document.getElementById('movein').value || null,
+    rent_chf:         parseFloat(document.getElementById('rent').value) || null,
+    charges_chf:      parseFloat(document.getElementById('charges').value) || null,
+    total_chf:        total,
+    parking_desired:  document.getElementById('parking').checked,
+    has_visited:      document.getElementById('visited').checked,
+    heard_about:      document.getElementById('heard_via').value || null,
+    mode:             currentMode,
+    trust_score:      trustScore,
+    is_eligible:      isEligible,
+    cert_code:        certCode,
+    qr_url:           qrUrl,
+  }).select().single();
+
+  sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+
+  if (error) {
+    alert('Error generating certificate: ' + error.message);
+    return;
+  }
+
+  // Render QR code
+  _generatedCertCode = certCode;
+  document.getElementById('modal-cert-code').textContent = certCode;
+  document.getElementById('qr-canvas').innerHTML = '';
+  new QRCode(document.getElementById('qr-canvas'), {
+    text: qrUrl,
+    width: 140,
+    height: 140,
+    colorDark: '#1A1A1A',
+    colorLight: '#FFFFFF',
+  });
+
   const modeDescs = {
-    directed: 'Directed certificate — only the selected agency can access your full dossier.',
-    open: 'Open certificate — any verified régie or landlord on SwissTrust can access your full dossier.',
-    on_request: 'On-Request certificate — professionals see your public summary and must request access. Check your dashboard to approve.'
+    directed_agency: 'Directed certificate — only the selected agency can access your full dossier.',
+    directed_owner:  `Directed certificate — only the landlord at ${ownerEmail} can access your full dossier.`,
+    open:            'Open certificate — any verified régie or landlord on SwissTrust can access your full dossier.',
+    on_request:      'On-Request certificate — professionals see your public summary and must request access. Check your dashboard to approve.',
   };
-  document.getElementById('modal-mode-desc').textContent = modeDescs[currentMode];
-  const modal = document.getElementById('cert-modal');
-  modal.style.display = 'flex';
+  const descKey = currentMode === 'directed' ? `directed_${directedType}` : currentMode;
+  document.getElementById('modal-mode-desc').textContent = modeDescs[descKey];
+
+  document.getElementById('cert-modal').style.display = 'flex';
+}
+
+function viewCert() {
+  if (_generatedCertCode) {
+    window.location.href = `../cert/cert-view.html?code=${_generatedCertCode}`;
+  }
 }
 
 function closeCertModal() {

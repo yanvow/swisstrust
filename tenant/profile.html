@@ -6,6 +6,9 @@
   <title>My Profile — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body>
 
@@ -16,8 +19,8 @@
       SwissTrust
     </a>
     <div class="nav__links">
-      <span class="text-sm text-gray">Sophie Müller</span>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
     </div>
   </div>
 </nav>
@@ -46,7 +49,7 @@
       <span>Your profile data is fixed — it won't change between certificates. Only property-specific details vary per certificate.</span>
     </div>
 
-    <form onsubmit="saveProfile(event)">
+    <form onsubmit="saveProfile(event)" id="profile-form">
 
       <!-- Personal -->
       <fieldset class="fieldset">
@@ -54,22 +57,22 @@
         <div class="form-row">
           <div class="form-group">
             <label>Full name <span class="req">*</span></label>
-            <input type="text" value="Sophie Müller" placeholder="Full legal name">
+            <input type="text" id="full_name" placeholder="Full legal name" required>
           </div>
           <div class="form-group">
             <label>Date of birth <span class="req">*</span></label>
-            <input type="date" value="1992-06-14">
+            <input type="date" id="date_of_birth" required>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>Nationality <span class="req">*</span></label>
-            <input type="text" value="Swiss" placeholder="e.g. Swiss, German, French">
+            <input type="text" id="nationality" placeholder="e.g. Swiss, German, French" required>
           </div>
           <div class="form-group">
             <label>Permit type <span class="req">*</span></label>
-            <select>
-              <option value="swiss" selected>Swiss citizen</option>
+            <select id="permit_type" required>
+              <option value="swiss">Swiss citizen</option>
               <option value="B">B permit</option>
               <option value="C">C permit</option>
               <option value="G">G permit</option>
@@ -79,7 +82,7 @@
         </div>
         <div class="form-group">
           <label>Current address <span class="req">*</span></label>
-          <input type="text" value="Rue du Lac 24, 1207 Genève" placeholder="Street, city, postcode">
+          <input type="text" id="current_address" placeholder="Street, city, postcode, country" required>
         </div>
       </fieldset>
 
@@ -89,21 +92,21 @@
         <div class="form-row">
           <div class="form-group">
             <label>Employer name <span class="req">*</span></label>
-            <input type="text" value="Pictet & Cie SA" placeholder="Company name">
+            <input type="text" id="employer_name" placeholder="Company name" required>
           </div>
           <div class="form-group">
             <label>Job title / role <span class="req">*</span></label>
-            <input type="text" value="Financial Analyst" placeholder="Your position">
+            <input type="text" id="job_role" placeholder="Your position" required>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>Employment start date <span class="req">*</span></label>
-            <input type="date" value="2021-03-01">
+            <input type="date" id="employment_start_date" required>
           </div>
           <div class="form-group">
             <label>Monthly gross salary (CHF) <span class="req">*</span></label>
-            <input type="number" value="8500" placeholder="e.g. 8500">
+            <input type="number" id="monthly_gross_salary" placeholder="e.g. 8500" required>
             <div class="form-hint">Used to calculate rent eligibility (salary ≥ 3× rent)</div>
           </div>
         </div>
@@ -114,7 +117,7 @@
         <legend>Household</legend>
         <div class="form-group">
           <label>Number of occupants (including yourself) <span class="req">*</span></label>
-          <input type="number" value="2" min="1" max="10" style="max-width:120px;">
+          <input type="number" id="occupant_count" value="1" min="1" max="10" style="max-width:120px;" required>
         </div>
         <div>
           <div class="toggle-row">
@@ -123,7 +126,7 @@
               <div class="text-xs text-gray">Does any occupant smoke?</div>
             </div>
             <label class="toggle">
-              <input type="checkbox">
+              <input type="checkbox" id="is_smoker">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -133,15 +136,16 @@
               <div class="text-xs text-gray">Do you have or plan to have pets?</div>
             </div>
             <label class="toggle">
-              <input type="checkbox">
+              <input type="checkbox" id="has_pets">
               <span class="toggle-slider"></span>
             </label>
           </div>
         </div>
       </fieldset>
 
+      <div id="save-error" style="display:none; color:var(--red); font-size:.875rem; margin-bottom:12px;"></div>
       <div class="flex gap-16">
-        <button type="submit" class="btn btn-primary">Save profile</button>
+        <button type="submit" id="save-btn" class="btn btn-primary">Save profile</button>
         <a href="documents.html" class="btn btn-outline">Next: Upload documents →</a>
       </div>
     </form>
@@ -149,12 +153,70 @@
 </div>
 
 <script>
-function saveProfile(e) {
+let _userId = null;
+
+(async () => {
+  const user = await sbHelpers.requireAuth('tenant');
+  if (!user) return;
+  _userId = user.id;
+
+  document.getElementById('nav-name').textContent = user.user_metadata?.full_name || user.email;
+
+  // Load existing profile
+  const { data } = await sbHelpers.getTenantByUserId(user.id);
+  if (data) {
+    const f = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
+    f('full_name', data.full_name);
+    f('date_of_birth', data.date_of_birth);
+    f('nationality', data.nationality);
+    f('permit_type', data.permit_type || 'swiss');
+    f('current_address', data.current_address);
+    f('employer_name', data.employer_name);
+    f('job_role', data.job_role);
+    f('employment_start_date', data.employment_start_date);
+    f('monthly_gross_salary', data.monthly_gross_salary);
+    f('occupant_count', data.occupant_count || 1);
+    if (data.is_smoker) document.getElementById('is_smoker').checked = true;
+    if (data.has_pets)  document.getElementById('has_pets').checked = true;
+  }
+
+
+})();
+
+async function saveProfile(e) {
   e.preventDefault();
-  const btn = e.target.querySelector('button[type=submit]');
+  const btn = document.getElementById('save-btn');
+  sbHelpers.setLoading(btn, true, 'Save profile');
+  sbHelpers.hideError('save-error');
+
+  const fields = {
+    full_name:             document.getElementById('full_name').value.trim(),
+    date_of_birth:         document.getElementById('date_of_birth').value || null,
+    nationality:           document.getElementById('nationality').value.trim(),
+    permit_type:           document.getElementById('permit_type').value,
+    current_address:       document.getElementById('current_address').value.trim(),
+    employer_name:         document.getElementById('employer_name').value.trim(),
+    job_role:              document.getElementById('job_role').value.trim(),
+    employment_start_date: document.getElementById('employment_start_date').value || null,
+    monthly_gross_salary:  parseFloat(document.getElementById('monthly_gross_salary').value) || null,
+    occupant_count:        parseInt(document.getElementById('occupant_count').value) || 1,
+    is_smoker:             document.getElementById('is_smoker').checked,
+    has_pets:              document.getElementById('has_pets').checked,
+    profile_complete:      true,
+    updated_at:            new Date().toISOString(),
+  };
+
+  const { error } = await sbHelpers.upsertTenant(_userId, fields);
+
+  if (error) {
+    sbHelpers.showError('save-error', error.message);
+    sbHelpers.setLoading(btn, false, 'Save profile');
+    return;
+  }
+
   btn.textContent = '✓ Saved';
   btn.style.background = 'var(--green)';
-  setTimeout(() => { btn.textContent = 'Save profile'; btn.style.background = ''; }, 2000);
+  setTimeout(() => { btn.textContent = 'Save profile'; btn.style.background = ''; sbHelpers.setLoading(btn, false, 'Save profile'); }, 2000);
 }
 </script>
 </body>

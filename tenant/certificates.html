@@ -6,6 +6,9 @@
   <title>My Certificates — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body>
 
@@ -16,8 +19,8 @@
       SwissTrust
     </a>
     <div class="nav__links">
-      <span class="text-sm text-gray">Sophie Müller</span>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
     </div>
   </div>
 </nav>
@@ -46,69 +49,7 @@
       <a href="certificate-new.html" class="btn btn-primary">+ New certificate</a>
     </div>
 
-    <!-- Certificate 1 -->
-    <div class="card mb-16" style="border-left: 3px solid var(--green);">
-      <div class="flex-between mb-16">
-        <div>
-          <div style="font-weight:700; font-size:1rem;">Rue de Rive 14, 1204 Genève</div>
-          <div class="text-sm text-gray mt-4">3.5 rooms · Floor 2 · CHF 2,400/mo · Move-in 01.06.2026</div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <span class="badge trust-a">A</span>
-          <span class="badge badge-green">Active</span>
-        </div>
-      </div>
-      <div class="flex-between" style="flex-wrap:wrap; gap:12px;">
-        <div>
-          <div class="text-xs text-gray mb-4">Certificate code</div>
-          <div class="font-mono font-bold" style="font-size:1.1rem; letter-spacing:.08em;">STD-2G7K-X4NP</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-4">Directed to</div>
-          <div class="text-sm font-bold">Moser Vernet & Cie</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-4">Created</div>
-          <div class="text-sm">10 Apr 2026</div>
-        </div>
-        <div style="display:flex; gap:8px;">
-          <a href="../cert/cert-view.html" class="btn btn-outline btn-sm">View certificate</a>
-          <button class="btn btn-ghost btn-sm" onclick="copyCode('STD-2G7K-X4NP', this)">Copy code</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Certificate 2 -->
-    <div class="card mb-16" style="border-left: 3px solid var(--amber);">
-      <div class="flex-between mb-16">
-        <div>
-          <div style="font-weight:700; font-size:1rem;">Avenue de la Gare 8, 1003 Lausanne</div>
-          <div class="text-sm text-gray mt-4">2.5 rooms · Floor 4 · CHF 1,950/mo · Move-in 01.05.2026</div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <span class="badge trust-b">B</span>
-          <span class="badge badge-amber">Pending</span>
-        </div>
-      </div>
-      <div class="flex-between" style="flex-wrap:wrap; gap:12px;">
-        <div>
-          <div class="text-xs text-gray mb-4">Certificate code</div>
-          <div class="font-mono font-bold" style="font-size:1.1rem; letter-spacing:.08em;">STD-9MKP-R3QX</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-4">Directed to</div>
-          <div class="text-sm font-bold">Naef Immobilier</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-4">Created</div>
-          <div class="text-sm">08 Apr 2026</div>
-        </div>
-        <div style="display:flex; gap:8px;">
-          <a href="../cert/cert-view.html" class="btn btn-outline btn-sm">View certificate</a>
-          <button class="btn btn-ghost btn-sm" onclick="copyCode('STD-9MKP-R3QX', this)">Copy code</button>
-        </div>
-      </div>
-    </div>
+    <div id="certs-list"></div>
 
     <div class="card card--flat" style="background:var(--gray-100); text-align:center; padding:40px;">
       <div style="font-size:2rem; margin-bottom:12px; opacity:.4;">＋</div>
@@ -119,12 +60,276 @@
 </div>
 
 <script>
+const modeLabels = { directed: 'Directed', open: 'Open', on_request: 'On-Request' };
+const modeColors = { directed: 'var(--charcoal)', open: 'var(--green)', on_request: 'var(--amber)' };
+
+const VIEWER_LABEL = { public: 'Anonymous scan', agency: 'Agency login', owner: 'Owner login', tenant: 'You (owner)' };
+const VIEWER_ICON  = { public: '👁', agency: '🏢', owner: '👤', tenant: '🪪' };
+
+// Keyed by cert_code so the print function can look them up
+const _certsById = {};
+let _tenantName  = '';
+
+(async () => {
+  const user = await sbHelpers.requireAuth('tenant');
+  if (!user) return;
+
+  _tenantName = user.user_metadata?.full_name || user.email;
+  document.getElementById('nav-name').textContent = _tenantName;
+
+  const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
+  if (!tenant) return;
+
+  const { data: certs, error } = await sbHelpers.getCertificatesByTenant(tenant.id);
+  const list = document.getElementById('certs-list');
+
+  // Store for print access
+  (certs || []).forEach(c => { _certsById[c.cert_code] = c; });
+
+  if (error || !certs || certs.length === 0) {
+    list.innerHTML = `
+      <div class="card mb-24" style="text-align:center; padding:40px;">
+        <div style="font-size:2rem; margin-bottom:12px; opacity:.4;">🪪</div>
+        <div class="text-sm text-gray mb-16">No certificates yet. Generate one when you find a property.</div>
+        <a href="certificate-new.html" class="btn btn-primary btn-sm">New certificate →</a>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = certs.map(c => {
+    const trustClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[c.trust_score] || 'trust-b';
+    const borderColor = { A: 'var(--green)', B: 'var(--amber)', C: 'var(--red)' }[c.trust_score] || 'var(--gray-200)';
+    const agencyName = c.agencies?.company_name;
+    const ownerEmail = c.owner_email;
+    const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+    const mode = c.mode || 'directed';
+
+    const unregisteredName = c.unregistered_agency_name;
+    let recipientHtml;
+    if (agencyName) {
+      recipientHtml = `<div><div class="text-xs text-gray mb-4">Directed to</div><div class="text-sm font-bold">${escHtml(agencyName)}</div></div>`;
+    } else if (ownerEmail) {
+      recipientHtml = `<div><div class="text-xs text-gray mb-4">Directed to</div><div class="text-sm font-bold">${escHtml(ownerEmail)}</div></div>`;
+    } else if (unregisteredName) {
+      recipientHtml = `<div><div class="text-xs text-gray mb-4">Pending delivery</div><div class="text-sm font-bold">${escHtml(unregisteredName)}</div><div class="text-xs" style="color:var(--amber);">Not yet on SwissTrust</div></div>`;
+    } else {
+      recipientHtml = `<div><div class="text-xs text-gray mb-4">Mode</div><div class="text-sm font-bold">${modeLabels[mode]}</div></div>`;
+    }
+
+    return `
+      <div class="card mb-16" style="border-left: 3px solid ${borderColor};">
+        <div class="flex-between mb-16">
+          <div>
+            <div style="font-weight:700; font-size:1rem;">${c.property_address || '—'}${c.property_city ? ', ' + c.property_city : ''}</div>
+            <div class="text-sm text-gray mt-4">${c.rooms ? c.rooms + ' rooms' : ''}${c.floor ? ' · Floor ' + c.floor : ''}${c.total_chf ? ' · CHF ' + Number(c.total_chf).toLocaleString() + '/mo' : ''}${c.move_in_date ? ' · Move-in ' + new Date(c.move_in_date).toLocaleDateString('de-CH') : ''}</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+            <span class="badge ${trustClass}">${c.trust_score || '—'}</span>
+            <span class="badge badge-green">Active</span>
+            <span class="badge" style="background:var(--gray-100); color:${modeColors[mode]}; font-weight:600;">${modeLabels[mode]}</span>
+          </div>
+        </div>
+        <div class="flex-between" style="flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+          <div>
+            <div class="text-xs text-gray mb-4">Certificate code</div>
+            <div class="font-mono font-bold" style="font-size:1.1rem; letter-spacing:.08em;">${c.cert_code}</div>
+          </div>
+          ${recipientHtml}
+          <div>
+            <div class="text-xs text-gray mb-4">Created</div>
+            <div class="text-sm">${date}</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <a href="../cert/cert-view.html?code=${c.cert_code}" class="btn btn-outline btn-sm">View certificate</a>
+            <button class="btn btn-ghost btn-sm" onclick="copyCode('${c.cert_code}', this)">Copy code</button>
+            <button class="btn btn-ghost btn-sm" onclick="printCert('${c.cert_code}')">⬇ Download PDF</button>
+          </div>
+        </div>
+        <!-- Access log toggle -->
+        <div style="border-top:1px solid var(--gray-200); padding-top:12px;">
+          <button class="btn btn-ghost btn-sm" style="font-size:.8rem; color:var(--gray-400);"
+            onclick="toggleLog('${c.id}', this)">📋 Show access log</button>
+          <div id="log-${c.id}" style="display:none; margin-top:12px;"></div>
+        </div>
+      </div>`;
+  }).join('');
+})();
+
+async function toggleLog(certId, btn) {
+  const panel = document.getElementById(`log-${certId}`);
+  if (panel.style.display !== 'none') {
+    panel.style.display = 'none';
+    btn.textContent = '📋 Show access log';
+    return;
+  }
+  btn.textContent = 'Loading…';
+  btn.disabled = true;
+
+  const { data: logs, error } = await sbHelpers.getAccessLogsByCertificate(certId);
+
+  btn.textContent = '📋 Hide access log';
+  btn.disabled = false;
+  panel.style.display = 'block';
+
+  if (error || !logs || logs.length === 0) {
+    panel.innerHTML = `<div class="text-sm text-gray" style="padding:8px 0;">No access events recorded yet.</div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div style="font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-400); margin-bottom:8px;">
+      Last ${logs.length} access event${logs.length > 1 ? 's' : ''}
+    </div>` +
+    logs.map(log => {
+      const when = new Date(log.accessed_at).toLocaleString('en-CH', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+      const icon  = VIEWER_ICON[log.viewer_type]  || '👁';
+      const label = VIEWER_LABEL[log.viewer_type] || log.viewer_type;
+      return `
+        <div style="display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--gray-100); font-size:.8125rem;">
+          <span style="flex-shrink:0; font-size:1rem;">${icon}</span>
+          <span style="flex:1; color:var(--charcoal);">${label}</span>
+          <span style="color:var(--gray-400); white-space:nowrap;">${when}</span>
+        </div>`;
+    }).join('');
+}
+
 function copyCode(code, btn) {
   navigator.clipboard.writeText(code).then(() => {
     const orig = btn.textContent;
     btn.textContent = '✓ Copied';
     setTimeout(() => btn.textContent = orig, 1500);
   });
+}
+
+function printCert(certCode) {
+  const c = _certsById[certCode];
+  if (!c) return;
+
+  const mode = c.mode || 'directed';
+  const agencyName  = c.agencies?.company_name || null;
+  const ownerEmail  = c.owner_email || null;
+  const trustGrade  = c.trust_score || '—';
+  const trustColor  = { A: '#16a34a', B: '#d97706', C: '#dc2626' }[trustGrade] || '#374151';
+  const eligible    = c.is_eligible;
+  const date        = new Date(c.created_at).toLocaleDateString('en-CH', { day: '2-digit', month: 'long', year: 'numeric' });
+  const property    = [c.property_address, c.property_city].filter(Boolean).join(', ');
+  const details     = [
+    c.rooms ? `${c.rooms} rooms` : null,
+    c.floor ? `Floor ${c.floor}` : null,
+    c.total_chf ? `CHF ${Number(c.total_chf).toLocaleString()}/mo` : null,
+    c.move_in_date ? `Move-in ${new Date(c.move_in_date).toLocaleDateString('de-CH')}` : null,
+  ].filter(Boolean).join(' · ');
+
+  let recipientLine = '';
+  if (agencyName)  recipientLine = `Directed to: <strong>${escHtml(agencyName)}</strong>`;
+  else if (ownerEmail) recipientLine = `Directed to: <strong>${escHtml(ownerEmail)}</strong>`;
+  else recipientLine = `Mode: <strong>${modeLabels[mode]}</strong>`;
+
+  // Verify URL encoded in the QR
+  const qrUrl = c.qr_url || `${window.location.origin}/cert/cert-view.html?code=${certCode}`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SwissTrust Certificate — ${certCode}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"><\/script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: white; color: #111827; padding: 48px; max-width: 680px; margin: 0 auto; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #111827; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.25rem; }
+    .logo-mark { background: #111827; color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .875rem; font-weight: 900; }
+    .verified { display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; color: #15803d; border: 1px solid #86efac; border-radius: 20px; padding: 5px 14px; font-size: .8rem; font-weight: 600; }
+    .body { display: flex; gap: 40px; align-items: flex-start; margin-bottom: 32px; }
+    .qr-wrap { flex-shrink: 0; border: 8px solid white; box-shadow: 0 0 0 1px #e5e7eb; display: inline-block; }
+    .info { flex: 1; }
+    .cert-code { font-family: monospace; font-size: 1.75rem; font-weight: 700; letter-spacing: .12em; margin-bottom: 6px; }
+    .property { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .details { color: #6b7280; font-size: .875rem; margin-bottom: 16px; }
+    .meta-row { display: flex; gap: 24px; margin-bottom: 16px; }
+    .meta-box { }
+    .meta-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; margin-bottom: 3px; }
+    .meta-val { font-size: .9375rem; font-weight: 600; }
+    .trust-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-weight: 700; font-size: 1rem; color: white; background: ${trustColor}; }
+    .elig-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-weight: 600; font-size: .875rem; background: ${eligible ? '#f0fdf4' : '#fffbeb'}; color: ${eligible ? '#15803d' : '#b45309'}; border: 1px solid ${eligible ? '#86efac' : '#fcd34d'}; }
+    .recipient { font-size: .875rem; color: #374151; margin-bottom: 16px; }
+    .footer { border-top: 1px solid #e5e7eb; padding-top: 16px; font-size: .75rem; color: #9ca3af; display: flex; justify-content: space-between; }
+    .scan-hint { font-size: .75rem; color: #9ca3af; margin-top: 6px; text-align: center; }
+    @media print {
+      body { padding: 24px; }
+      @page { margin: 1cm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-mark">ST</div>
+      SwissTrust
+    </div>
+    <div class="verified">✓ Identity Verified</div>
+  </div>
+
+  <div class="body">
+    <div>
+      <canvas id="qr"></canvas>
+      <div class="scan-hint">Scan to verify</div>
+    </div>
+    <div class="info">
+      <div class="cert-code">${escHtml(certCode)}</div>
+      <div class="property">${escHtml(property || '—')}</div>
+      <div class="details">${escHtml(details)}</div>
+      <div class="meta-row">
+        <div class="meta-box">
+          <div class="meta-label">Tenant</div>
+          <div class="meta-val">${escHtml(_tenantName)}</div>
+        </div>
+        <div class="meta-box">
+          <div class="meta-label">Issued</div>
+          <div class="meta-val">${date}</div>
+        </div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-box">
+          <div class="meta-label">Trust Score</div>
+          <div><span class="trust-badge">${trustGrade}</span></div>
+        </div>
+        <div class="meta-box">
+          <div class="meta-label">Income eligibility</div>
+          <div><span class="elig-badge">${eligible ? '✓ Eligible' : 'Review required'}</span></div>
+        </div>
+      </div>
+      <div class="recipient">${recipientLine}</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Issued via SwissTrust · swisstrust.ch</span>
+    <span>Verify at: ${escHtml(qrUrl)}</span>
+  </div>
+
+  <script>
+    QRCode.toCanvas(document.getElementById('qr'), ${JSON.stringify(qrUrl)}, { width: 160, margin: 1 }, function() {
+      window.focus();
+      window.print();
+    });
+  <\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+function escHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 </body>

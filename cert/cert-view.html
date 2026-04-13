@@ -6,6 +6,8 @@
   <title>Certificate STD-2G7K-X4NP — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
   <style>
     body { background: var(--gray-100); }
     .cert-page { min-height: 100vh; }
@@ -15,6 +17,7 @@
     .tier-banner--open      { background: #EFF6FF; color: #1D4ED8; border-bottom: 1px solid #BFDBFE; }
     .tier-banner--onrequest { background: #FFF7ED; color: #C2410C; border-bottom: 1px solid #FED7AA; }
   </style>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body class="cert-page">
 
@@ -52,9 +55,9 @@
         <span class="badge trust-a" id="trust-badge">A — Excellent</span>
       </div>
     </div>
-    <div class="cert-view__tenant-name">Sophie Müller</div>
-    <div class="text-sm text-gray">Applying for: <strong style="color:var(--charcoal);">Rue de Rive 14, 1204 Genève</strong> · 3.5 rooms · CHF 2,400/mo</div>
-    <div class="text-xs text-gray mt-4">Certificate issued 10 April 2026 · Directed to: Moser Vernet & Cie</div>
+    <div class="cert-view__tenant-name"></div>
+    <div class="text-sm text-gray"></div>
+    <div class="text-xs text-gray mt-4"></div>
   </div>
 
   <!-- Public tier — always visible -->
@@ -90,7 +93,6 @@
 
     <div class="card mt-24" style="background:var(--gray-100); border:none; padding:16px;">
       <div class="text-sm text-gray">
-        🔒 <strong>Full dossier</strong> — ID copy, salary slips, Betreibungsauszug, reference letter, and exact income details are visible only to the authorised agency (Moser Vernet & Cie).
       </div>
     </div>
   </div>
@@ -101,7 +103,7 @@
       <div style="width:36px; height:36px; background:var(--green); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;">🔓</div>
       <div>
         <div class="font-bold">Full dossier — Agency access</div>
-        <div class="text-xs text-gray">Visible to: Moser Vernet & Cie · Access logged at 10 Apr 2026 14:32</div>
+        <div class="text-xs text-gray" id="agency-access-meta"></div>
       </div>
     </div>
 
@@ -136,87 +138,56 @@
 
     <!-- Documents -->
     <h3 class="mb-16" style="font-size:.9rem; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-400);">Verified documents</h3>
-
-    <!-- Passport -->
-    <div class="doc-viewer">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">🪪 Passport / Swiss ID</div>
-        <span class="badge badge-green">Auto-verified · 96%</span>
-      </div>
-      <div class="doc-viewer__body">
-        <div style="background:var(--gray-100); border-radius:var(--radius); height:120px; display:flex; align-items:center; justify-content:center; color:var(--gray-400); font-size:.8rem; margin-bottom:10px;">
-          [ Document preview — click to download ]
-        </div>
-        <div class="doc-viewer__extracted">
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Full name</span><span class="doc-viewer__field-v">MÜLLER SOPHIE</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Date of birth</span><span class="doc-viewer__field-v">14.06.1992</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Nationality</span><span class="doc-viewer__field-v">CHE (Swiss)</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Document no.</span><span class="doc-viewer__field-v">X4920384</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Valid until</span><span class="doc-viewer__field-v">14.06.2032</span></div>
-        </div>
-        <button class="btn btn-outline btn-sm mt-8">Download (expires in 60s)</button>
-      </div>
-    </div>
-
-    <!-- Betreibungsauszug -->
-    <div class="doc-viewer">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">⚖️ Betreibungsauszug</div>
-        <span class="badge badge-green">Auto-verified · 93%</span>
-      </div>
-      <div class="doc-viewer__body">
-        <div class="doc-viewer__extracted">
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Status</span><span class="doc-viewer__field-v" style="color:var(--green); font-weight:700;">✓ CLEAN — aucune poursuite</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Issued by</span><span class="doc-viewer__field-v">Office des poursuites Genève</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Date issued</span><span class="doc-viewer__field-v">02.04.2026</span></div>
-        </div>
-        <button class="btn btn-outline btn-sm mt-8">Download (expires in 60s)</button>
-      </div>
-    </div>
-
-    <!-- Salary slips -->
-    <div class="doc-viewer">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">💰 Salary slips</div>
-        <span class="badge badge-amber">2/3 — 1 flagged</span>
-      </div>
-      <div class="doc-viewer__body">
-        <div class="doc-viewer__extracted">
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">March 2026 (verified)</span><span class="doc-viewer__field-v">CHF 8,500 gross</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">February 2026 (flagged)</span><span class="doc-viewer__field-v">CHF 8,500 — low quality scan</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">January 2026</span><span class="doc-viewer__field-v" style="color:var(--gray-400);">Not uploaded</span></div>
-        </div>
-        <button class="btn btn-outline btn-sm mt-8">Download all (expires in 60s)</button>
-      </div>
-    </div>
-
-    <!-- Reference -->
-    <div class="doc-viewer">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">🏠 Landlord reference letter</div>
-        <span class="badge badge-gray">Not uploaded</span>
-      </div>
-      <div class="doc-viewer__body">
-        <p class="text-sm text-gray">The tenant has not uploaded a landlord reference letter.</p>
-      </div>
-    </div>
+    <div id="doc-viewers"><div class="text-sm text-gray">Loading documents…</div></div>
   </div>
 
   <!-- On-Request: access request panel (shown instead of agency section for on_request mode) -->
   <div id="onrequest-section" style="display:none;">
-    <div class="card" style="border:2px solid #FED7AA; background:#FFF7ED;">
+    <!-- Not signed in -->
+    <div id="onrequest-anon" class="card" style="border:2px solid #FED7AA; background:#FFF7ED;">
       <div style="display:flex; gap:12px; align-items:flex-start;">
         <div style="font-size:1.5rem;">🔔</div>
         <div style="flex:1;">
           <div class="font-bold mb-4">On-Request certificate</div>
-          <div class="text-sm text-gray mb-16">The tenant controls who accesses this dossier. Sign in as a verified régie or landlord to request full access. The tenant will be notified and can approve or deny your request.</div>
-          <a href="../auth/login.html" class="btn btn-primary btn-sm">Sign in to request access</a>
+          <div class="text-sm text-gray mb-16">The tenant controls who accesses this dossier. Sign in as a verified régie or private landlord to request full access.</div>
+          <a id="onrequest-signin-btn" href="#" class="btn btn-primary btn-sm">Sign in to request access</a>
         </div>
       </div>
     </div>
-    <!-- Demo: approved state -->
-    <div id="onrequest-approved" class="card mt-16" style="display:none; border:2px solid #86EFAC; background:#F0FDF4;">
-      <div class="text-sm" style="color:#15803D;">✓ <strong>Access approved by tenant</strong> — full dossier is now visible below.</div>
+    <!-- Signed in — can request -->
+    <div id="onrequest-form" class="card" style="display:none; border:2px solid #FED7AA; background:#FFF7ED;">
+      <div style="display:flex; gap:12px; align-items:flex-start;">
+        <div style="font-size:1.5rem;">🔔</div>
+        <div style="flex:1;">
+          <div class="font-bold mb-4">Request full dossier access</div>
+          <div class="text-sm text-gray mb-12">The tenant will be notified and can approve or deny your request from their dashboard.</div>
+          <div class="form-group mb-12">
+            <textarea id="request-message" rows="2" placeholder="Optional: briefly introduce yourself or mention the property" style="font-size:.875rem; resize:vertical;"></textarea>
+          </div>
+          <button id="request-btn" onclick="submitAccessRequest()" class="btn btn-primary btn-sm">Request access</button>
+          <div id="request-error" style="display:none; color:var(--red); font-size:.8rem; margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Pending -->
+    <div id="onrequest-pending" class="card" style="display:none; border:2px solid #FED7AA; background:#FFF7ED;">
+      <div style="display:flex; gap:12px; align-items:center;">
+        <div style="font-size:1.5rem;">⏳</div>
+        <div>
+          <div class="font-bold mb-2">Access request sent</div>
+          <div class="text-sm text-gray">The tenant has been notified. You will have full access once they approve your request.</div>
+        </div>
+      </div>
+    </div>
+    <!-- Denied -->
+    <div id="onrequest-denied" class="card" style="display:none; border:2px solid #FECACA; background:#FEF2F2;">
+      <div style="display:flex; gap:12px; align-items:center;">
+        <div style="font-size:1.5rem;">✗</div>
+        <div>
+          <div class="font-bold mb-2" style="color:var(--red);">Access denied</div>
+          <div class="text-sm text-gray">The tenant has declined your access request for this dossier.</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -227,93 +198,384 @@
 </div>
 
 <script>
-// Demo modes: #agency = directed agency view, #open = open view, #onrequest = on-request view
-const hash = window.location.hash;
-
-// Certificate mode: 'directed' | 'open' | 'on_request'
-// In production this comes from the DB; for demo we infer from hash
-function getCertMode() {
-  if (hash === '#open') return 'open';
-  if (hash === '#onrequest') return 'on_request';
-  return 'directed';
+// Sign out and reload this page (stay on cert, just logged out)
+async function certSignOut() {
+  await _sb.auth.signOut();
+  window.location.reload();
 }
 
-function setView(mode, isAuthenticated) {
-  const banner = document.getElementById('tier-banner');
-  const agencySection = document.getElementById('agency-section');
-  const onrequestSection = document.getElementById('onrequest-section');
-  const navActions = document.getElementById('nav-actions');
-  const publicLockNote = document.querySelector('#public-section .card');
+(async () => {
+  const params   = new URLSearchParams(window.location.search);
+  const certCode = params.get('code');
+  // Build a sign-in URL that returns here after login
+  const signInUrl = `../auth/login.html?return=${encodeURIComponent(window.location.href)}`;
 
-  // Reset
-  agencySection.style.display = 'none';
-  onrequestSection.style.display = 'none';
+  if (!certCode) {
+    document.querySelector('.cert-view__header').innerHTML =
+      '<p class="text-gray">No certificate code provided. <a href="../verify.html">Enter a code →</a></p>';
+    return;
+  }
 
+  const { data: cert, error } = await sbHelpers.getCertificateByCode(certCode);
+  if (error || !cert) {
+    document.querySelector('.cert-view__header').innerHTML =
+      '<p class="text-gray">Certificate not found or has been revoked.</p>';
+    return;
+  }
+
+  const tenant = cert.tenants  || {};
+  const agency = cert.agencies || {};
+  const mode   = cert.mode     || 'directed';
+
+  // ── Header: cert code + property line ──────────────────────
+  document.querySelector('.font-mono.font-bold').textContent = cert.cert_code;
+  document.querySelector('.cert-view__tenant-name').textContent = tenant.full_name || '—';
+  document.querySelector('.cert-view__header .text-sm').innerHTML =
+    `Applying for: <strong style="color:var(--charcoal);">${cert.property_address}${cert.property_city ? ', ' + cert.property_city : ''}</strong>${cert.rooms ? ' · ' + cert.rooms + ' rooms' : ''}${cert.total_chf ? ' · CHF ' + cert.total_chf.toLocaleString() + '/mo' : ''}`;
+
+  // "Directed to / mode" sub-line
+  let directedLabel = '';
   if (mode === 'directed') {
-    if (isAuthenticated) {
-      banner.className = 'tier-banner tier-banner--agency';
-      banner.textContent = '🔓 Directed — Moser Vernet & Cie — Full dossier access';
-      agencySection.style.display = 'block';
-      navActions.innerHTML = `
-        <span class="text-sm text-gray">Moser Vernet & Cie</span>
-        <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
-        <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
-      `;
-    } else {
-      banner.className = 'tier-banner tier-banner--public';
-      banner.innerHTML = '👁 Public view · Directed certificate — <a href="../auth/login.html" style="color:var(--charcoal);font-weight:600;">Sign in as Moser Vernet & Cie</a> to access the full dossier';
-      navActions.innerHTML = `
-        <a href="../auth/login.html" class="nav__link">Sign in</a>
-        <button onclick="setView('directed',true)" class="btn btn-primary btn-sm">Demo: Agency view</button>
-      `;
-    }
-
+    if (agency.company_name)   directedLabel = `Directed to: ${agency.company_name}`;
+    else if (cert.owner_email) directedLabel = `Directed to: private landlord`;
+    else                       directedLabel = 'Directed certificate';
   } else if (mode === 'open') {
-    if (isAuthenticated) {
-      banner.className = 'tier-banner tier-banner--open';
-      banner.textContent = '🌐 Open certificate — full dossier accessible to all verified professionals';
-      agencySection.style.display = 'block';
-      navActions.innerHTML = `
-        <span class="text-sm text-gray">Naef Immobilier</span>
-        <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
-        <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
-      `;
-    } else {
-      banner.className = 'tier-banner tier-banner--open';
-      banner.innerHTML = '🌐 Open certificate — <a href="../auth/login.html" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier';
-      navActions.innerHTML = `
-        <a href="../auth/login.html" class="nav__link">Sign in</a>
-        <button onclick="setView('open',true)" class="btn btn-primary btn-sm">Demo: Verified professional view</button>
-      `;
-    }
+    directedLabel = 'Open certificate';
+  } else {
+    directedLabel = 'On-Request certificate';
+  }
+  document.querySelector('.cert-view__header .text-xs').textContent =
+    `Certificate issued ${new Date(cert.created_at).toLocaleDateString('en-CH', {day:'2-digit',month:'long',year:'numeric'})} · ${directedLabel}`;
 
-  } else if (mode === 'on_request') {
-    onrequestSection.style.display = 'block';
-    if (isAuthenticated) {
-      // Show approved state for demo
-      document.getElementById('onrequest-approved').style.display = 'block';
-      agencySection.style.display = 'block';
-      banner.className = 'tier-banner tier-banner--onrequest';
-      banner.textContent = '🔔 On-Request — access approved by tenant · Moser Vernet & Cie';
-      navActions.innerHTML = `
-        <span class="text-sm text-gray">Moser Vernet & Cie</span>
-        <a href="../agency/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
-        <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
-      `;
-    } else {
-      banner.className = 'tier-banner tier-banner--onrequest';
-      banner.textContent = '🔔 On-Request certificate — request access from the tenant';
-      navActions.innerHTML = `
-        <a href="../auth/login.html" class="nav__link">Sign in</a>
-        <button onclick="setView('on_request',true)" class="btn btn-ghost btn-sm">Demo: Approved view</button>
-      `;
+  // ── Trust score badge ───────────────────────────────────────
+  const scoreClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[cert.trust_score] || 'trust-b';
+  document.getElementById('trust-badge').className = `badge ${scoreClass}`;
+  document.getElementById('trust-badge').textContent =
+    cert.trust_score === 'A' ? 'A — Excellent' : cert.trust_score === 'B' ? 'B — Good' : 'C — Review';
+
+  // ── Public facts grid ───────────────────────────────────────
+  document.querySelectorAll('.cert-view__fact').forEach(fact => {
+    const label = fact.querySelector('.cert-view__fact-label')?.textContent;
+    const val   = fact.querySelector('.cert-view__fact-value');
+    if (!val) return;
+    if (label === 'Trust Score')      { val.innerHTML = `<span class="badge ${scoreClass}">${cert.trust_score} — ${cert.trust_score === 'A' ? 'Excellent' : cert.trust_score === 'B' ? 'Good' : 'Review'}</span>`; }
+    if (label === 'Rent eligibility') { val.textContent = cert.is_eligible ? '✓ Income qualifies' : '⚠ Review required'; val.style.color = cert.is_eligible ? 'var(--green)' : 'var(--red)'; }
+    if (label === 'Occupants')        { val.textContent = tenant.occupant_count || '—'; }
+    if (label === 'Smoker')           { val.textContent = tenant.is_smoker ? 'Yes' : 'No'; }
+    if (label === 'Pets')             { val.textContent = tenant.has_pets   ? 'Yes' : 'No'; }
+    if (label === 'Desired move-in')  { val.textContent = cert.move_in_date ? new Date(cert.move_in_date).toLocaleDateString('de-CH') : '—'; }
+  });
+
+  // ── Public lock note ────────────────────────────────────────
+  let lockNote = '';
+  if (mode === 'directed' && agency.company_name) {
+    lockNote = `🔒 <strong>Full dossier</strong> — ID copy, salary slips, Betreibungsauszug and exact income details are visible only to <strong>${agency.company_name}</strong>.`;
+  } else if (mode === 'directed' && cert.owner_email) {
+    lockNote = `🔒 <strong>Full dossier</strong> — visible only to the authorised private landlord.`;
+  } else if (mode === 'open') {
+    lockNote = `🔒 <strong>Full dossier</strong> — visible to any verified régie or landlord signed in to SwissTrust.`;
+  } else {
+    lockNote = `🔒 <strong>Full dossier</strong> — visible once the tenant approves an access request.`;
+  }
+  document.querySelector('#public-section .card .text-sm').innerHTML = lockNote;
+
+  // ── Determine viewer & access level ────────────────────────
+  const session = await sbHelpers.getSession();
+  const role    = session?.user?.user_metadata?.role || null;
+
+  let canSeeFull    = false;
+  let viewerType    = 'public';
+  let viewerName    = '';
+  let isOwnTenant   = false;
+  let accessRequest = null;
+
+  if (session) {
+    viewerName = session.user.user_metadata?.company_name
+      || session.user.user_metadata?.full_name
+      || session.user.email;
+
+    if (role === 'tenant') {
+      // Check if this tenant owns the certificate
+      const { data: myTenant } = await sbHelpers.getTenantByUserId(session.user.id);
+      isOwnTenant = !!(myTenant && myTenant.id === cert.tenant_id);
+      viewerType  = isOwnTenant ? 'own_tenant' : 'tenant';
+
+    } else if (role === 'agency') {
+      if (mode === 'open') {
+        canSeeFull = true;
+        viewerType = 'agency';
+      } else if (mode === 'directed' && agency.user_id === session.user.id) {
+        canSeeFull = true;
+        viewerType = 'agency';
+      } else if (mode === 'on_request') {
+        const { data: req } = await sbHelpers.getAccessRequestStatus(cert.id, session.user.id);
+        accessRequest = req;
+        if (req?.status === 'approved') { canSeeFull = true; viewerType = 'agency'; }
+      }
+
+    } else if (role === 'owner') {
+      if (mode === 'open') {
+        canSeeFull = true;
+        viewerType = 'owner';
+      } else if (mode === 'directed' && cert.owner_email &&
+                 cert.owner_email.toLowerCase() === session.user.email.toLowerCase()) {
+        canSeeFull = true;
+        viewerType = 'owner';
+      } else if (mode === 'on_request') {
+        const { data: req } = await sbHelpers.getAccessRequestStatus(cert.id, session.user.id);
+        accessRequest = req;
+        if (req?.status === 'approved') { canSeeFull = true; viewerType = 'owner'; }
+      }
     }
   }
+
+  // ── Log access ──────────────────────────────────────────────
+  await sbHelpers.logAccess(cert.id, session?.user?.id || null, viewerType);
+
+  // Save to owner's recent history (localStorage)
+  if (role === 'owner' && session) {
+    const key   = `swisstrust:ownerRecent:${session.user.id}`;
+    const entry = {
+      certCode: cert.cert_code,
+      tenantName: tenant.full_name || '—',
+      property: `${cert.property_address || '—'}${cert.property_city ? ', ' + cert.property_city : ''}`,
+      mode,
+      access: canSeeFull ? 'full' : (mode === 'on_request' ? 'request' : 'preview'),
+      viewedAt: new Date().toISOString(),
+    };
+    const existing = JSON.parse(localStorage.getItem(key) || '[]').filter(i => i.certCode !== entry.certCode);
+    localStorage.setItem(key, JSON.stringify([entry, ...existing].slice(0, 8)));
+  }
+
+  // ── UI refs ─────────────────────────────────────────────────
+  const banner            = document.getElementById('tier-banner');
+  const agencySection     = document.getElementById('agency-section');
+  const onrequestSection  = document.getElementById('onrequest-section');
+  const navActions        = document.getElementById('nav-actions');
+  const dashboardHref     = role === 'owner' ? '../owner/dashboard.html' : '../agency/dashboard.html';
+
+  agencySection.style.display    = 'none';
+  onrequestSection.style.display = 'none';
+
+  const navSignedIn = session
+    ? `<span class="text-sm text-gray">${escHtml(viewerName)}</span><button onclick="certSignOut()" class="btn btn-ghost btn-sm">Sign out</button>`
+    : `<a href="${signInUrl}" class="nav__link">Sign in</a>`;
+  const navWithDash = `<span class="text-sm text-gray">${escHtml(viewerName)}</span><a href="${dashboardHref}" class="btn btn-outline btn-sm">Dashboard</a><button onclick="certSignOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
+
+  // ── UC4/UC18: Tenant viewing their own certificate ──────────
+  if (isOwnTenant) {
+    banner.className   = 'tier-banner tier-banner--public';
+    banner.textContent = '🪪 This is your certificate — manage it from your dashboard';
+    navActions.innerHTML = `<span class="text-sm text-gray">${escHtml(viewerName)}</span><a href="../tenant/certificates.html" class="btn btn-outline btn-sm">My certificates</a><button onclick="certSignOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
+    document.querySelector('#public-section .card').style.display = 'none';
+    return;
+  }
+
+  // ── UC5/UC12/UC15: Tenant (not own cert) or any public role ─
+  // Tenants who don't own the cert see the public tier, no special message — fall through to public block below.
+
+  // ── UC13–UC17 / UC19–UC20: On-Request (not yet approved) ───
+  if (mode === 'on_request' && !canSeeFull) {
+    banner.className   = 'tier-banner tier-banner--onrequest';
+    banner.textContent = '🔔 On-Request certificate — access controlled by the tenant';
+    onrequestSection.style.display = 'block';
+    navActions.innerHTML = navSignedIn;
+    document.getElementById('onrequest-signin-btn').href = signInUrl;
+
+    const hide = id => document.getElementById(id).style.display = 'none';
+    const show = id => document.getElementById(id).style.display = 'block';
+
+    if (!session || (role !== 'agency' && role !== 'owner')) {
+      // UC13: anon or wrong role
+      show('onrequest-anon'); hide('onrequest-form'); hide('onrequest-pending'); hide('onrequest-denied');
+    } else if (!accessRequest) {
+      // UC14: logged-in agency/owner, no prior request
+      hide('onrequest-anon'); show('onrequest-form'); hide('onrequest-pending'); hide('onrequest-denied');
+      window._pendingCertId = cert.id;
+      window._pendingRole   = role;
+      window._pendingName   = viewerName;
+    } else if (accessRequest.status === 'pending') {
+      // UC15
+      hide('onrequest-anon'); hide('onrequest-form'); show('onrequest-pending'); hide('onrequest-denied');
+    } else if (accessRequest.status === 'denied') {
+      // UC17
+      hide('onrequest-anon'); hide('onrequest-form'); hide('onrequest-pending'); show('onrequest-denied');
+    }
+    return;
+  }
+
+  // ── UC2/UC7/UC8/UC11/UC13/UC16: Full dossier access ─────────
+  if (canSeeFull) {
+    const modeLabel = mode === 'open'       ? '🌐 Open'
+                    : mode === 'on_request' ? '✅ On-Request (approved)'
+                    : '🔓 Directed';
+    banner.className   = mode === 'open' ? 'tier-banner tier-banner--open' : 'tier-banner tier-banner--agency';
+    banner.textContent = `${modeLabel} — ${viewerName} — Full dossier access`;
+    agencySection.style.display = 'block';
+    navActions.innerHTML = navWithDash;
+    const metaEl = document.getElementById('agency-access-meta');
+    if (metaEl) metaEl.textContent = `Visible to: ${viewerName} · Access logged ${new Date().toLocaleDateString('en-CH', {day:'2-digit',month:'short',year:'numeric'})}`;
+
+
+    const empGrid = document.querySelector('#agency-section .card[class*="mb-24"] > div');
+    if (empGrid) {
+      empGrid.innerHTML = `
+        <div><div class="text-xs text-gray mb-2">Employer</div><div class="font-bold">${escHtml(tenant.employer_name || '—')}</div></div>
+        <div><div class="text-xs text-gray mb-2">Job title</div><div class="font-bold">${escHtml(tenant.job_role || '—')}</div></div>
+        <div><div class="text-xs text-gray mb-2">Monthly gross salary</div><div class="font-bold" style="color:var(--green);">CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()}</div></div>
+        <div><div class="text-xs text-gray mb-2">Employed since</div><div class="font-bold">${tenant.employment_start_date ? new Date(tenant.employment_start_date).toLocaleDateString('de-CH') : '—'}</div></div>
+        <div><div class="text-xs text-gray mb-2">Eligibility check</div><div class="font-bold" style="color:${cert.is_eligible ? 'var(--green)' : 'var(--red)'};">${cert.is_eligible ? '✓' : '✗'} CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()} ${cert.is_eligible ? '≥' : '<'} 3× CHF ${(cert.total_chf || 0).toLocaleString()}</div></div>`;
+    }
+
+    const { data: tenantDocs } = await sbHelpers.getDocumentsByTenant(cert.tenant_id);
+    renderDocViewers(tenantDocs || []);
+    return;
+  }
+
+  // ── Public / no access (all remaining cases) ────────────────
+  // UC1: directed→agency, anon
+  // UC3: directed→agency, wrong entity logged in
+  // UC6: directed→owner, anon
+  // UC8: directed→owner, wrong entity
+  // UC9: directed→owner, any agency
+  // UC10: open, anon
+  // UC12: open, tenant
+  // UC5: tenant, not own cert (on any mode)
+  navActions.innerHTML = navSignedIn;
+  banner.className = 'tier-banner tier-banner--public';
+
+  if (mode === 'open') {
+    // UC10/UC12
+    banner.innerHTML = `🌐 Open certificate — <a href="${signInUrl}" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier`;
+  } else if (mode === 'directed') {
+    if (session && (role === 'agency' || role === 'owner')) {
+      // UC3/UC8/UC9: logged in but wrong entity
+      const recipientDesc = agency.company_name || (cert.owner_email ? 'a private landlord' : 'the authorised recipient');
+      banner.textContent = `🔒 This certificate is directed to ${recipientDesc} — you do not have access`;
+    } else {
+      // UC1/UC6: anon (or tenant)
+      const recipientDesc = agency.company_name
+        ? `Sign in as ${agency.company_name}`
+        : `Sign in as the authorised landlord`;
+      banner.innerHTML = `👁 Directed certificate — <a href="${signInUrl}" style="color:var(--charcoal);font-weight:600;">${escHtml(recipientDesc)}</a> to access the full dossier`;
+    }
+  }
+})();
+
+// ── Document rendering ────────────────────────────────────────
+const DOC_META = [
+  { key: 'passport_id',       label: 'Passport / Swiss ID',        icon: '🪪' },
+  { key: 'residence_permit',  label: 'Residence permit',            icon: '📋' },
+  { key: 'salary_slip_1',     label: 'Salary slip — month 1',       icon: '💰' },
+  { key: 'salary_slip_2',     label: 'Salary slip — month 2',       icon: '💰' },
+  { key: 'salary_slip_3',     label: 'Salary slip — month 3',       icon: '💰' },
+  { key: 'betreibungsauszug', label: 'Betreibungsauszug',           icon: '⚖️' },
+  { key: 'reference_letter',  label: 'Landlord reference letter',   icon: '🏠' },
+];
+const STATUS_BADGE_CV = {
+  pending:       'badge badge-amber',
+  processing:    'badge badge-blue',
+  auto_verified: 'badge badge-green',
+  flagged:       'badge badge-amber',
+  rejected:      'badge badge-red',
+};
+const STATUS_LABEL_CV = {
+  pending: 'Pending review', processing: 'Processing…',
+  auto_verified: 'Auto-verified', flagged: 'Flagged', rejected: 'Rejected',
+};
+
+function renderDocViewers(docs) {
+  const byType = {};
+  docs.forEach(d => { byType[d.doc_type] = d; });
+  const container = document.getElementById('doc-viewers');
+  container.innerHTML = DOC_META.map(t => {
+    const doc = byType[t.key];
+    if (!doc) {
+      return `
+        <div class="doc-viewer">
+          <div class="doc-viewer__head">
+            <div class="doc-viewer__name">${t.icon} ${escHtml(t.label)}</div>
+            <span class="badge badge-gray">Not uploaded</span>
+          </div>
+          <div class="doc-viewer__body">
+            <p class="text-sm text-gray">The tenant has not uploaded this document.</p>
+          </div>
+        </div>`;
+    }
+    const confPct = doc.confidence_score != null ? Math.round(doc.confidence_score * 100) : null;
+    const badgeText = confPct != null
+      ? `${STATUS_LABEL_CV[doc.status] || doc.status} · ${confPct}%`
+      : STATUS_LABEL_CV[doc.status] || doc.status;
+    const ocrRows = doc.ocr_extracted_data
+      ? Object.entries(doc.ocr_extracted_data)
+          .filter(([,v]) => v != null && v !== '')
+          .map(([k,v]) => `<div class="doc-viewer__field"><span class="doc-viewer__field-k">${escHtml(k.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase()))}</span><span class="doc-viewer__field-v">${escHtml(String(v))}</span></div>`)
+          .join('')
+      : '';
+    return `
+      <div class="doc-viewer">
+        <div class="doc-viewer__head">
+          <div class="doc-viewer__name">${t.icon} ${escHtml(t.label)}</div>
+          <span class="${STATUS_BADGE_CV[doc.status] || 'badge badge-gray'}">${escHtml(badgeText)}</span>
+        </div>
+        <div class="doc-viewer__body">
+          <div class="text-xs text-gray mb-8">${escHtml(doc.file_name || doc.storage_path.split('/').pop())}</div>
+          ${ocrRows ? `<div class="doc-viewer__extracted">${ocrRows}</div>` : ''}
+          <button class="btn btn-outline btn-sm mt-8" onclick="downloadDoc('${escHtml(doc.storage_path)}', this)">Download (expires in 60s)</button>
+          <div id="dl-err-${t.key}" style="display:none; color:var(--red); font-size:.75rem; margin-top:4px;"></div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
-const certMode = getCertMode();
-const isAuth = hash === '#agency' || hash === '#open' || hash === '#onrequest';
-setView(certMode, isAuth);
+async function downloadDoc(storagePath, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Generating link…';
+  const { url, error } = await sbHelpers.getDocumentSignedUrl(storagePath);
+  if (error || !url) {
+    btn.disabled = false;
+    btn.textContent = 'Download (expires in 60s)';
+    const key = storagePath.split('/')[1];
+    const errEl = document.getElementById(`dl-err-${key}`);
+    if (errEl) { errEl.textContent = 'Could not generate download link.'; errEl.style.display = 'block'; }
+    return;
+  }
+  window.open(url, '_blank');
+  btn.disabled = false;
+  btn.textContent = 'Download (expires in 60s)';
+}
+
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function submitAccessRequest() {
+  const btn = document.getElementById('request-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  sbHelpers.hideError('request-error');
+
+  const message = document.getElementById('request-message').value.trim();
+  const { error } = await sbHelpers.createAccessRequest(
+    window._pendingCertId,
+    (await sbHelpers.getSession()).user.id,
+    window._pendingRole,
+    window._pendingName,
+    message
+  );
+
+  if (error) {
+    sbHelpers.showError('request-error', error.message);
+    btn.disabled = false;
+    btn.textContent = 'Request access';
+    return;
+  }
+
+  // Show pending state
+  document.getElementById('onrequest-form').style.display    = 'none';
+  document.getElementById('onrequest-pending').style.display = 'block';
+}
 </script>
 </body>
 </html>

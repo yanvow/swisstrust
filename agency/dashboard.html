@@ -6,6 +6,9 @@
   <title>Agency Dashboard — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body>
 
@@ -16,8 +19,8 @@
       SwissTrust
     </a>
     <div class="nav__links">
-      <span class="text-sm text-gray">Moser Vernet & Cie</span>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      <span class="text-sm text-gray" id="nav-agency"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
     </div>
   </div>
 </nav>
@@ -30,7 +33,7 @@
       <a href="dashboard.html" class="sidebar__link sidebar__link--active">
         <span class="sidebar__icon">⊞</span> Certificate inbox
       </a>
-      <a href="#" class="sidebar__link">
+      <a href="profile.html" class="sidebar__link">
         <span class="sidebar__icon">◎</span> Agency profile
       </a>
     </div>
@@ -45,24 +48,32 @@
   <!-- MAIN -->
   <main class="main-content">
     <div class="page-title">Certificate inbox</div>
-    <div class="page-subtitle">Tenants who have directed their SwissTrust certificate to Moser Vernet & Cie.</div>
+    <div class="page-subtitle" id="page-subtitle">Loading…</div>
+
+    <!-- First-login aha moment banner -->
+    <div id="aha-banner" style="display:none; margin-bottom:24px; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%); color:white; border-radius:var(--radius); padding:28px 32px; position:relative;">
+      <button onclick="dismissAha()" aria-label="Dismiss" style="position:absolute; top:12px; right:16px; background:none; border:none; color:rgba(255,255,255,.5); font-size:1.25rem; cursor:pointer; line-height:1;">×</button>
+      <div style="font-size:1.5rem; margin-bottom:8px;">👋 Welcome to SwissTrust</div>
+      <div id="aha-message" style="font-size:1rem; opacity:.9; margin-bottom:16px; line-height:1.5;"></div>
+      <div style="font-size:.8125rem; opacity:.6;">Tenants directed their dossier to your agency before you even signed up. Click "View dossier" on any row to see their full verified documents.</div>
+    </div>
 
     <!-- Stats -->
     <div class="stat-grid mb-32">
       <div class="stat-box">
-        <div class="stat-num">3</div>
+        <div class="stat-num" id="stat-total">—</div>
         <div class="stat-lbl">Total certificates</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" style="color:var(--green);">2</div>
+        <div class="stat-num" style="color:var(--green);" id="stat-a">—</div>
         <div class="stat-lbl">Score A (Excellent)</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" style="color:var(--amber);">1</div>
+        <div class="stat-num" style="color:var(--amber);" id="stat-b">—</div>
         <div class="stat-lbl">Score B (Good)</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" style="color:var(--green);">3</div>
+        <div class="stat-num" style="color:var(--green);" id="stat-eligible">—</div>
         <div class="stat-lbl">Income eligible</div>
       </div>
     </div>
@@ -99,59 +110,151 @@
             <th></th>
           </tr>
         </thead>
-        <tbody>
-          <tr>
-            <td>
-              <div class="font-bold">Sophie Müller</div>
-              <div class="text-xs text-gray">2 occupants · No smoker · No pets</div>
-            </td>
-            <td>
-              <div class="text-sm font-bold">Rue de Rive 14, 1204 Genève</div>
-              <div class="text-xs text-gray">3.5 rooms · CHF 2,400/mo · Move-in 01.06.2026</div>
-            </td>
-            <td><span class="badge trust-a">A</span></td>
-            <td><span class="badge badge-green">✓ Eligible</span></td>
-            <td class="text-sm text-gray">10 Apr 2026</td>
-            <td><a href="dossier.html" class="btn btn-primary btn-sm">View dossier</a></td>
-          </tr>
-          <tr>
-            <td>
-              <div class="font-bold">Marc Durand</div>
-              <div class="text-xs text-gray">1 occupant · No smoker · No pets</div>
-            </td>
-            <td>
-              <div class="text-sm font-bold">Rue de Rive 14, 1204 Genève</div>
-              <div class="text-xs text-gray">3.5 rooms · CHF 2,400/mo · Move-in 01.06.2026</div>
-            </td>
-            <td><span class="badge trust-a">A</span></td>
-            <td><span class="badge badge-green">✓ Eligible</span></td>
-            <td class="text-sm text-gray">09 Apr 2026</td>
-            <td><a href="dossier.html" class="btn btn-primary btn-sm">View dossier</a></td>
-          </tr>
-          <tr>
-            <td>
-              <div class="font-bold">Lukas Bärtsch</div>
-              <div class="text-xs text-gray">3 occupants · No smoker · Has pets</div>
-            </td>
-            <td>
-              <div class="text-sm font-bold">Rue de Rive 14, 1204 Genève</div>
-              <div class="text-xs text-gray">3.5 rooms · CHF 2,400/mo · Move-in 15.05.2026</div>
-            </td>
-            <td><span class="badge trust-b">B</span></td>
-            <td><span class="badge badge-green">✓ Eligible</span></td>
-            <td class="text-sm text-gray">08 Apr 2026</td>
-            <td><a href="dossier.html" class="btn btn-primary btn-sm">View dossier</a></td>
-          </tr>
+        <tbody id="cert-tbody">
+          <tr><td colspan="6" class="text-gray text-sm" style="padding:24px; text-align:center;">Loading…</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Comparison hint -->
     <div class="card mt-24 card--flat" style="background:var(--gray-100); border:none; padding:14px 16px;">
       <div class="text-sm text-gray">💡 <strong>Tip:</strong> Click "View dossier" to see the full verified documents for each applicant. All accesses are logged.</div>
+    </div>
+
+    <!-- Ghost deliveries: tenants who directed to this agency before it joined -->
+    <div id="ghost-section" style="display:none; margin-top:32px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <div class="page-title" style="font-size:1.1rem; margin:0;">Pending deliveries</div>
+        <span id="ghost-badge" class="badge badge-amber" style="font-size:.7rem;"></span>
+      </div>
+      <div class="text-sm text-gray mb-16">These tenants directed their certificate to your agency before you joined SwissTrust. Claim them to add them to your inbox.</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tenant</th>
+              <th>Property applied for</th>
+              <th>Trust Score</th>
+              <th>Cert. date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="ghost-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </main>
 </div>
 
+<script>
+let _agencyId = null;
+
+(async () => {
+  const user = await sbHelpers.requireAuth('agency');
+  if (!user) return;
+
+  // Get this agency's row
+  const { data: agency } = await _sb.from('agencies').select('id, company_name').eq('user_id', user.id).single();
+  if (!agency) {
+    document.getElementById('page-subtitle').textContent = 'Agency profile not found.';
+    return;
+  }
+  _agencyId = agency.id;
+
+  document.getElementById('nav-agency').textContent = agency.company_name;
+  document.getElementById('page-subtitle').textContent =
+    `Tenants who have directed their SwissTrust certificate to ${agency.company_name}.`;
+
+  const { data: certs } = await sbHelpers.getCertificatesByAgency(agency.id);
+  const tbody = document.getElementById('cert-tbody');
+
+  if (!certs || certs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-gray text-sm" style="padding:24px; text-align:center;">No certificates yet. Share your SwissTrust agency profile with tenants so they can direct their certificates to you.</td></tr>';
+    ['stat-total','stat-a','stat-b','stat-eligible'].forEach(id => document.getElementById(id).textContent = '0');
+    return;
+  }
+
+  document.getElementById('stat-total').textContent = certs.length;
+  document.getElementById('stat-a').textContent = certs.filter(c => c.trust_score === 'A').length;
+  document.getElementById('stat-b').textContent = certs.filter(c => c.trust_score === 'B').length;
+  document.getElementById('stat-eligible').textContent = certs.filter(c => c.is_eligible).length;
+
+  tbody.innerHTML = certs.map(c => {
+    const t = c.tenants || {};
+    const scoreClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[c.trust_score] || 'trust-b';
+    const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+    return `
+      <tr>
+        <td>
+          <div class="font-bold">${t.full_name || '—'}</div>
+          <div class="text-xs text-gray">${t.occupant_count || 1} occupant(s) · ${t.is_smoker ? 'Smoker' : 'No smoker'} · ${t.has_pets ? 'Pets' : 'No pets'}</div>
+        </td>
+        <td>
+          <div class="text-sm font-bold">${c.property_address}${c.property_city ? ', ' + c.property_city : ''}</div>
+          <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo${c.move_in_date ? ' · Move-in ' + new Date(c.move_in_date).toLocaleDateString('de-CH') : ''}</div>
+        </td>
+        <td><span class="badge ${scoreClass}">${c.trust_score || '—'}</span></td>
+        <td>${c.is_eligible ? '<span class="badge badge-green">✓ Eligible</span>' : '<span class="badge badge-amber">Review</span>'}</td>
+        <td class="text-sm text-gray">${date}</td>
+        <td><a href="dossier.html?code=${c.cert_code}" class="btn btn-primary btn-sm">View dossier</a></td>
+      </tr>`;
+  }).join('');
+
+  // Show aha-moment banner on first visit (per agency, stored in localStorage)
+  const ahaKey = `st_aha_seen_${agency.id}`;
+  if (!localStorage.getItem(ahaKey)) {
+    const n = certs.length;
+    const eligible = certs.filter(c => c.is_eligible).length;
+    document.getElementById('aha-message').textContent =
+      `${n} tenant dossier${n !== 1 ? 's are' : ' is'} already waiting for you — ${eligible} income-eligible. `
+      + `These applicants directed their verified SwissTrust certificate to ${agency.company_name} before you signed up.`;
+    document.getElementById('aha-banner').style.display = 'block';
+  }
+
+  // Load ghost certs (directed by agency name, agency not yet registered at the time)
+  const { data: ghosts } = await sbHelpers.getGhostCertsByAgency();
+  if (ghosts && ghosts.length > 0) {
+    document.getElementById('ghost-section').style.display = 'block';
+    document.getElementById('ghost-badge').textContent = `${ghosts.length} unclaimed`;
+    document.getElementById('ghost-tbody').innerHTML = ghosts.map(c => {
+      const t = c.tenants || {};
+      const scoreClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[c.trust_score] || 'trust-b';
+      const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+      return `
+        <tr id="ghost-row-${c.id}">
+          <td>
+            <div class="font-bold">${t.full_name || '—'}</div>
+            <div class="text-xs text-gray">${t.occupant_count || 1} occupant(s) · ${t.is_smoker ? 'Smoker' : 'No smoker'} · ${t.has_pets ? 'Pets' : 'No pets'}</div>
+          </td>
+          <td>
+            <div class="text-sm font-bold">${c.property_address}${c.property_city ? ', ' + c.property_city : ''}</div>
+            <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo</div>
+          </td>
+          <td><span class="badge ${scoreClass}">${c.trust_score || '—'}</span></td>
+          <td class="text-sm text-gray">${date}</td>
+          <td><button class="btn btn-primary btn-sm" onclick="claimGhost('${c.id}', '${c.cert_code}', this)">Claim →</button></td>
+        </tr>`;
+    }).join('');
+  }
+})();
+
+async function claimGhost(certId, certCode, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Claiming…';
+  const { error } = await sbHelpers.claimGhostCert(certId, _agencyId);
+  if (error) {
+    btn.disabled = false;
+    btn.textContent = 'Claim →';
+    alert('Could not claim: ' + error.message);
+    return;
+  }
+  // Move row to main table by reloading the page
+  window.location.reload();
+}
+
+function dismissAha() {
+  document.getElementById('aha-banner').style.display = 'none';
+  if (_agencyId) localStorage.setItem(`st_aha_seen_${_agencyId}`, '1');
+}
+</script>
 </body>
 </html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agencies — SwissTrust Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <style>
+    .admin-badge { display:inline-block; background:#FF0000; color:white; font-size:.65rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:4px; vertical-align:middle; margin-left:6px; }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:white; border-radius:var(--radius); width:100%; max-width:480px; padding:32px; box-shadow:var(--shadow-lg); }
+    .modal-title { font-weight:700; font-size:1.1rem; margin-bottom:20px; }
+    .toggle-verified { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; font-size:.8rem; font-weight:600; cursor:pointer; border:1.5px solid; transition:.15s; }
+    .toggle-verified.verified { background:#F0FDF4; color:#15803D; border-color:#86EFAC; }
+    .toggle-verified.unverified { background:#FEF2F2; color:#B91C1C; border-color:#FECACA; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust <span class="admin-badge">Admin</span>
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">Overview</div>
+      <a href="dashboard.html" class="sidebar__link"><span class="sidebar__icon">⊞</span> Dashboard</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Users</div>
+      <a href="tenants.html" class="sidebar__link"><span class="sidebar__icon">👤</span> Tenants</a>
+      <a href="agencies.html" class="sidebar__link sidebar__link--active"><span class="sidebar__icon">🏢</span> Agencies</a>
+      <a href="owners.html" class="sidebar__link"><span class="sidebar__icon">🏠</span> Owners</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Content</div>
+      <a href="documents.html" class="sidebar__link"><span class="sidebar__icon">📄</span> Documents</a>
+      <a href="certificates.html" class="sidebar__link"><span class="sidebar__icon">🪪</span> Certificates</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="flex-between mb-16">
+      <div>
+        <div class="page-title">Agencies</div>
+        <div class="page-subtitle" id="page-subtitle">Loading…</div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:20px;">
+      <input type="text" id="search" placeholder="Search by name, address, email…" oninput="filterTable()" style="flex:1;">
+      <select id="filter-verified" onchange="filterTable()" style="width:auto;">
+        <option value="all">All agencies</option>
+        <option value="verified">Verified only</option>
+        <option value="unverified">Unverified only</option>
+        <option value="registered">Registered (has login)</option>
+        <option value="seeded">Pre-seeded (no login)</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Agency</th>
+            <th>Contact email</th>
+            <th>Address</th>
+            <th>Status</th>
+            <th>Registered</th>
+            <th>Joined</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="7" class="text-gray text-sm" style="padding:24px;text-align:center;">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- Edit modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="flex-between mb-20">
+      <div class="modal-title" id="modal-title">Edit agency</div>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray-400);">×</button>
+    </div>
+    <div id="modal-err" style="display:none;color:var(--red);font-size:.875rem;margin-bottom:12px;"></div>
+    <div class="form-group"><label>Company name</label><input id="f-company_name" type="text"></div>
+    <div class="form-group"><label>Address</label><input id="f-address" type="text"></div>
+    <div class="form-group"><label>Contact email</label><input id="f-contact_email" type="email"></div>
+    <div class="form-group">
+      <label>Verified on SwissTrust</label>
+      <select id="f-is_verified"><option value="false">No — unverified</option><option value="true">Yes — verified ✓</option></select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-primary" id="save-btn" onclick="saveEdit()">Save changes</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _all = [];
+let _editingId = null;
+
+(async () => {
+  const user = await sbHelpers.requireAdmin();
+  if (!user) return;
+  document.getElementById('nav-name').textContent = user.email;
+
+  const { data, error } = await sbHelpers.adminGetAgencies();
+  if (error) { document.getElementById('page-subtitle').textContent = 'Error: ' + error.message; return; }
+  _all = data || [];
+  document.getElementById('page-subtitle').textContent =
+    `${_all.length} agencies · ${_all.filter(a=>a.is_verified).length} verified`;
+  renderTable(_all);
+})();
+
+function filterTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const f = document.getElementById('filter-verified').value;
+  let rows = _all;
+  if (q) rows = rows.filter(a =>
+    (a.company_name||'').toLowerCase().includes(q) ||
+    (a.contact_email||'').toLowerCase().includes(q) ||
+    (a.address||'').toLowerCase().includes(q)
+  );
+  if (f === 'verified')    rows = rows.filter(a => a.is_verified);
+  if (f === 'unverified')  rows = rows.filter(a => !a.is_verified);
+  if (f === 'registered')  rows = rows.filter(a => a.user_id);
+  if (f === 'seeded')      rows = rows.filter(a => !a.user_id);
+  renderTable(rows);
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-gray text-sm" style="padding:24px;text-align:center;">No agencies found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(a => `
+    <tr>
+      <td><div class="font-bold">${esc(a.company_name)}</div></td>
+      <td class="text-sm">${esc(a.contact_email||'—')}</td>
+      <td class="text-sm text-gray">${esc(a.address||'—')}</td>
+      <td>
+        <button class="toggle-verified ${a.is_verified?'verified':'unverified'}"
+          onclick="toggleVerify('${a.id}', this)" title="Click to toggle">
+          ${a.is_verified ? '✓ Verified' : '✗ Unverified'}
+        </button>
+      </td>
+      <td><span class="badge ${a.user_id?'badge-green':'badge-gray'}" style="font-size:.7rem;">${a.user_id?'Yes':'Pre-seeded'}</span></td>
+      <td class="text-sm text-gray">${new Date(a.created_at).toLocaleDateString('en-CH',{day:'2-digit',month:'short',year:'numeric'})}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openEdit('${a.id}')">Edit</button></td>
+    </tr>`).join('');
+}
+
+async function toggleVerify(id, btn) {
+  const agency = _all.find(a => a.id === id);
+  if (!agency) return;
+  btn.disabled = true;
+  const newVal = !agency.is_verified;
+  const { data, error } = await sbHelpers.adminUpdateAgency(id, { is_verified: newVal });
+  btn.disabled = false;
+  if (error) { alert('Error: ' + error.message); return; }
+  agency.is_verified = newVal;
+  btn.className = `toggle-verified ${newVal?'verified':'unverified'}`;
+  btn.textContent = newVal ? '✓ Verified' : '✗ Unverified';
+}
+
+function openEdit(id) {
+  const a = _all.find(x => x.id === id);
+  if (!a) return;
+  _editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit — ' + a.company_name;
+  document.getElementById('modal-err').style.display = 'none';
+  document.getElementById('f-company_name').value  = a.company_name || '';
+  document.getElementById('f-address').value       = a.address || '';
+  document.getElementById('f-contact_email').value = a.contact_email || '';
+  document.getElementById('f-is_verified').value   = a.is_verified ? 'true' : 'false';
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); _editingId = null; }
+
+async function saveEdit() {
+  if (!_editingId) return;
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const fields = {
+    company_name:  document.getElementById('f-company_name').value.trim(),
+    address:       document.getElementById('f-address').value.trim(),
+    contact_email: document.getElementById('f-contact_email').value.trim(),
+    is_verified:   document.getElementById('f-is_verified').value === 'true',
+  };
+  const { data, error } = await sbHelpers.adminUpdateAgency(_editingId, fields);
+  btn.disabled = false; btn.textContent = 'Save changes';
+  if (error) { document.getElementById('modal-err').textContent = error.message; document.getElementById('modal-err').style.display='block'; return; }
+  const idx = _all.findIndex(a => a.id === _editingId);
+  if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
+  filterTable();
+  closeModal();
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

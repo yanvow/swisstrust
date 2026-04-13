@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <style>
+    .admin-badge { display:inline-block; background:#FF0000; color:white; font-size:.65rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:4px; vertical-align:middle; margin-left:6px; }
+    .activity-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--gray-100); font-size:.8125rem; }
+    .activity-row:last-child { border-bottom:none; }
+    .activity-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust <span class="admin-badge">Admin</span>
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">Overview</div>
+      <a href="dashboard.html" class="sidebar__link sidebar__link--active"><span class="sidebar__icon">⊞</span> Dashboard</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Users</div>
+      <a href="tenants.html" class="sidebar__link"><span class="sidebar__icon">👤</span> Tenants</a>
+      <a href="agencies.html" class="sidebar__link"><span class="sidebar__icon">🏢</span> Agencies</a>
+      <a href="owners.html" class="sidebar__link"><span class="sidebar__icon">🏠</span> Owners</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Content</div>
+      <a href="documents.html" class="sidebar__link"><span class="sidebar__icon">📄</span> Documents <span id="sb-pending" class="badge badge-amber" style="font-size:.65rem; margin-left:4px; display:none;"></span></a>
+      <a href="certificates.html" class="sidebar__link"><span class="sidebar__icon">🪪</span> Certificates</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-title">Admin Dashboard</div>
+    <div class="page-subtitle" id="page-subtitle">Loading platform stats…</div>
+
+    <!-- Stat grid -->
+    <div class="stat-grid mb-32">
+      <div class="stat-box">
+        <div class="stat-num" id="s-tenants">—</div>
+        <div class="stat-lbl">Tenants</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="s-agencies">—</div>
+        <div class="stat-lbl">Agencies</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="s-certs">—</div>
+        <div class="stat-lbl">Active certificates</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="s-docs">—</div>
+        <div class="stat-lbl">Documents</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--amber);" id="s-pending">—</div>
+        <div class="stat-lbl">Docs needing review</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="s-logs">—</div>
+        <div class="stat-lbl">Scans this week</div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px;">
+
+      <!-- Pending review alert -->
+      <div>
+        <div class="card" id="pending-alert" style="display:none; border:1.5px solid #FCD34D; background:#FFFBEB; margin-bottom:16px;">
+          <div class="flex-between">
+            <div>
+              <div class="font-bold mb-4">⚠️ Documents need review</div>
+              <div class="text-sm text-gray" id="pending-alert-msg"></div>
+            </div>
+            <a href="documents.html?filter=pending" class="btn btn-primary btn-sm">Review →</a>
+          </div>
+        </div>
+
+        <!-- Recent tenants -->
+        <div class="card">
+          <div class="flex-between mb-16">
+            <div class="card-title">Recent tenants</div>
+            <a href="tenants.html" class="text-xs text-gray" style="text-decoration:underline;">View all</a>
+          </div>
+          <div id="recent-tenants"><div class="text-sm text-gray">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- Recent certs + access log -->
+      <div>
+        <div class="card mb-16">
+          <div class="flex-between mb-16">
+            <div class="card-title">Recent certificates</div>
+            <a href="certificates.html" class="text-xs text-gray" style="text-decoration:underline;">View all</a>
+          </div>
+          <div id="recent-certs"><div class="text-sm text-gray">Loading…</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title mb-16">Recent scans</div>
+          <div id="recent-logs"><div class="text-sm text-gray">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const VIEWER_ICON = { public:'👁', agency:'🏢', owner:'👤', tenant:'🪪' };
+
+(async () => {
+  const user = await sbHelpers.requireAdmin();
+  if (!user) return;
+  document.getElementById('nav-name').textContent = user.email;
+
+  const [stats, activity] = await Promise.all([
+    sbHelpers.adminGetStats(),
+    sbHelpers.adminGetRecentActivity(),
+  ]);
+
+  // Stats
+  document.getElementById('s-tenants').textContent  = stats.tenants;
+  document.getElementById('s-agencies').textContent = stats.agencies;
+  document.getElementById('s-certs').textContent    = stats.certificates;
+  document.getElementById('s-docs').textContent     = stats.documents;
+  document.getElementById('s-pending').textContent  = stats.pendingDocs;
+  document.getElementById('s-logs').textContent     = stats.logsThisWeek;
+  document.getElementById('page-subtitle').textContent =
+    `Platform overview · ${stats.tenants} tenants · ${stats.certificates} active certificates`;
+
+  if (stats.pendingDocs > 0) {
+    document.getElementById('pending-alert').style.display = 'block';
+    document.getElementById('pending-alert-msg').textContent =
+      `${stats.pendingDocs} document${stats.pendingDocs > 1 ? 's' : ''} pending or flagged — OCR review required.`;
+    document.getElementById('sb-pending').textContent = stats.pendingDocs;
+    document.getElementById('sb-pending').style.display = 'inline';
+  }
+
+  // Recent tenants
+  document.getElementById('recent-tenants').innerHTML = activity.recentTenants.length === 0
+    ? '<div class="text-sm text-gray">None yet.</div>'
+    : activity.recentTenants.map(t => `
+        <div class="activity-row">
+          <div class="activity-icon" style="background:var(--gray-100);">👤</div>
+          <div style="flex:1;">
+            <div style="font-weight:600;">${esc(t.full_name || 'Unnamed')}</div>
+            <div class="text-xs text-gray">${new Date(t.created_at).toLocaleDateString('en-CH',{day:'2-digit',month:'short',year:'numeric'})}</div>
+          </div>
+          <span class="badge ${t.profile_complete ? 'badge-green' : 'badge-amber'}" style="font-size:.7rem;">${t.profile_complete ? 'Complete' : 'Incomplete'}</span>
+        </div>`).join('');
+
+  // Recent certs
+  const gradeClass = {A:'trust-a',B:'trust-b',C:'trust-c'};
+  document.getElementById('recent-certs').innerHTML = activity.recentCerts.length === 0
+    ? '<div class="text-sm text-gray">None yet.</div>'
+    : activity.recentCerts.map(c => `
+        <div class="activity-row">
+          <div class="activity-icon" style="background:var(--gray-100);">🪪</div>
+          <div style="flex:1;">
+            <div style="font-weight:600; font-size:.8125rem;">${esc(c.tenants?.full_name || '—')}</div>
+            <div class="text-xs text-gray">${esc(c.property_address || '—')} · ${esc(c.agencies?.company_name || c.cert_code)}</div>
+          </div>
+          <span class="badge ${gradeClass[c.trust_score]||'trust-b'}" style="font-size:.7rem;">${c.trust_score||'—'}</span>
+        </div>`).join('');
+
+  // Recent logs
+  document.getElementById('recent-logs').innerHTML = activity.recentLogs.length === 0
+    ? '<div class="text-sm text-gray">No scans yet.</div>'
+    : activity.recentLogs.map(l => `
+        <div class="activity-row">
+          <div class="activity-icon" style="background:var(--gray-100);">${VIEWER_ICON[l.viewer_type]||'👁'}</div>
+          <div style="flex:1;">
+            <div style="font-weight:500; font-size:.8rem;">${esc(l.certificates?.tenants?.full_name || '—')} · <span class="font-mono" style="font-size:.75rem;">${esc(l.certificates?.cert_code||'')}</span></div>
+            <div class="text-xs text-gray">${esc(l.certificates?.property_address||'')} · ${l.viewer_type}</div>
+          </div>
+          <span class="text-xs text-gray" style="white-space:nowrap;">${new Date(l.accessed_at).toLocaleString('en-CH',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+        </div>`).join('');
+})();
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

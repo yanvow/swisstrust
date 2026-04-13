@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sophie Müller — Full Dossier — SwissTrust</title>
+  <title>Full Dossier — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body>
 
@@ -17,8 +20,8 @@
     </a>
     <div class="nav__links">
       <a href="dashboard.html" class="nav__link">← Back to inbox</a>
-      <span class="text-sm text-gray">Moser Vernet & Cie</span>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      <span class="text-sm text-gray" id="nav-agency"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
     </div>
   </div>
 </nav>
@@ -28,7 +31,6 @@
     <div class="sidebar__section">
       <div class="sidebar__label">Agency</div>
       <a href="dashboard.html" class="sidebar__link"><span class="sidebar__icon">⊞</span> Certificate inbox</a>
-      <a href="#" class="sidebar__link"><span class="sidebar__icon">◎</span> Agency profile</a>
     </div>
     <div class="sidebar__section">
       <div class="sidebar__label">Tools</div>
@@ -37,189 +39,207 @@
   </aside>
 
   <main class="main-content" style="max-width:860px;">
+    <div id="loading" class="text-gray text-sm" style="padding:48px 0; text-align:center;">Loading dossier…</div>
+    <div id="content" style="display:none;">
 
-    <!-- Header -->
-    <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:32px; flex-wrap:wrap; gap:16px;">
-      <div>
-        <div class="text-xs text-gray mb-4" style="letter-spacing:.05em; text-transform:uppercase; font-weight:600;">Full dossier — Agency access</div>
-        <div style="font-size:1.75rem; font-weight:700; margin-bottom:4px;">Sophie Müller</div>
-        <div class="text-sm text-gray">Rue de Rive 14, 1204 Genève · 3.5 rooms · CHF 2,400/mo · Move-in 01.06.2026</div>
-        <div class="text-xs text-gray mt-4">Certificate: <span class="font-mono font-bold">STD-2G7K-X4NP</span> · Issued 10 Apr 2026</div>
-      </div>
-      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
-        <div class="verified-badge">
-          <svg viewBox="0 0 20 20" fill="currentColor" style="width:18px;height:18px;"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
-          Identity Verified
+      <!-- Header -->
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:32px; flex-wrap:wrap; gap:16px;">
+        <div>
+          <div class="text-xs text-gray mb-4" style="letter-spacing:.05em; text-transform:uppercase; font-weight:600;">Full dossier — Agency access</div>
+          <div style="font-size:1.75rem; font-weight:700; margin-bottom:4px;" id="hdr-name">—</div>
+          <div class="text-sm text-gray" id="hdr-property">—</div>
+          <div class="text-xs text-gray mt-4">Certificate: <span class="font-mono font-bold" id="hdr-cert-code">—</span> · Issued <span id="hdr-issued">—</span></div>
         </div>
-        <span class="badge trust-a" style="font-size:1rem; padding:7px 18px;">A — Excellent</span>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+          <div class="verified-badge">
+            <svg viewBox="0 0 20 20" fill="currentColor" style="width:18px;height:18px;"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+            Identity Verified
+          </div>
+          <span id="hdr-trust-badge" class="badge trust-b" style="font-size:1rem; padding:7px 18px;">—</span>
+        </div>
+      </div>
+
+      <!-- Access alert -->
+      <div class="alert alert-success mb-24">
+        <span>✓</span>
+        <span id="access-alert">This access has been logged.</span>
+      </div>
+
+      <!-- Summary facts -->
+      <div class="card mb-24">
+        <div class="card-header">
+          <div class="card-title">Verified summary</div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;" id="summary-grid">—</div>
+      </div>
+
+      <!-- Employment -->
+      <div class="card mb-24">
+        <div class="card-header">
+          <div class="card-title">Employment &amp; income</div>
+          <div class="card-subtitle">From tenant profile</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;" id="employment-grid">—</div>
+      </div>
+
+      <!-- Access log -->
+      <div class="card card--flat mb-24" style="background:var(--gray-100); border:none; padding:16px;">
+        <div class="card-title text-sm mb-8">Access log for this certificate</div>
+        <table style="font-size:.8125rem;">
+          <thead>
+            <tr>
+              <th>Date / time</th>
+              <th>Viewer type</th>
+            </tr>
+          </thead>
+          <tbody id="access-log-tbody">
+            <tr><td colspan="2" class="text-gray">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-8">
+        <a href="dashboard.html" class="btn btn-outline">← Back to inbox</a>
       </div>
     </div>
 
-    <!-- Alert -->
-    <div class="alert alert-success mb-24">
-      <span>✓</span>
-      <span>This access has been logged — 10 Apr 2026 at 14:32 by Moser Vernet & Cie. Document download links expire after 60 seconds.</span>
-    </div>
-
-    <!-- Summary facts -->
-    <div class="card mb-24">
-      <div class="card-header">
-        <div class="card-title">Verified summary</div>
-      </div>
-      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
-        <div>
-          <div class="text-xs text-gray mb-2">Eligibility</div>
-          <div class="font-bold" style="color:var(--green);">✓ Income qualifies</div>
-          <div class="text-xs text-gray">CHF 8,500 ≥ 3× CHF 2,400</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-2">Occupants</div>
-          <div class="font-bold">2</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-2">Smoker / Pets</div>
-          <div class="font-bold">No / No</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-2">Nationality / Permit</div>
-          <div class="font-bold">Swiss citizen</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-2">Visited property</div>
-          <div class="font-bold">Yes</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-2">Heard about via</div>
-          <div class="font-bold">immobilier.ch</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Employment -->
-    <div class="card mb-24">
-      <div class="card-header">
-        <div class="card-title">Employment & income</div>
-        <div class="card-subtitle">Extracted from AI-verified salary slips</div>
-      </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-        <div>
-          <div class="text-xs text-gray mb-1">Employer</div>
-          <div class="font-bold">Pictet & Cie SA</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-1">Job title</div>
-          <div class="font-bold">Financial Analyst</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-1">Monthly gross salary</div>
-          <div class="font-bold" style="font-size:1.25rem; color:var(--green);">CHF 8,500</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-1">Monthly net</div>
-          <div class="font-bold" style="font-size:1.25rem;">CHF 7,210</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-1">Employed since</div>
-          <div class="font-bold">01.03.2021 — 4 years 1 month</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Documents -->
-    <h3 class="mb-16" style="font-size:.85rem; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-400);">Verified documents</h3>
-
-    <!-- Passport -->
-    <div class="doc-viewer mb-16">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">🪪 Passport / Swiss ID</div>
-        <span class="badge badge-green">Auto-verified · 96% confidence</span>
-      </div>
-      <div class="doc-viewer__body">
-        <div style="background:var(--gray-100); border:1px solid var(--gray-200); border-radius:var(--radius); height:140px; display:flex; align-items:center; justify-content:center; color:var(--gray-400); font-size:.8rem; margin-bottom:12px;">
-          📄 passport_sophie_m.pdf — Click to preview
-        </div>
-        <div class="doc-viewer__extracted">
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Full name (MRZ)</span><span class="doc-viewer__field-v">MÜLLER SOPHIE</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Date of birth</span><span class="doc-viewer__field-v">14.06.1992</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Nationality</span><span class="doc-viewer__field-v">CHE (Swiss)</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Document number</span><span class="doc-viewer__field-v">X4920384</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Expiry date</span><span class="doc-viewer__field-v">14.06.2032</span></div>
-        </div>
-        <div class="mt-12 flex gap-8">
-          <button class="btn btn-outline btn-sm">Download (60s link)</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Betreibungsauszug -->
-    <div class="doc-viewer mb-16">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">⚖️ Betreibungsauszug (debt register)</div>
-        <span class="badge badge-green">Auto-verified · 93% confidence</span>
-      </div>
-      <div class="doc-viewer__body">
-        <div class="doc-viewer__extracted">
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Status</span><span class="doc-viewer__field-v" style="color:var(--green); font-weight:700; font-size:1rem;">✓ CLEAN — Aucune poursuite</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Issued by</span><span class="doc-viewer__field-v">Office des poursuites de Genève</span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">Date issued</span><span class="doc-viewer__field-v">02.04.2026 (9 days ago)</span></div>
-        </div>
-        <div class="mt-12">
-          <button class="btn btn-outline btn-sm">Download (60s link)</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Salary slips -->
-    <div class="doc-viewer mb-16">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">💰 Salary slips — 3 months</div>
-        <span class="badge badge-amber">2/3 uploaded · 1 flagged</span>
-      </div>
-      <div class="doc-viewer__body">
-        <div class="doc-viewer__extracted mb-12">
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">March 2026</span><span class="doc-viewer__field-v">CHF 8,500 gross <span class="badge badge-green" style="font-size:.7rem;">Verified</span></span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">February 2026</span><span class="doc-viewer__field-v">CHF 8,500 gross <span class="badge badge-amber" style="font-size:.7rem;">Flagged — low quality</span></span></div>
-          <div class="doc-viewer__field"><span class="doc-viewer__field-k">January 2026</span><span class="doc-viewer__field-v" style="color:var(--gray-400);">Not uploaded</span></div>
-        </div>
-        <button class="btn btn-outline btn-sm">Download available slips (60s link)</button>
-      </div>
-    </div>
-
-    <!-- Reference -->
-    <div class="doc-viewer mb-24">
-      <div class="doc-viewer__head">
-        <div class="doc-viewer__name">🏠 Landlord reference letter</div>
-        <span class="badge badge-gray">Not uploaded</span>
-      </div>
-      <div class="doc-viewer__body">
-        <p class="text-sm text-gray">The tenant has not provided a landlord reference letter. This reduces the Trust Score by 5 points.</p>
-      </div>
-    </div>
-
-    <!-- Access log -->
-    <div class="card card--flat" style="background:var(--gray-100); border:none; padding:16px;">
-      <div class="card-title text-sm mb-8">Access log for this certificate</div>
-      <table style="font-size:.8125rem;">
-        <thead>
-          <tr>
-            <th>Date / time</th>
-            <th>Viewer</th>
-            <th>Type</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>10 Apr 2026 · 14:32</td><td>Moser Vernet & Cie</td><td><span class="badge badge-blue" style="font-size:.7rem;">Agency</span></td></tr>
-          <tr><td>10 Apr 2026 · 12:15</td><td>Anonymous (QR scan)</td><td><span class="badge badge-gray" style="font-size:.7rem;">Public</span></td></tr>
-          <tr><td>10 Apr 2026 · 11:04</td><td>Sophie Müller (owner)</td><td><span class="badge badge-gray" style="font-size:.7rem;">Tenant</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="mt-24">
-      <a href="dashboard.html" class="btn btn-outline">← Back to inbox</a>
+    <div id="error-panel" style="display:none; padding:48px 0; text-align:center;">
+      <div class="text-gray">Certificate not found or access denied.</div>
+      <a href="dashboard.html" class="btn btn-outline btn-sm mt-16">← Back to inbox</a>
     </div>
   </main>
 </div>
 
+<script>
+(async () => {
+  const user = await sbHelpers.requireAuth('agency');
+  if (!user) return;
+
+  // Get agency row
+  const { data: agency } = await _sb.from('agencies').select('id, company_name').eq('user_id', user.id).single();
+  if (agency) document.getElementById('nav-agency').textContent = agency.company_name;
+
+  // Get cert code from URL
+  const params = new URLSearchParams(window.location.search);
+  const certCode = params.get('code');
+  if (!certCode) { showError(); return; }
+
+  const { data: cert, error } = await sbHelpers.getCertificateByCode(certCode);
+  if (error || !cert) { showError(); return; }
+
+  // Agency access check: must be directed to this agency, or Open mode
+  const isDirected = cert.agencies && cert.agencies.user_id === user.id;
+  const isOpen     = cert.mode === 'open';
+  if (!isDirected && !isOpen) { showError(); return; }
+
+  // Log this access
+  await sbHelpers.logAccess(cert.id, user.id, 'agency');
+
+  const t = cert.tenants || {};
+  const trustLabels = { A: 'A — Excellent', B: 'B — Good', C: 'C — Review' };
+  const trustClasses = { A: 'trust-a', B: 'trust-b', C: 'trust-c' };
+  const permitLabels = { swiss: 'Swiss citizen', B: 'B permit', C: 'C permit', G: 'G permit', L: 'L permit' };
+
+  // Header
+  document.getElementById('hdr-name').textContent = t.full_name || '—';
+  document.getElementById('hdr-property').textContent =
+    `${cert.property_address || ''}${cert.property_city ? ', ' + cert.property_city : ''}` +
+    `${cert.rooms ? ' · ' + cert.rooms + ' rooms' : ''}` +
+    `${cert.total_chf ? ' · CHF ' + Number(cert.total_chf).toLocaleString() + '/mo' : ''}` +
+    `${cert.move_in_date ? ' · Move-in ' + new Date(cert.move_in_date).toLocaleDateString('de-CH') : ''}`;
+  document.getElementById('hdr-cert-code').textContent = cert.cert_code;
+  document.getElementById('hdr-issued').textContent = new Date(cert.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+
+  const trustBadge = document.getElementById('hdr-trust-badge');
+  trustBadge.textContent = trustLabels[cert.trust_score] || cert.trust_score || '—';
+  trustBadge.className = 'badge ' + (trustClasses[cert.trust_score] || 'trust-b');
+  trustBadge.style.cssText = 'font-size:1rem; padding:7px 18px;';
+
+  // Access alert
+  const agencyName = agency?.company_name || 'your agency';
+  document.getElementById('access-alert').textContent =
+    `This access has been logged — ${new Date().toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })} by ${agencyName}. Document download links expire after 60 seconds.`;
+
+  // Summary grid
+  const totalRent = cert.total_chf || cert.rent_chf || 0;
+  const salary    = t.monthly_gross_salary || 0;
+  const eligible  = cert.is_eligible;
+  document.getElementById('summary-grid').innerHTML = `
+    <div>
+      <div class="text-xs text-gray mb-2">Eligibility</div>
+      <div class="font-bold" style="color:${eligible ? 'var(--green)' : 'var(--amber)'};">${eligible ? '✓ Income qualifies' : '⚠ Review income'}</div>
+      <div class="text-xs text-gray">CHF ${salary.toLocaleString()} ${eligible ? '≥' : '<'} 3× CHF ${Number(totalRent).toLocaleString()}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-2">Occupants</div>
+      <div class="font-bold">${t.occupant_count || 1}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-2">Smoker / Pets</div>
+      <div class="font-bold">${t.is_smoker ? 'Smoker' : 'No'} / ${t.has_pets ? 'Has pets' : 'No'}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-2">Nationality / Permit</div>
+      <div class="font-bold">${permitLabels[t.permit_type] || t.permit_type || '—'}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-2">Visited property</div>
+      <div class="font-bold">${cert.has_visited ? 'Yes' : 'No'}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-2">Heard about via</div>
+      <div class="font-bold">${formatHeard(cert.heard_about)}</div>
+    </div>`;
+
+  // Employment grid
+  const startDate = t.employment_start_date
+    ? new Date(t.employment_start_date).toLocaleDateString('de-CH')
+    : '—';
+  document.getElementById('employment-grid').innerHTML = `
+    <div>
+      <div class="text-xs text-gray mb-1">Employer</div>
+      <div class="font-bold">${t.employer_name || '—'}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-1">Job title</div>
+      <div class="font-bold">${t.job_role || '—'}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-1">Monthly gross salary</div>
+      <div class="font-bold" style="font-size:1.25rem; color:var(--green);">CHF ${salary.toLocaleString()}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-1">Employed since</div>
+      <div class="font-bold">${startDate}</div>
+    </div>`;
+
+  // Access log
+  const { data: logs } = await sbHelpers.getAccessLogsByCertificate(cert.id);
+  const tbody = document.getElementById('access-log-tbody');
+  if (!logs || logs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" class="text-gray text-sm">No access logs yet.</td></tr>';
+  } else {
+    tbody.innerHTML = logs.map(l => {
+      const when = new Date(l.accessed_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      const typeLabel = { agency: 'Agency', public: 'Public', tenant: 'Tenant' }[l.viewer_type] || l.viewer_type;
+      const typeBadge = { agency: 'badge-blue', public: 'badge-gray', tenant: 'badge-green' }[l.viewer_type] || 'badge-gray';
+      return `<tr><td>${when}</td><td><span class="badge ${typeBadge}" style="font-size:.7rem;">${typeLabel}</span></td></tr>`;
+    }).join('');
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = '';
+})();
+
+function showError() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error-panel').style.display = '';
+}
+
+function formatHeard(val) {
+  const map = { former_tenant: 'Former tenant', relocation_agency: 'Relocation agency', website: 'Agency website', immobilier_ch: 'immobilier.ch', other: 'Other' };
+  return map[val] || val || '—';
+}
+</script>
 </body>
 </html>

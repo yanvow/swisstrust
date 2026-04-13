@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agency Profile — SwissTrust</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">ST</div>
+      SwissTrust
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">Agency</div>
+      <a href="dashboard.html" class="sidebar__link">
+        <span class="sidebar__icon">⊞</span> Certificate inbox
+      </a>
+      <a href="profile.html" class="sidebar__link sidebar__link--active">
+        <span class="sidebar__icon">◎</span> Agency profile
+      </a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Tools</div>
+      <a href="../verify.html" class="sidebar__link">
+        <span class="sidebar__icon">✓</span> Verify by code
+      </a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="flex-between mb-24">
+      <div>
+        <div class="page-title">Agency profile</div>
+        <div class="page-subtitle">Your agency details shown to tenants and on certificates.</div>
+      </div>
+    </div>
+
+    <div id="error-banner" style="display:none;" class="alert alert-error mb-24">
+      <span>⚠️</span><span id="error-text"></span>
+    </div>
+
+    <div class="card">
+      <form onsubmit="saveProfile(event)">
+        <div class="form-group">
+          <label for="company_name">Company name <span class="req">*</span></label>
+          <input type="text" id="company_name" placeholder="Moser Vernet &amp; Cie" required>
+        </div>
+        <div class="form-group">
+          <label for="address">Office address <span class="req">*</span></label>
+          <input type="text" id="address" placeholder="Rue du Rhône 50, 1204 Genève" required>
+        </div>
+        <div class="form-group">
+          <label for="contact_email">Contact email <span class="req">*</span></label>
+          <input type="email" id="contact_email" placeholder="contact@agency.ch" required>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="flex-between" style="align-items:center;">
+          <div>
+            <div class="text-sm text-gray">Verification status</div>
+            <div id="verification-status" class="mt-4"></div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div id="save-success" style="display:none; color:var(--green); font-size:.875rem; font-weight:500;">✓ Saved</div>
+            <button type="submit" id="save-btn" class="btn btn-primary">Save changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script>
+let _agencyId = null;
+
+(async () => {
+  const user = await sbHelpers.requireAuth('agency');
+  if (!user) return;
+
+  document.getElementById('nav-name').textContent =
+    user.user_metadata?.company_name || user.email;
+
+  // Load agency row
+  const { data: agencies, error } = await _sb
+    .from('agencies')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+
+  if (error || !agencies) {
+    showError('Could not load agency profile: ' + (error?.message || 'not found'));
+    return;
+  }
+
+  _agencyId = agencies.id;
+  document.getElementById('company_name').value  = agencies.company_name || '';
+  document.getElementById('address').value        = agencies.address || '';
+  document.getElementById('contact_email').value  = agencies.contact_email || '';
+
+  const verEl = document.getElementById('verification-status');
+  if (agencies.is_verified) {
+    verEl.innerHTML = '<span class="badge badge-green">Verified agency</span>';
+  } else {
+    verEl.innerHTML = '<span class="badge badge-amber">Pending verification</span> <span class="text-xs text-gray ml-8">SwissTrust will verify your agency within 1–2 business days.</span>';
+  }
+})();
+
+async function saveProfile(e) {
+  e.preventDefault();
+  const btn = document.getElementById('save-btn');
+  sbHelpers.setLoading(btn, true, 'Save changes');
+  document.getElementById('save-success').style.display = 'none';
+  document.getElementById('error-banner').style.display = 'none';
+
+  const { error } = await _sb
+    .from('agencies')
+    .update({
+      company_name:  document.getElementById('company_name').value.trim(),
+      address:       document.getElementById('address').value.trim(),
+      contact_email: document.getElementById('contact_email').value.trim(),
+    })
+    .eq('id', _agencyId);
+
+  sbHelpers.setLoading(btn, false, 'Save changes');
+
+  if (error) {
+    showError('Could not save: ' + error.message);
+    return;
+  }
+
+  const successEl = document.getElementById('save-success');
+  successEl.style.display = 'block';
+  setTimeout(() => { successEl.style.display = 'none'; }, 3000);
+}
+
+function showError(msg) {
+  document.getElementById('error-text').textContent = msg;
+  document.getElementById('error-banner').style.display = 'flex';
+}
+</script>
+</body>
+</html>

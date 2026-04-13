@@ -189,6 +189,8 @@ CREATE TABLE IF NOT EXISTS certificates (
 
   -- Certificate sharing mode (from strategy: Directed / Open / On-Request)
   mode              certificate_mode DEFAULT 'directed',
+  -- For directed mode: either agency_id OR owner_email is set
+  owner_email       TEXT,            -- directed to private landlord by email
   -- For on_request mode: null = pending, 'approved' = approved, 'denied' = denied
   approval_status   TEXT CHECK (approval_status IN ('pending', 'approved', 'denied')),
 
@@ -259,6 +261,203 @@ CREATE POLICY "access_logs_tenant_select" ON document_access_logs
 -- Any user (incl. anon server-side) can insert a log
 CREATE POLICY "access_logs_insert" ON document_access_logs
   FOR INSERT WITH CHECK (true);
+
+-- ============================================================
+-- TABLE: owners (private landlords)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS owners (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name        TEXT NOT NULL,
+  phone            TEXT,
+  property_address TEXT,
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE owners ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read owners (tenants can see requester name/details)
+CREATE POLICY "owners_public_read" ON owners
+  FOR SELECT USING (true);
+
+-- Owner can insert their own row
+CREATE POLICY "owners_own_insert" ON owners
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Owner can update their own row
+CREATE POLICY "owners_own_update" ON owners
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- ============================================================
+-- TABLE: access_requests (for On-Request certificate mode)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS access_requests (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  certificate_id    UUID NOT NULL REFERENCES certificates(id) ON DELETE CASCADE,
+  requester_user_id UUID NOT NULL REFERENCES auth.users(id),
+  requester_type    TEXT NOT NULL CHECK (requester_type IN ('agency', 'owner')),
+  requester_name    TEXT,           -- company name or full name at request time
+  message           TEXT,           -- optional message from requester
+  status            TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'approved', 'denied')),
+  requested_at      TIMESTAMPTZ DEFAULT NOW(),
+  responded_at      TIMESTAMPTZ,
+  UNIQUE(certificate_id, requester_user_id)
+);
+
+ALTER TABLE access_requests ENABLE ROW LEVEL SECURITY;
+
+-- Requester can insert their own request
+CREATE POLICY "access_requests_insert" ON access_requests
+  FOR INSERT WITH CHECK (auth.uid() = requester_user_id);
+
+-- Requester can read their own requests
+CREATE POLICY "access_requests_requester_select" ON access_requests
+  FOR SELECT USING (auth.uid() = requester_user_id);
+
+-- Tenant reads requests for their certificates
+CREATE POLICY "access_requests_tenant_select" ON access_requests
+  FOR SELECT USING (
+    certificate_id IN (
+      SELECT c.id FROM certificates c
+      JOIN tenants t ON t.id = c.tenant_id
+      WHERE t.user_id = auth.uid()
+    )
+  );
+
+-- Tenant can update status (approve / deny) on their certificates
+CREATE POLICY "access_requests_tenant_update" ON access_requests
+  FOR UPDATE USING (
+    certificate_id IN (
+      SELECT c.id FROM certificates c
+      JOIN tenants t ON t.id = c.tenant_id
+      WHERE t.user_id = auth.uid()
+    )
+  );
+
+-- ============================================================
+-- TRIGGER: auto-create profile row on sign-up
+-- Fires after every INSERT into auth.users.
+-- Reads raw_user_meta_data.role to decide which table.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  CASE NEW.raw_user_meta_data->>'role'
+
+    WHEN 'tenant' THEN
+      INSERT INTO public.tenants (user_id, full_name)
+      VALUES (
+        NEW.id,
+        NEW.raw_user_meta_data->>'full_name'
+      );
+
+    WHEN 'agency' THEN
+      INSERT INTO public.agencies (user_id, company_name, address, contact_email)
+      VALUES (
+        NEW.id,
+        COALESCE(NEW.raw_user_meta_data->>'company_name', ''),
+        COALESCE(NEW.raw_user_meta_data->>'address', ''),
+        COALESCE(NEW.raw_user_meta_data->>'contact_email', NEW.email)
+      );
+
+    WHEN 'owner' THEN
+      INSERT INTO public.owners (user_id, full_name, property_address)
+      VALUES (
+        NEW.id,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+        NEW.raw_user_meta_data->>'property_address'
+      );
+
+    ELSE
+      NULL; -- unknown role, do nothing
+
+  END CASE;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================
+-- MIGRATION: make agency_id nullable
+-- Required for Open and On-Request certificate modes.
+-- Run this if you already ran the original schema.
+-- ============================================================
+ALTER TABLE certificates ALTER COLUMN agency_id DROP NOT NULL;
+
+-- ============================================================
+-- MIGRATION: add owner_email column to certificates
+-- Required for Directed-to-private-landlord mode.
+-- Run this if you already ran the original schema.
+-- ============================================================
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS owner_email TEXT;
+
+-- ============================================================
+-- MIGRATION: ghost delivery tracking
+-- Allows tenants to direct certs to agencies not yet on SwissTrust.
+-- Run this if you already ran the original schema.
+-- ============================================================
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS unregistered_agency_name TEXT;
+
+-- Agencies can SELECT ghost certs where their company name matches
+CREATE POLICY "certificates_ghost_agency_select" ON certificates
+  FOR SELECT USING (
+    is_active = TRUE
+    AND unregistered_agency_name IS NOT NULL
+    AND LOWER(unregistered_agency_name) = LOWER(
+      (SELECT company_name FROM agencies WHERE user_id = auth.uid() LIMIT 1)
+    )
+  );
+
+-- Agencies can claim (UPDATE agency_id) ghost certs directed to their name
+CREATE POLICY "certificates_agency_claim_ghost" ON certificates
+  FOR UPDATE USING (
+    unregistered_agency_name IS NOT NULL
+    AND agency_id IS NULL
+    AND LOWER(unregistered_agency_name) = LOWER(
+      (SELECT company_name FROM agencies WHERE user_id = auth.uid() LIMIT 1)
+    )
+  ) WITH CHECK (true);
+
+-- ============================================================
+-- ADMIN RLS POLICIES
+-- Admin users have role='admin' in user_metadata (set via Supabase dashboard).
+-- To create an admin: Supabase dashboard → Authentication → Users → edit user
+--   → set raw_user_meta_data to {"role":"admin"}
+-- ============================================================
+
+CREATE POLICY "tenants_admin_all" ON tenants FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "agencies_admin_all" ON agencies FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "documents_admin_all" ON documents FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "certificates_admin_all" ON certificates FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "access_logs_admin_all" ON document_access_logs FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "access_requests_admin_all" ON access_requests FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "owners_admin_all" ON owners FOR ALL
+  USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- ============================================================
 -- Storage buckets

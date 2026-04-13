@@ -1,0 +1,19 @@
+{
+  "template_version": "1.0",
+  "description": "Extraction templates for SwissTrust document OCR/import flows.",
+  "global_rules": {
+    "dates": "Use ISO 8601 format YYYY-MM-DD when the value is known.",
+    "currency": "Use CHF numeric amounts without currency symbols when the source is Swiss Francs.",
+    "nulls": "Use null when a field is missing, unreadable, or not present on the document.",
+    "confidence": "Provide per-field confidence scores between 0 and 1."
+  },
+  "templates": {
+    "passport_id": "passport_id.json",
+    "residence_permit": "residence_permit.json",
+    "salary_slip_1": "salary_slip.json",
+    "salary_slip_2": "salary_slip.json",
+    "salary_slip_3": "salary_slip.json",
+    "betreibungsauszug": "betreibungsauszug.json",
+    "reference_letter": "reference_letter.json"
+  }
+}

@@ -6,6 +6,10 @@
   <title>Register agency — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/address-autocomplete.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body class="auth-page">
 
@@ -83,7 +87,8 @@
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary btn-full">Register agency</button>
+      <div id="error-msg" style="display:none; color:var(--red); font-size:.875rem; margin-bottom:12px;"></div>
+      <button type="submit" id="submit-btn" class="btn btn-primary btn-full">Register agency</button>
     </form>
 
     <div class="auth-card__footer">
@@ -93,8 +98,41 @@
 </div>
 
 <script>
-function handleRegister(e) {
+document.addEventListener('DOMContentLoaded', () => {
+  initAddressAutocomplete('address', { fillFull: true });
+});
+
+async function handleRegister(e) {
   e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  sbHelpers.setLoading(btn, true, 'Register agency');
+  sbHelpers.hideError('error-msg');
+
+  const companyName   = document.getElementById('company_name').value.trim();
+  const address       = document.getElementById('address').value.trim();
+  const contactEmail  = document.getElementById('contact_email').value.trim();
+  const accountEmail  = document.getElementById('account_email').value.trim();
+  const password      = document.getElementById('password').value;
+  const confirm       = document.getElementById('confirm_password').value;
+
+  if (password !== confirm) {
+    sbHelpers.showError('error-msg', 'Passwords do not match.');
+    sbHelpers.setLoading(btn, false, 'Register agency');
+    return;
+  }
+
+  const { data, error } = await _sb.auth.signUp({
+    email: accountEmail,
+    password,
+    options: { data: { role: 'agency', company_name: companyName, address, contact_email: contactEmail } },
+  });
+
+  if (error) {
+    sbHelpers.showError('error-msg', error.message);
+    sbHelpers.setLoading(btn, false, 'Register agency');
+    return;
+  }
+
   window.location.href = '../agency/dashboard.html';
 }
 </script>

@@ -1,0 +1,133 @@
+{
+  "template_version": "1.0",
+  "document_type": "betreibungsauszug",
+  "document_label": "Betreibungsauszug",
+  "maps_to_profile_fields": [],
+  "output_schema": {
+    "document_meta": {
+      "document_kind": null,
+      "issuing_office": null,
+      "canton": null,
+      "issue_date": null
+    },
+    "subject": {
+      "full_name": null,
+      "date_of_birth": null,
+      "address": null
+    },
+    "register_summary": {
+      "has_debt_entries": null,
+      "status": null,
+      "entry_count": null,
+      "open_cases_count": null,
+      "total_claim_amount_chf": null,
+      "observation_period_text": null
+    },
+    "verification": {
+      "name_matches_profile": null,
+      "address_matches_profile": null,
+      "document_is_recent_enough": null
+    },
+    "confidence": {
+      "issuing_office": null,
+      "issue_date": null,
+      "full_name": null,
+      "has_debt_entries": null,
+      "status": null,
+      "entry_count": null,
+      "total_claim_amount_chf": null
+    }
+  },
+  "field_definitions": [
+    {
+      "path": "document_meta.document_kind",
+      "type": "string",
+      "required": true,
+      "allowed_values": [
+        "betreibungsauszug",
+        "debt_register_extract"
+      ],
+      "description": "Normalized document type."
+    },
+    {
+      "path": "document_meta.issuing_office",
+      "type": "string",
+      "required": true,
+      "description": "Debt collection office or issuing authority."
+    },
+    {
+      "path": "document_meta.canton",
+      "type": "string",
+      "required": false,
+      "description": "Swiss canton of the issuing office if visible."
+    },
+    {
+      "path": "document_meta.issue_date",
+      "type": "date",
+      "required": true,
+      "description": "Date the extract was issued."
+    },
+    {
+      "path": "subject.full_name",
+      "type": "string",
+      "required": true,
+      "maps_to": "tenants.full_name",
+      "description": "Name of the person the extract concerns."
+    },
+    {
+      "path": "subject.date_of_birth",
+      "type": "date",
+      "required": false,
+      "maps_to": "tenants.date_of_birth",
+      "description": "Date of birth if shown."
+    },
+    {
+      "path": "subject.address",
+      "type": "string",
+      "required": false,
+      "maps_to": "tenants.current_address",
+      "description": "Address shown on the extract."
+    },
+    {
+      "path": "register_summary.has_debt_entries",
+      "type": "boolean",
+      "required": true,
+      "description": "Whether the extract shows any debt collection entries."
+    },
+    {
+      "path": "register_summary.status",
+      "type": "string",
+      "required": true,
+      "allowed_values": [
+        "clean",
+        "not_clean",
+        "unknown"
+      ],
+      "description": "Normalized SwissTrust summary status derived from the extract."
+    },
+    {
+      "path": "register_summary.entry_count",
+      "type": "integer",
+      "required": false,
+      "description": "Total number of entries visible on the extract."
+    },
+    {
+      "path": "register_summary.open_cases_count",
+      "type": "integer",
+      "required": false,
+      "description": "Number of open cases if identifiable."
+    },
+    {
+      "path": "register_summary.total_claim_amount_chf",
+      "type": "number",
+      "required": false,
+      "description": "Total claim amount in CHF if the extract supports it."
+    },
+    {
+      "path": "register_summary.observation_period_text",
+      "type": "string",
+      "required": false,
+      "description": "Any explicit text describing the observation period."
+    }
+  ]
+}

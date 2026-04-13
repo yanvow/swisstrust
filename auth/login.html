@@ -6,6 +6,9 @@
   <title>Sign in — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
 </head>
 <body class="auth-page">
 
@@ -25,7 +28,7 @@
       SwissTrust
     </div>
     <h1 class="auth-card__title">Welcome back</h1>
-    <p class="auth-card__sub">Sign in to your tenant or agency account</p>
+    <p class="auth-card__sub">Sign in to your tenant, agency, or owner account</p>
 
     <form onsubmit="handleLogin(event)">
       <div class="form-group">
@@ -37,14 +40,18 @@
         <input type="password" id="password" placeholder="••••••••" required>
         <div class="form-hint"><a href="#" style="color:var(--charcoal);">Forgot password?</a></div>
       </div>
-      <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;">Sign in</button>
+      <div id="error-msg" style="display:none; color:var(--red); font-size:.875rem; margin-bottom:12px;"></div>
+      <button type="submit" id="submit-btn" class="btn btn-primary btn-full" style="margin-top:8px;">Sign in</button>
     </form>
 
     <div class="auth-divider mt-24"><span>or continue as</span></div>
 
-    <div class="flex gap-16 mt-16">
-      <a href="tenant-register.html" class="btn btn-outline btn-full">New tenant</a>
-      <a href="agency-register.html" class="btn btn-outline btn-full">New agency</a>
+    <div class="mt-16" style="display:flex; flex-direction:column; gap:10px;">
+      <a href="tenant-register.html" class="btn btn-outline btn-full" style="padding-top:14px; padding-bottom:14px; font-size:1rem;">New tenant</a>
+      <div style="display:flex; gap:10px;">
+        <a href="agency-register.html" class="btn btn-outline btn-full">New agency</a>
+        <a href="owner-register.html" class="btn btn-outline btn-full">New owner</a>
+      </div>
     </div>
 
     <div class="auth-card__footer mt-24">
@@ -54,15 +61,45 @@
 </div>
 
 <script>
-function handleLogin(e) {
-  e.preventDefault();
-  // Demo: route by email prefix
-  const email = document.getElementById('email').value;
-  if (email.startsWith('agency')) {
-    window.location.href = '../agency/dashboard.html';
+const _returnUrl = new URLSearchParams(window.location.search).get('return') || '';
+
+// If already logged in and no return target, go straight to dashboard
+(async () => {
+  const session = await sbHelpers.getSession();
+  if (session && !_returnUrl) redirectByRole(session.user.user_metadata?.role);
+})();
+
+function redirectAfterLogin(role) {
+  if (_returnUrl) {
+    window.location.href = _returnUrl;
   } else {
-    window.location.href = '../tenant/dashboard.html';
+    redirectByRole(role);
   }
+}
+
+function redirectByRole(role) {
+  if (role === 'agency') window.location.href = '../agency/dashboard.html';
+  else if (role === 'owner') window.location.href = '../owner/dashboard.html';
+  else if (role === 'admin') window.location.href = '../admin/dashboard.html';
+  else window.location.href = '../tenant/dashboard.html';
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  sbHelpers.setLoading(btn, true, 'Sign in');
+  sbHelpers.hideError('error-msg');
+
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  const { data, error } = await _sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    sbHelpers.showError('error-msg', error.message);
+    sbHelpers.setLoading(btn, false, 'Sign in');
+    return;
+  }
+  redirectAfterLogin(data.user.user_metadata?.role);
 }
 </script>
 </body>

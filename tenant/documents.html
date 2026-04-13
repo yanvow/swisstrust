@@ -6,19 +6,34 @@
   <title>Documents — SwissTrust</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
   <style>
-    .doc-card { border: 1px solid var(--gray-200); border-radius: var(--radius); overflow:hidden; margin-bottom: 16px; }
-    .doc-card__head { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--gray-200); background: var(--gray-100); }
+    .doc-card { border: 1px solid var(--gray-200); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
+    .doc-card__head { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; background: var(--gray-100); border-bottom: 1px solid var(--gray-200); }
     .doc-card__title { font-weight: 600; font-size: .9375rem; display: flex; align-items: center; gap: 8px; }
     .doc-card__body { padding: 20px; }
-    .doc-card--done .doc-card__head { background: #F0FDF4; border-bottom-color: #86EFAC; }
+    .doc-card--verified .doc-card__head { background: #F0FDF4; border-bottom-color: #86EFAC; }
     .doc-card--flagged .doc-card__head { background: #FFFBEB; border-bottom-color: #FCD34D; }
-    .ocr-result { background: var(--gray-100); border-radius: var(--radius); padding: 14px; margin-top: 12px; font-size: .8125rem; }
-    .ocr-result__row { display: flex; gap: 8px; padding: 3px 0; }
-    .ocr-result__key { color: var(--gray-400); min-width: 160px; }
-    .ocr-result__val { font-weight: 500; color: var(--charcoal); }
+    .doc-card--rejected .doc-card__head { background: #FEF2F2; border-bottom-color: #FECACA; }
+    .doc-card--processing .doc-card__head { background: #EFF6FF; border-bottom-color: #93C5FD; }
+    .upload-btn-row { display: flex; gap: 8px; align-items: center; margin-top: 14px; }
+    .file-info { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--gray-100); border-radius: var(--radius); font-size: .875rem; }
+    .file-info__name { font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-info__date { color: var(--gray-400); font-size: .8rem; flex-shrink: 0; }
+    .ocr-grid { display: grid; grid-template-columns: 160px 1fr; gap: 4px 12px; margin-top: 10px; font-size: .8125rem; }
+    .ocr-grid__key { color: var(--gray-400); }
+    .ocr-grid__val { font-weight: 500; color: var(--charcoal); }
     .confidence-bar { height: 4px; background: var(--gray-200); border-radius: 2px; margin-top: 8px; overflow: hidden; }
     .confidence-bar__fill { height: 100%; border-radius: 2px; }
+    .upload-zone { border: 2px dashed var(--gray-200); border-radius: var(--radius); padding: 24px; text-align: center; cursor: pointer; transition: border-color .15s; }
+    .upload-zone:hover { border-color: var(--charcoal); }
+    .upload-zone__icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .upload-zone__text { font-weight: 500; font-size: .875rem; margin-bottom: 4px; }
+    .upload-zone__hint { font-size: .75rem; color: var(--gray-400); }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--gray-200); border-top-color: var(--charcoal); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -30,8 +45,8 @@
       SwissTrust
     </a>
     <div class="nav__links">
-      <span class="text-sm text-gray">Sophie Müller</span>
-      <a href="../auth/login.html" class="btn btn-ghost btn-sm">Sign out</a>
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
     </div>
   </div>
 </nav>
@@ -53,132 +68,18 @@
 
   <main class="main-content">
     <div class="page-title">Documents</div>
-    <div class="page-subtitle">Upload your documents — AI extracts and verifies the data automatically.</div>
+    <div class="page-subtitle">Upload your supporting documents. Each file is stored securely and linked to your dossier.</div>
 
     <div class="alert alert-info mb-24">
       <span>ℹ️</span>
       <div>
-        <strong>Confidence thresholds:</strong>
-        <span class="badge badge-green ml-8">≥ 90% → Auto-verified</span>
-        <span class="badge badge-amber" style="margin:0 4px;">65–89% → Flagged for review</span>
-        <span class="badge badge-red">&lt; 65% → Rejected</span>
+        <strong>Accepted formats:</strong> PDF, JPG, PNG · Max 10 MB per file.
+        Documents are stored on Swiss servers and only shared with agencies you authorise.
       </div>
     </div>
 
-    <!-- Passport / ID -->
-    <div class="doc-card doc-card--done">
-      <div class="doc-card__head">
-        <div class="doc-card__title">🪪 Passport or Swiss ID</div>
-        <span class="badge badge-green">Auto-verified · 96% confidence</span>
-      </div>
-      <div class="doc-card__body">
-        <div style="display:flex; gap:20px; align-items:flex-start;">
-          <div style="flex:1;">
-            <div class="text-sm text-gray mb-8">Uploaded: passport_sophie_m.pdf</div>
-            <div class="confidence-bar">
-              <div class="confidence-bar__fill" style="width:96%; background:var(--green);"></div>
-            </div>
-            <div class="ocr-result">
-              <div style="font-weight:600; margin-bottom:6px; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-400);">Extracted data</div>
-              <div class="ocr-result__row"><span class="ocr-result__key">Full name</span><span class="ocr-result__val">MÜLLER SOPHIE</span></div>
-              <div class="ocr-result__row"><span class="ocr-result__key">Date of birth</span><span class="ocr-result__val">14.06.1992</span></div>
-              <div class="ocr-result__row"><span class="ocr-result__key">Nationality</span><span class="ocr-result__val">CHE (Swiss)</span></div>
-              <div class="ocr-result__row"><span class="ocr-result__key">Document number</span><span class="ocr-result__val">X4920384</span></div>
-              <div class="ocr-result__row"><span class="ocr-result__key">Expiry</span><span class="ocr-result__val">14.06.2032</span></div>
-            </div>
-          </div>
-          <div>
-            <button class="btn btn-outline btn-sm" onclick="triggerUpload(this)">Replace</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Residence permit -->
-    <div class="doc-card">
-      <div class="doc-card__head">
-        <div class="doc-card__title">📋 Residence permit</div>
-        <span class="badge badge-gray">Not applicable</span>
-      </div>
-      <div class="doc-card__body">
-        <p class="text-sm text-gray mb-16">Only required for non-Swiss residents (B, C, G, L permit holders). Marked as N/A for Swiss citizens.</p>
-        <button class="btn btn-outline btn-sm" onclick="triggerUpload(this)" disabled style="opacity:.4; cursor:not-allowed;">Upload (N/A)</button>
-      </div>
-    </div>
-
-    <!-- Salary slips -->
-    <div class="doc-card doc-card--flagged">
-      <div class="doc-card__head">
-        <div class="doc-card__title">💰 Salary slips (3 most recent months)</div>
-        <span class="badge badge-amber">1 flagged · 2/3 uploaded</span>
-      </div>
-      <div class="doc-card__body">
-        <!-- Slip 1 -->
-        <div style="background:var(--gray-100); border-radius:var(--radius); padding:12px 16px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
-          <div>
-            <div class="text-sm font-bold">March 2026</div>
-            <div class="text-xs text-gray">salary_march_2026.pdf · 96% confidence</div>
-          </div>
-          <span class="badge badge-green">Auto-verified</span>
-        </div>
-        <!-- Slip 2 -->
-        <div style="background:var(--gray-100); border-radius:var(--radius); padding:12px 16px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
-          <div>
-            <div class="text-sm font-bold">February 2026</div>
-            <div class="text-xs text-gray">salary_feb_2026.pdf · 72% confidence</div>
-          </div>
-          <span class="badge badge-amber">Flagged — low quality scan</span>
-        </div>
-        <!-- Slip 3 -->
-        <div style="border:2px dashed var(--gray-200); border-radius:var(--radius); padding:16px; display:flex; align-items:center; justify-content:space-between; background:var(--gray-100);">
-          <div>
-            <div class="text-sm font-bold" style="color:var(--gray-400);">January 2026</div>
-            <div class="text-xs text-gray">Not yet uploaded</div>
-          </div>
-          <button class="btn btn-outline btn-sm" onclick="triggerUpload(this)">Upload</button>
-        </div>
-        <div class="ocr-result mt-12">
-          <div style="font-weight:600; margin-bottom:6px; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-400);">Extracted from verified slip</div>
-          <div class="ocr-result__row"><span class="ocr-result__key">Employer</span><span class="ocr-result__val">Pictet & Cie SA</span></div>
-          <div class="ocr-result__row"><span class="ocr-result__key">Monthly gross</span><span class="ocr-result__val">CHF 8,500</span></div>
-          <div class="ocr-result__row"><span class="ocr-result__key">Monthly net</span><span class="ocr-result__val">CHF 7,210</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Betreibungsauszug -->
-    <div class="doc-card doc-card--done">
-      <div class="doc-card__head">
-        <div class="doc-card__title">⚖️ Betreibungsauszug (debt register extract)</div>
-        <span class="badge badge-green">Auto-verified · 93% confidence</span>
-      </div>
-      <div class="doc-card__body">
-        <div class="ocr-result">
-          <div style="font-weight:600; margin-bottom:6px; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-400);">Extracted data</div>
-          <div class="ocr-result__row"><span class="ocr-result__key">Status</span><span class="ocr-result__val" style="color:var(--green); font-weight:700;">✓ Clean — aucune poursuite</span></div>
-          <div class="ocr-result__row"><span class="ocr-result__key">Issued by</span><span class="ocr-result__val">Office des poursuites Genève</span></div>
-          <div class="ocr-result__row"><span class="ocr-result__key">Date issued</span><span class="ocr-result__val">02.04.2026</span></div>
-        </div>
-        <div class="mt-12">
-          <button class="btn btn-outline btn-sm" onclick="triggerUpload(this)">Replace</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Reference letter -->
-    <div class="doc-card">
-      <div class="doc-card__head">
-        <div class="doc-card__title">🏠 Landlord reference letter</div>
-        <span class="badge badge-gray">Not uploaded</span>
-      </div>
-      <div class="doc-card__body">
-        <p class="text-sm text-gray mb-16">A reference from your current or previous landlord. Boosts your Trust Score by up to 5 points.</p>
-        <div class="upload-zone" onclick="triggerUpload(this)" style="cursor:pointer;">
-          <div class="upload-zone__icon">📁</div>
-          <div class="upload-zone__text">Click or drag to upload</div>
-          <div class="upload-zone__hint">PDF, JPG, PNG · Max 10 MB</div>
-        </div>
-      </div>
+    <div id="docs-container">
+      <div class="text-sm text-gray" style="padding: 40px; text-align: center;">Loading your documents…</div>
     </div>
 
     <div class="mt-24">
@@ -188,26 +89,283 @@
 </div>
 
 <script>
-function triggerUpload(el) {
+// ── Document type definitions ────────────────────────────────
+const DOC_TYPES = [
+  {
+    key: 'passport_id',
+    label: 'Passport or Swiss ID',
+    icon: '🪪',
+    hint: 'Upload your passport or Swiss identity card.',
+  },
+  {
+    key: 'residence_permit',
+    label: 'Residence permit',
+    icon: '📋',
+    hint: 'Required for B, C, G, L permit holders. Skip if you are a Swiss citizen.',
+  },
+  {
+    key: 'salary_slip_1',
+    label: 'Salary slip — most recent month',
+    icon: '💰',
+    hint: 'Your most recent monthly salary slip.',
+  },
+  {
+    key: 'salary_slip_2',
+    label: 'Salary slip — 2nd most recent month',
+    icon: '💰',
+    hint: 'The month before your most recent slip.',
+  },
+  {
+    key: 'salary_slip_3',
+    label: 'Salary slip — 3rd most recent month',
+    icon: '💰',
+    hint: 'The oldest of the three required salary slips.',
+  },
+  {
+    key: 'betreibungsauszug',
+    label: 'Betreibungsauszug (debt register extract)',
+    icon: '⚖️',
+    hint: 'Must be issued within the last 3 months. Obtain it from your local Betreibungsamt.',
+  },
+  {
+    key: 'reference_letter',
+    label: 'Landlord reference letter',
+    icon: '🏠',
+    hint: 'Optional but recommended — boosts your Trust Score. A letter from your current or previous landlord.',
+  },
+];
+
+// Status rendering helpers
+const STATUS_CONFIG = {
+  pending:       { label: 'Uploaded — Pending review',  badge: 'badge badge-amber',  cardClass: '' },
+  processing:    { label: 'Processing…',                badge: 'badge badge-blue',   cardClass: 'doc-card--processing' },
+  auto_verified: { label: 'Auto-verified',              badge: 'badge badge-green',  cardClass: 'doc-card--verified' },
+  flagged:       { label: 'Flagged — Needs review',     badge: 'badge badge-amber',  cardClass: 'doc-card--flagged' },
+  rejected:      { label: 'Rejected — Please re-upload',badge: 'badge badge-red',    cardClass: 'doc-card--rejected' },
+};
+
+// ── State ────────────────────────────────────────────────────
+let _tenantId = null;
+let _docsMap  = {};  // key → document row
+
+// ── Init ─────────────────────────────────────────────────────
+(async () => {
+  const user = await sbHelpers.requireAuth('tenant');
+  if (!user) return;
+
+  document.getElementById('nav-name').textContent = user.user_metadata?.full_name || user.email;
+
+  const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
+  if (!tenant) return;
+  _tenantId = tenant.id;
+
+  await refreshDocs();
+})();
+
+async function refreshDocs() {
+  const { data: docs } = await sbHelpers.getDocumentsByTenant(_tenantId);
+  _docsMap = {};
+  (docs || []).forEach(d => { _docsMap[d.doc_type] = d; });
+  renderAll();
+}
+
+// ── Render ───────────────────────────────────────────────────
+function renderAll() {
+  const container = document.getElementById('docs-container');
+  container.innerHTML = DOC_TYPES.map(t => renderDocCard(t)).join('');
+}
+
+// Returns days since a date string, or null
+function daysSince(dateStr) {
+  if (!dateStr) return null;
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+}
+
+function renderDocCard(type) {
+  const doc = _docsMap[type.key];
+  const sc  = doc ? (STATUS_CONFIG[doc.status] || STATUS_CONFIG.pending) : null;
+
+  // Betreibungsauszug freshness check (must be ≤ 90 days old)
+  const isStale = type.key === 'betreibungsauszug' && doc
+    && daysSince(doc.created_at) > 90;
+
+  // Override card styling when stale (even if auto_verified)
+  const headClass = isStale ? 'doc-card--rejected' : (doc ? sc.cardClass : '');
+  const badgeHtml = isStale
+    ? `<span class="badge badge-red">Expired — renew now</span>`
+    : doc
+      ? `<span class="${sc.badge}">${sc.label}</span>`
+      : `<span class="badge badge-gray">Not uploaded</span>`;
+
+  let bodyHtml;
+  if (doc) {
+    // File info row
+    const uploadDate = new Date(doc.created_at).toLocaleDateString('en-CH', { day: '2-digit', month: 'short', year: 'numeric' });
+    const confPct = doc.confidence_score != null ? Math.round(doc.confidence_score * 100) : null;
+    const barColor = confPct >= 90 ? 'var(--green)' : confPct >= 65 ? 'var(--amber)' : 'var(--red)';
+    const age = type.key === 'betreibungsauszug' ? daysSince(doc.created_at) : null;
+
+    const ocrSection = buildOcrSection(doc);
+
+    const expiryAlert = isStale
+      ? `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+           <span>⚠️</span>
+           <span>This Betreibungsauszug is <strong>${age} days old</strong> — most landlords require one issued within the last 3 months. Please obtain a new one from your local Betreibungsamt and re-upload.</span>
+         </div>`
+      : age !== null && age > 60
+        ? `<div class="alert mt-12" style="background:#FFFBEB; border:1px solid #FCD34D; display:flex; gap:8px; padding:12px 14px; border-radius:var(--radius); font-size:.875rem;">
+             <span>⏳</span>
+             <span>This extract is <strong>${age} days old</strong> — it will expire in ${90 - age} day${90 - age !== 1 ? 's' : ''}. Consider renewing soon.</span>
+           </div>`
+        : '';
+
+    bodyHtml = `
+      <div class="file-info mb-12">
+        <span style="font-size:1.1rem;">📄</span>
+        <span class="file-info__name">${escHtml(doc.file_name || doc.storage_path.split('/').pop())}</span>
+        <span class="file-info__date">Uploaded ${uploadDate}</span>
+      </div>
+      ${confPct != null ? `
+        <div class="confidence-bar mb-4">
+          <div class="confidence-bar__fill" style="width:${confPct}%; background:${barColor};"></div>
+        </div>
+        <div class="text-xs text-gray mb-4">${confPct}% confidence</div>
+      ` : ''}
+      ${ocrSection}
+      ${expiryAlert}
+      ${doc.rejection_reason ? `<div class="alert alert-error mt-12"><span>⚠️</span><span>${escHtml(doc.rejection_reason)}</span></div>` : ''}
+      <div class="upload-btn-row">
+        <button class="btn btn-outline btn-sm" onclick="startUpload('${type.key}', this)">Replace</button>
+        <div id="err-${type.key}" class="text-xs" style="color:var(--red); display:none;"></div>
+      </div>`;
+  } else {
+    bodyHtml = `
+      <p class="text-sm text-gray mb-16">${escHtml(type.hint)}</p>
+      <div class="upload-zone" onclick="startUpload('${type.key}', this)" id="zone-${type.key}">
+        <div class="upload-zone__icon">📁</div>
+        <div class="upload-zone__text">Click or drag to upload</div>
+        <div class="upload-zone__hint">PDF, JPG, PNG · Max 10 MB</div>
+      </div>
+      <div id="err-${type.key}" class="text-xs mt-8" style="color:var(--red); display:none;"></div>`;
+  }
+
+  return `
+    <div class="doc-card ${headClass}" id="card-${type.key}">
+      <div class="doc-card__head">
+        <div class="doc-card__title">${type.icon} ${escHtml(type.label)}</div>
+        ${badgeHtml}
+      </div>
+      <div class="doc-card__body">${bodyHtml}</div>
+    </div>`;
+}
+
+function buildOcrSection(doc) {
+  if (!doc.ocr_extracted_data) return '';
+  const d = doc.ocr_extracted_data;
+  const rows = Object.entries(d)
+    .filter(([, v]) => v != null && v !== '')
+    .map(([k, v]) => `
+      <div class="ocr-grid__key">${escHtml(formatOcrKey(k))}</div>
+      <div class="ocr-grid__val">${escHtml(String(v))}</div>`).join('');
+  if (!rows) return '';
+  return `
+    <div style="background:var(--gray-100); border-radius:var(--radius); padding:14px; margin-bottom:8px;">
+      <div style="font-weight:600; font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-400); margin-bottom:8px;">Extracted data</div>
+      <div class="ocr-grid">${rows}</div>
+    </div>`;
+}
+
+function formatOcrKey(k) {
+  return k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+// ── Upload ───────────────────────────────────────────────────
+function startUpload(docType, triggerEl) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.pdf,.jpg,.jpeg,.png';
-  input.onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    // Simulate OCR processing
-    const zone = el.closest('.upload-zone') || el.closest('.doc-card');
-    if (!zone) return;
-    const originalHTML = el.textContent;
-    el.textContent = 'Analysing...';
-    el.disabled = true;
-    setTimeout(() => {
-      el.textContent = originalHTML;
-      el.disabled = false;
-      alert(`"${file.name}" uploaded and analysed.\nConfidence: 94% → Auto-verified ✓`);
-    }, 2000);
-  };
+  input.onchange = (e) => handleFile(docType, e.target.files[0], triggerEl);
   input.click();
+}
+
+async function handleFile(docType, file, triggerEl) {
+  if (!file) return;
+
+  // Validate size (10 MB)
+  if (file.size > 10 * 1024 * 1024) {
+    showDocError(docType, 'File is too large (max 10 MB). Please compress or use a different file.');
+    return;
+  }
+
+  clearDocError(docType);
+  setCardUploading(docType, triggerEl, true);
+
+  // Build storage path
+  const ext       = file.name.split('.').pop().toLowerCase();
+  const safeName  = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path      = `${_tenantId}/${docType}/${Date.now()}_${safeName}`;
+
+  // Upload to Supabase Storage
+  const { error: uploadError } = await _sb.storage
+    .from('documents')
+    .upload(path, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) {
+    showDocError(docType, `Upload failed: ${uploadError.message}`);
+    setCardUploading(docType, triggerEl, false);
+    return;
+  }
+
+  // Upsert document record
+  const { error: dbError } = await sbHelpers.upsertDocument(_tenantId, docType, {
+    storage_path: path,
+    file_name:    file.name,
+    mime_type:    file.type,
+    status:       'pending',
+  });
+
+  if (dbError) {
+    showDocError(docType, `Could not save document record: ${dbError.message}`);
+    setCardUploading(docType, triggerEl, false);
+    return;
+  }
+
+  // Refresh the card from DB
+  await refreshDocs();
+}
+
+function setCardUploading(docType, triggerEl, loading) {
+  const zone = document.getElementById(`zone-${docType}`);
+  if (zone) {
+    zone.innerHTML = loading
+      ? `<div class="upload-zone__text"><span class="spinner"></span>Uploading…</div>`
+      : `<div class="upload-zone__icon">📁</div><div class="upload-zone__text">Click or drag to upload</div><div class="upload-zone__hint">PDF, JPG, PNG · Max 10 MB</div>`;
+    return;
+  }
+  // Replace button mode
+  if (triggerEl) {
+    triggerEl.disabled = loading;
+    triggerEl.textContent = loading ? 'Uploading…' : 'Replace';
+  }
+}
+
+function showDocError(docType, msg) {
+  const el = document.getElementById(`err-${docType}`);
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+function clearDocError(docType) {
+  const el = document.getElementById(`err-${docType}`);
+  if (el) { el.textContent = ''; el.style.display = 'none'; }
+}
+
+function escHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 </script>
 </body>

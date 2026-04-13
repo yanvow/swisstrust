@@ -1,0 +1,184 @@
+{
+  "template_version": "1.0",
+  "document_type": "reference_letter",
+  "document_label": "Landlord reference letter",
+  "maps_to_profile_fields": [
+    "full_name"
+  ],
+  "output_schema": {
+    "document_meta": {
+      "document_kind": null,
+      "document_date": null,
+      "document_language": null,
+      "is_signed": null
+    },
+    "tenant_reference": {
+      "tenant_full_name": null,
+      "property_address": null,
+      "tenancy_start_date": null,
+      "tenancy_end_date": null,
+      "monthly_rent_chf": null
+    },
+    "referrer": {
+      "landlord_name": null,
+      "company_name": null,
+      "phone": null,
+      "email": null
+    },
+    "assessment": {
+      "payment_conduct": null,
+      "property_care": null,
+      "complaints_reported": null,
+      "recommendation_level": null,
+      "summary_text": null
+    },
+    "verification": {
+      "tenant_name_matches_profile": null,
+      "contact_details_present": null,
+      "letter_is_recent_enough": null
+    },
+    "confidence": {
+      "document_date": null,
+      "tenant_full_name": null,
+      "property_address": null,
+      "monthly_rent_chf": null,
+      "landlord_name": null,
+      "phone": null,
+      "email": null,
+      "recommendation_level": null
+    }
+  },
+  "field_definitions": [
+    {
+      "path": "document_meta.document_kind",
+      "type": "string",
+      "required": true,
+      "allowed_values": [
+        "landlord_reference_letter",
+        "rental_reference_letter"
+      ],
+      "description": "Normalized document classification."
+    },
+    {
+      "path": "document_meta.document_date",
+      "type": "date",
+      "required": true,
+      "description": "Date shown on the letter."
+    },
+    {
+      "path": "document_meta.document_language",
+      "type": "string",
+      "required": false,
+      "description": "Detected language of the letter."
+    },
+    {
+      "path": "document_meta.is_signed",
+      "type": "boolean",
+      "required": false,
+      "description": "Whether the letter appears signed."
+    },
+    {
+      "path": "tenant_reference.tenant_full_name",
+      "type": "string",
+      "required": true,
+      "maps_to": "tenants.full_name",
+      "description": "Tenant name referenced by the landlord."
+    },
+    {
+      "path": "tenant_reference.property_address",
+      "type": "string",
+      "required": false,
+      "description": "Address of the previously rented property."
+    },
+    {
+      "path": "tenant_reference.tenancy_start_date",
+      "type": "date",
+      "required": false,
+      "description": "Tenancy start date if included."
+    },
+    {
+      "path": "tenant_reference.tenancy_end_date",
+      "type": "date",
+      "required": false,
+      "description": "Tenancy end date if included."
+    },
+    {
+      "path": "tenant_reference.monthly_rent_chf",
+      "type": "number",
+      "required": false,
+      "description": "Monthly rent in CHF if mentioned."
+    },
+    {
+      "path": "referrer.landlord_name",
+      "type": "string",
+      "required": true,
+      "description": "Name of the landlord or property manager giving the reference."
+    },
+    {
+      "path": "referrer.company_name",
+      "type": "string",
+      "required": false,
+      "description": "Company or agency name if the reference is on letterhead."
+    },
+    {
+      "path": "referrer.phone",
+      "type": "string",
+      "required": false,
+      "description": "Contact phone number for the referrer."
+    },
+    {
+      "path": "referrer.email",
+      "type": "string",
+      "required": false,
+      "description": "Contact email for the referrer."
+    },
+    {
+      "path": "assessment.payment_conduct",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "always_on_time",
+        "mostly_on_time",
+        "late_payments_reported",
+        "unknown"
+      ],
+      "description": "Normalized payment history assessment."
+    },
+    {
+      "path": "assessment.property_care",
+      "type": "string",
+      "required": false,
+      "allowed_values": [
+        "good",
+        "average",
+        "poor",
+        "unknown"
+      ],
+      "description": "Normalized assessment of how the tenant maintained the property."
+    },
+    {
+      "path": "assessment.complaints_reported",
+      "type": "boolean",
+      "required": false,
+      "description": "Whether complaints or issues are explicitly mentioned."
+    },
+    {
+      "path": "assessment.recommendation_level",
+      "type": "string",
+      "required": true,
+      "allowed_values": [
+        "positive",
+        "neutral",
+        "negative",
+        "unknown"
+      ],
+      "description": "Overall recommendation extracted from the text."
+    },
+    {
+      "path": "assessment.summary_text",
+      "type": "string",
+      "required": false,
+      "description": "Short plain-language summary of the landlord's assessment."
+    }
+  ]
+}
