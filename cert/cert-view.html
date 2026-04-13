@@ -55,9 +55,9 @@
         <span class="badge trust-a" id="trust-badge">A — Excellent</span>
       </div>
     </div>
-    <div class="cert-view__tenant-name">Sophie Müller</div>
-    <div class="text-sm text-gray">Applying for: <strong style="color:var(--charcoal);">Rue de Rive 14, 1204 Genève</strong> · 3.5 rooms · CHF 2,400/mo</div>
-    <div class="text-xs text-gray mt-4">Certificate issued 10 April 2026 · Directed to: Moser Vernet & Cie</div>
+    <div class="cert-view__tenant-name"></div>
+    <div class="text-sm text-gray"></div>
+    <div class="text-xs text-gray mt-4"></div>
   </div>
 
   <!-- Public tier — always visible -->
@@ -93,7 +93,6 @@
 
     <div class="card mt-24" style="background:var(--gray-100); border:none; padding:16px;">
       <div class="text-sm text-gray">
-        🔒 <strong>Full dossier</strong> — ID copy, salary slips, Betreibungsauszug, reference letter, and exact income details are visible only to the authorised agency (Moser Vernet & Cie).
       </div>
     </div>
   </div>
@@ -104,7 +103,7 @@
       <div style="width:36px; height:36px; background:var(--green); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;">🔓</div>
       <div>
         <div class="font-bold">Full dossier — Agency access</div>
-        <div class="text-xs text-gray">Visible to: Moser Vernet & Cie · Access logged at 10 Apr 2026 14:32</div>
+        <div class="text-xs text-gray" id="agency-access-meta"></div>
       </div>
     </div>
 
@@ -404,6 +403,9 @@
     banner.textContent = `${modeLabel} — ${viewerName} — Full dossier access`;
     agencySection.style.display = 'block';
     navActions.innerHTML = navWithDash;
+    const metaEl = document.getElementById('agency-access-meta');
+    if (metaEl) metaEl.textContent = `Visible to: ${viewerName} · Access logged ${new Date().toLocaleDateString('en-CH', {day:'2-digit',month:'short',year:'numeric'})}`;
+
 
     const empGrid = document.querySelector('#agency-section .card[class*="mb-24"] > div');
     if (empGrid) {
