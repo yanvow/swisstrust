@@ -192,13 +192,26 @@
           <button type="button" class="directed-type-btn" id="btn-directed-owner" onclick="setDirectedType('owner')">👤 Private landlord</button>
         </div>
 
-        <!-- Agency dropdown -->
+        <!-- Agency searchable picker -->
         <div id="directed-agency-wrap" class="form-group mb-0">
           <label>Select the régie managing this property <span class="req">*</span></label>
-          <select id="agency">
-            <option value="">Loading agencies…</option>
-          </select>
-          <div class="form-hint">Only this agency will have access to your full dossier.</div>
+          <div style="position:relative;">
+            <input type="text" id="agency-search" placeholder="Type to search agencies…" autocomplete="off"
+              oninput="filterAgencies()" onfocus="openAgencyDrop()" onblur="scheduleCloseDrop()">
+            <input type="hidden" id="agency-id">
+            <div id="agency-drop" style="display:none; position:absolute; left:0; right:0; top:100%; background:white; border:1px solid var(--gray-200); border-top:none; border-radius:0 0 var(--radius) var(--radius); max-height:220px; overflow-y:auto; z-index:50; box-shadow:var(--shadow);"></div>
+          </div>
+          <div class="form-hint" id="agency-hint">Only this agency will have access to your full dossier.</div>
+
+          <!-- Not-found panel (hidden until search yields no match) -->
+          <div id="agency-notfound" style="display:none; margin-top:12px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:var(--radius); padding:14px 16px;">
+            <div style="font-weight:600; font-size:.875rem; margin-bottom:6px;">Agency not on SwissTrust yet?</div>
+            <div class="text-sm text-gray mb-12">You can still apply — choose a different sharing mode or invite them:</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="switchToOpen()">Switch to Open mode</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="invite-btn" onclick="copyInvite(this)">📋 Copy invite link</button>
+            </div>
+          </div>
         </div>
 
         <!-- Owner email input -->
@@ -277,6 +290,7 @@
 }
 .directed-type-btn:hover { border-color: var(--gray-400); color: var(--charcoal); }
 .directed-type-btn--active { border-color: var(--charcoal); color: var(--charcoal); background: var(--gray-100); }
+.agency-opt:hover { background: var(--gray-100); }
 </style>
 <script>
 let currentMode    = 'directed';
@@ -292,7 +306,6 @@ function setDirectedType(type) {
   document.getElementById('btn-directed-owner').classList.toggle('directed-type-btn--active', type === 'owner');
   document.getElementById('directed-agency-wrap').style.display = type === 'agency' ? '' : 'none';
   document.getElementById('directed-owner-wrap').style.display  = type === 'owner'  ? '' : 'none';
-  document.getElementById('agency').required      = type === 'agency';
   document.getElementById('owner_email').required = type === 'owner';
 }
 
@@ -349,19 +362,91 @@ function computeTrustGrade(docs) {
     }
   });
 
-  // Load agencies into dropdown
+  // Load agencies into in-memory list for the searchable picker
   const { data: agencies } = await sbHelpers.getAgencies();
-  const select = document.getElementById('agency');
-  select.innerHTML = '<option value="">Select an agency…</option>';
-  if (agencies) {
-    agencies.forEach(a => {
-      const opt = document.createElement('option');
-      opt.value = a.id;
-      opt.textContent = `${a.company_name} — ${(a.address || '').split(',').pop()?.trim() || ''}`;
-      select.appendChild(opt);
-    });
-  }
+  _agencies = (agencies || []).map(a => ({
+    id:    a.id,
+    label: a.company_name,
+    sub:   (a.address || '').split(',').slice(-1)[0]?.trim() || '',
+  }));
+  renderAgencyDrop('');
 })();
+
+// ── Agency searchable picker ──────────────────────────────────
+let _agencies      = [];
+let _dropCloseTimer = null;
+
+function filterAgencies() {
+  const q = document.getElementById('agency-search').value.trim();
+  // Clear selection when user types
+  document.getElementById('agency-id').value = '';
+  renderAgencyDrop(q);
+  openAgencyDrop();
+}
+
+function renderAgencyDrop(q) {
+  const drop = document.getElementById('agency-drop');
+  const notFound = document.getElementById('agency-notfound');
+  const lower = q.toLowerCase();
+  const matches = q
+    ? _agencies.filter(a => a.label.toLowerCase().includes(lower) || a.sub.toLowerCase().includes(lower))
+    : _agencies;
+
+  if (matches.length === 0 && q.length > 1) {
+    drop.style.display = 'none';
+    notFound.style.display = 'block';
+    return;
+  }
+  notFound.style.display = 'none';
+
+  drop.innerHTML = matches.map(a => `
+    <div class="agency-opt" data-id="${a.id}" data-label="${a.label.replace(/"/g,'&quot;')}"
+      onmousedown="selectAgency('${a.id}', this.dataset.label)"
+      style="padding:10px 14px; cursor:pointer; font-size:.875rem; border-bottom:1px solid var(--gray-100);">
+      <div style="font-weight:600;">${a.label}</div>
+      ${a.sub ? `<div style="font-size:.78rem; color:var(--gray-400);">${a.sub}</div>` : ''}
+    </div>`).join('');
+}
+
+function selectAgency(id, label) {
+  document.getElementById('agency-id').value    = id;
+  document.getElementById('agency-search').value = label;
+  document.getElementById('agency-drop').style.display = 'none';
+  document.getElementById('agency-notfound').style.display = 'none';
+}
+
+function openAgencyDrop() {
+  clearTimeout(_dropCloseTimer);
+  const drop = document.getElementById('agency-drop');
+  if (document.getElementById('agency-id').value) return; // already selected
+  if (drop.children.length) drop.style.display = 'block';
+}
+
+function scheduleCloseDrop() {
+  _dropCloseTimer = setTimeout(() => {
+    document.getElementById('agency-drop').style.display = 'none';
+  }, 150);
+}
+
+function switchToOpen() {
+  selectMode('open');
+  // Also update the radio card UI
+  document.getElementById('card-open').classList.add('mode-card--selected');
+  document.getElementById('card-directed').classList.remove('mode-card--selected');
+}
+
+function copyInvite(btn) {
+  const agencyName = document.getElementById('agency-search').value.trim();
+  const regUrl = window.location.origin + window.location.pathname.replace(/\/tenant\/.*/, '') + '/auth/agency-register.html';
+  const msg = agencyName
+    ? `Hi, I'd like to share my SwissTrust tenant dossier with ${agencyName}. Please register your agency at: ${regUrl}`
+    : `Register your agency on SwissTrust to receive verified tenant dossiers: ${regUrl}`;
+  navigator.clipboard.writeText(msg).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
 
 function selectMode(mode) {
   currentMode = mode;
@@ -373,12 +458,10 @@ function selectMode(mode) {
   const agencyFieldset = document.getElementById('agency-fieldset');
   const openNotice = document.getElementById('open-notice');
   const onrequestNotice = document.getElementById('onrequest-notice');
-  const agencySelect = document.getElementById('agency');
 
   agencyFieldset.style.display = mode === 'directed' ? '' : 'none';
   openNotice.style.display = mode === 'open' ? '' : 'none';
   onrequestNotice.style.display = mode === 'on_request' ? '' : 'none';
-  agencySelect.required = mode === 'directed';
 }
 
 function calcTotal() {
@@ -414,12 +497,14 @@ async function generateCertificate(e) {
   let ownerEmail = null;
   if (currentMode === 'directed') {
     if (directedType === 'agency') {
-      agencyId = document.getElementById('agency').value;
+      agencyId = document.getElementById('agency-id').value;
       if (!agencyId) {
         sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
-        alert('Please select an agency.');
+        document.getElementById('agency-search').focus();
+        sbHelpers.showError('agency-hint', 'Please select an agency from the list.');
         return;
       }
+      sbHelpers.hideError('agency-hint');
     } else {
       ownerEmail = document.getElementById('owner_email').value.trim().toLowerCase();
       if (!ownerEmail) {
