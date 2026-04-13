@@ -97,16 +97,17 @@
         <legend>Property details</legend>
         <div class="form-group">
           <label>Property street address <span class="req">*</span></label>
-          <input type="text" id="street" placeholder="Rue de Rive 14" required>
+          <input type="text" id="street" placeholder="Start typing a Swiss address…" required>
+          <div class="form-hint">Select from the dropdown — city, canton and postcode will fill automatically.</div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>City <span class="req">*</span></label>
-            <input type="text" id="city" placeholder="Genève" required>
+            <input type="text" id="city" placeholder="—" readonly required class="input-autofilled">
           </div>
           <div class="form-group">
             <label>Postcode <span class="req">*</span></label>
-            <input type="text" id="postcode" placeholder="1204" required>
+            <input type="text" id="postcode" placeholder="—" readonly required class="input-autofilled">
           </div>
         </div>
         <div class="form-row">
@@ -306,8 +307,13 @@ function computeTrustGrade(docs) {
       `Your tenant data is pre-filled: <strong style="color:var(--charcoal);">${tenant.full_name || _user.email}</strong> · CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()}/mo gross · ${tenant.occupant_count || 1} occupant(s) · ${tenant.is_smoker ? 'Smoker' : 'No smoker'} · ${tenant.has_pets ? 'Pets' : 'No pets'}`;
   }
 
-  // Address autocomplete on property street field
-  initAddressAutocomplete('street');
+  // Address autocomplete: fills street only; auto-fills city/canton/postcode
+  initAddressAutocomplete('street', {
+    onSelect: ({ city, postcode }) => {
+      document.getElementById('city').value     = city;
+      document.getElementById('postcode').value = postcode;
+    }
+  });
 
   // Load agencies into dropdown
   const { data: agencies } = await sbHelpers.getAgencies();
