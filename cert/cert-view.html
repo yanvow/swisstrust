@@ -366,7 +366,8 @@ async function certSignOut() {
   if (isOwnTenant) {
     banner.className   = 'tier-banner tier-banner--public';
     banner.textContent = '🪪 This is your certificate — manage it from your dashboard';
-    navActions.innerHTML = `<span class="text-sm text-gray">${escHtml(viewerName)}</span><a href="../tenant/certificates.html" class="btn btn-outline btn-sm">My certificates</a><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
+    navActions.innerHTML = `<span class="text-sm text-gray">${escHtml(viewerName)}</span><a href="../tenant/certificates.html" class="btn btn-outline btn-sm">My certificates</a><button onclick="certSignOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
+    document.querySelector('#public-section .card').style.display = 'none';
     return;
   }
 
