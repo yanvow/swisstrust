@@ -150,7 +150,7 @@
         <div style="flex:1;">
           <div class="font-bold mb-4">On-Request certificate</div>
           <div class="text-sm text-gray mb-16">The tenant controls who accesses this dossier. Sign in as a verified régie or private landlord to request full access.</div>
-          <a href="../auth/login.html" class="btn btn-primary btn-sm">Sign in to request access</a>
+          <a id="onrequest-signin-btn" href="#" class="btn btn-primary btn-sm">Sign in to request access</a>
         </div>
       </div>
     </div>
@@ -198,9 +198,17 @@
 </div>
 
 <script>
+// Sign out and reload this page (stay on cert, just logged out)
+async function certSignOut() {
+  await _sb.auth.signOut();
+  window.location.reload();
+}
+
 (async () => {
   const params   = new URLSearchParams(window.location.search);
   const certCode = params.get('code');
+  // Build a sign-in URL that returns here after login
+  const signInUrl = `../auth/login.html?return=${encodeURIComponent(window.location.href)}`;
 
   if (!certCode) {
     document.querySelector('.cert-view__header').innerHTML =
@@ -350,9 +358,9 @@
   onrequestSection.style.display = 'none';
 
   const navSignedIn = session
-    ? `<span class="text-sm text-gray">${escHtml(viewerName)}</span><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`
-    : `<a href="../auth/login.html" class="nav__link">Sign in</a>`;
-  const navWithDash = `<span class="text-sm text-gray">${escHtml(viewerName)}</span><a href="${dashboardHref}" class="btn btn-outline btn-sm">Dashboard</a><button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
+    ? `<span class="text-sm text-gray">${escHtml(viewerName)}</span><button onclick="certSignOut()" class="btn btn-ghost btn-sm">Sign out</button>`
+    : `<a href="${signInUrl}" class="nav__link">Sign in</a>`;
+  const navWithDash = `<span class="text-sm text-gray">${escHtml(viewerName)}</span><a href="${dashboardHref}" class="btn btn-outline btn-sm">Dashboard</a><button onclick="certSignOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
 
   // ── UC4/UC18: Tenant viewing their own certificate ──────────
   if (isOwnTenant) {
@@ -371,6 +379,7 @@
     banner.textContent = '🔔 On-Request certificate — access controlled by the tenant';
     onrequestSection.style.display = 'block';
     navActions.innerHTML = navSignedIn;
+    document.getElementById('onrequest-signin-btn').href = signInUrl;
 
     const hide = id => document.getElementById(id).style.display = 'none';
     const show = id => document.getElementById(id).style.display = 'block';
@@ -436,7 +445,7 @@
 
   if (mode === 'open') {
     // UC10/UC12
-    banner.innerHTML = `🌐 Open certificate — <a href="../auth/login.html" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier`;
+    banner.innerHTML = `🌐 Open certificate — <a href="${signInUrl}" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier`;
   } else if (mode === 'directed') {
     if (session && (role === 'agency' || role === 'owner')) {
       // UC3/UC8/UC9: logged in but wrong entity
@@ -447,7 +456,7 @@
       const recipientDesc = agency.company_name
         ? `Sign in as ${agency.company_name}`
         : `Sign in as the authorised landlord`;
-      banner.innerHTML = `👁 Directed certificate — <a href="../auth/login.html" style="color:var(--charcoal);font-weight:600;">${escHtml(recipientDesc)}</a> to access the full dossier`;
+      banner.innerHTML = `👁 Directed certificate — <a href="${signInUrl}" style="color:var(--charcoal);font-weight:600;">${escHtml(recipientDesc)}</a> to access the full dossier`;
     }
   }
 })();

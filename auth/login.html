@@ -61,11 +61,21 @@
 </div>
 
 <script>
-// If already logged in, redirect immediately
+const _returnUrl = new URLSearchParams(window.location.search).get('return') || '';
+
+// If already logged in and no return target, go straight to dashboard
 (async () => {
   const session = await sbHelpers.getSession();
-  if (session) redirectByRole(session.user.user_metadata?.role);
+  if (session && !_returnUrl) redirectByRole(session.user.user_metadata?.role);
 })();
+
+function redirectAfterLogin(role) {
+  if (_returnUrl) {
+    window.location.href = _returnUrl;
+  } else {
+    redirectByRole(role);
+  }
+}
 
 function redirectByRole(role) {
   if (role === 'agency') window.location.href = '../agency/dashboard.html';
@@ -88,7 +98,7 @@ async function handleLogin(e) {
     sbHelpers.setLoading(btn, false, 'Sign in');
     return;
   }
-  redirectByRole(data.user.user_metadata?.role);
+  redirectAfterLogin(data.user.user_metadata?.role);
 }
 </script>
 </body>
