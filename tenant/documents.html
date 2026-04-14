@@ -236,6 +236,7 @@ function renderDocCard(type) {
       ${doc.rejection_reason ? `<div class="alert alert-error mt-12"><span>⚠️</span><span>${escHtml(doc.rejection_reason)}</span></div>` : ''}
       <div class="upload-btn-row">
         <button class="btn btn-outline btn-sm" onclick="startUpload('${type.key}', this)">Replace</button>
+        <button class="btn btn-outline btn-sm" onclick="deleteDoc('${type.key}')" style="color:var(--red);border-color:var(--red);">Delete</button>
         <div id="err-${type.key}" class="text-xs" style="color:var(--red); display:none;"></div>
       </div>`;
   } else {
@@ -358,6 +359,24 @@ function setCardPhase(docType, triggerEl, phase) {
     triggerEl.disabled = phase !== 'idle';
     triggerEl.textContent = phase === 'uploading' ? 'Uploading…' : phase === 'processing' ? 'Analysing…' : 'Replace';
   }
+}
+
+async function deleteDoc(docType) {
+  const doc = _docsMap[docType];
+  if (!doc) return;
+  if (!confirm('Delete this document? You will need to re-upload it.')) return;
+
+  clearDocError(docType);
+
+  // Delete from storage
+  const { error: storageErr } = await _sb.storage.from('documents').remove([doc.storage_path]);
+  if (storageErr) { showDocError(docType, `Delete failed: ${storageErr.message}`); return; }
+
+  // Delete DB record
+  const { error: dbErr } = await _sb.from('documents').delete().eq('id', doc.id);
+  if (dbErr) { showDocError(docType, `Delete failed: ${dbErr.message}`); return; }
+
+  await refreshDocs();
 }
 
 function showDocError(docType, msg) {
