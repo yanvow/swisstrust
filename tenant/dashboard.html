@@ -140,15 +140,21 @@
 
 <script>
 // ── Document type definitions (mirrors documents.html) ───────
-const DOC_TYPE_META = [
-  { key: 'passport_id',       label: 'Passport / Swiss ID',           icon: '🪪' },
-  { key: 'residence_permit',  label: 'Residence permit',               icon: '📋' },
-  { key: 'salary_slip_1',     label: 'Salary slip — month 1',          icon: '💰' },
-  { key: 'salary_slip_2',     label: 'Salary slip — month 2',          icon: '💰' },
-  { key: 'salary_slip_3',     label: 'Salary slip — month 3',          icon: '💰' },
-  { key: 'betreibungsauszug', label: 'Betreibungsauszug',              icon: '⚖️' },
-  { key: 'reference_letter',  label: 'Landlord reference letter',      icon: '🏠' },
+const DOC_TYPE_META_ALL = [
+  { key: 'passport_id',       labelSwiss: 'Passport or Swiss ID', labelOther: 'Passport', icon: '🪪' },
+  { key: 'residence_permit',  label: 'Residence permit',          icon: '📋', hideForSwiss: true },
+  { key: 'salary_slip_1',     label: 'Salary slip — month 1',     icon: '💰' },
+  { key: 'salary_slip_2',     label: 'Salary slip — month 2',     icon: '💰' },
+  { key: 'salary_slip_3',     label: 'Salary slip — month 3',     icon: '💰' },
+  { key: 'betreibungsauszug', label: 'Betreibungsauszug',         icon: '⚖️' },
+  { key: 'reference_letter',  label: 'Landlord reference letter', icon: '🏠' },
 ];
+
+function getDocTypeMeta(isSwiss) {
+  return DOC_TYPE_META_ALL
+    .filter(t => !(isSwiss && t.hideForSwiss))
+    .map(t => ({ ...t, label: t.labelSwiss ? (isSwiss ? t.labelSwiss : t.labelOther) : t.label }));
+}
 
 // ── Trust score (provisional — same formula as certificate generation) ──
 function computeProvisionalTrust(docsMap) {
@@ -211,6 +217,9 @@ const STATUS_ROW = {
   const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
   if (!tenant) return;
 
+  const isSwiss    = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
+  const DOC_TYPE_META = getDocTypeMeta(isSwiss);
+
   // ── Load documents ────────────────────────────────────────
   const { data: docs } = await sbHelpers.getDocumentsByTenant(tenant.id);
   const docsMap = {};
@@ -235,7 +244,7 @@ const STATUS_ROW = {
   // ── Progress card ─────────────────────────────────────────
   const profileComplete = !!tenant.profile_complete;
   const hasEmployment   = !!(tenant.employer_name && tenant.monthly_gross_salary);
-  const requiredDocs    = ['passport_id','salary_slip_1','salary_slip_2','salary_slip_3','betreibungsauszug'];
+  const requiredDocs    = ['passport_id','salary_slip_1','salary_slip_2','salary_slip_3','betreibungsauszug'].filter(k => !(isSwiss && k === 'residence_permit'));
   const uploadedRequired = requiredDocs.filter(k => !!docsMap[k]).length;
   const missingRequired  = requiredDocs.length - uploadedRequired;
 
