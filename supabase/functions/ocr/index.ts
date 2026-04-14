@@ -160,13 +160,17 @@ function rejectionReason(c: number, docType: string): string | null {
 // ── Handler ──────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
+  console.log(`[OCR] Request received — method=${req.method}`)
+
   if (req.method === 'OPTIONS') {
+    console.log('[OCR] CORS preflight — returning ok')
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     // Verify caller JWT
     const authHeader = req.headers.get('authorization')
+    console.log(`[OCR] Auth header present=${!!authHeader}`)
     if (!authHeader) {
       return new Response('Unauthorized', { status: 401, headers: corsHeaders })
     }
