@@ -182,8 +182,11 @@ Deno.serve(async (req) => {
 
     const { documentId } = await req.json()
     if (!documentId) {
+      console.error('[OCR] Missing documentId in request body')
       return new Response('Missing documentId', { status: 400, headers: corsHeaders })
     }
+
+    console.log(`[OCR] Starting — documentId=${documentId}`)
 
     // Fetch document
     const { data: doc, error: docErr } = await adminSb
@@ -193,18 +196,23 @@ Deno.serve(async (req) => {
       .single()
 
     if (docErr || !doc) {
+      console.error('[OCR] Document not found:', docErr?.message)
       return new Response('Document not found', { status: 404, headers: corsHeaders })
     }
+
+    console.log(`[OCR] docType=${doc.doc_type} path=${doc.storage_path} mime=${doc.mime_type}`)
 
     // Mark as processing
     await adminSb.from('documents').update({ status: 'processing' }).eq('id', documentId)
 
     // Download file from private storage
+    console.log('[OCR] Downloading file from storage…')
     const { data: fileBlob, error: dlErr } = await adminSb.storage
       .from('documents')
       .download(doc.storage_path)
 
     if (dlErr || !fileBlob) {
+      console.error('[OCR] File download failed:', dlErr?.message)
       await adminSb.from('documents').update({
         status: 'rejected',
         rejection_reason: 'Could not retrieve the uploaded file. Please re-upload.',
@@ -218,6 +226,9 @@ Deno.serve(async (req) => {
     const b64      = uint8ArrayToBase64(new Uint8Array(buffer))
     const mimeType = doc.mime_type || 'image/jpeg'
     const isPdf    = mimeType === 'application/pdf' || doc.storage_path.toLowerCase().endsWith('.pdf')
+    const fileSizeKb = Math.round(buffer.byteLength / 1024)
+
+    console.log(`[OCR] File downloaded — ${fileSizeKb}kb isPdf=${isPdf}`)
 
     // Build Claude content block
     const fileBlock = isPdf
@@ -227,6 +238,7 @@ Deno.serve(async (req) => {
     const prompt = PROMPTS[doc.doc_type] || PROMPTS['passport_id']
 
     // Call Claude
+    console.log('[OCR] Calling Claude API…')
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -246,7 +258,7 @@ Deno.serve(async (req) => {
 
     if (!anthropicRes.ok) {
       const errText = await anthropicRes.text()
-      console.error('Anthropic error:', errText)
+      console.error('[OCR] Anthropic API error:', anthropicRes.status, errText)
       await adminSb.from('documents').update({
         status: 'flagged',
         rejection_reason: 'OCR service temporarily unavailable. An admin will review this document manually.',
@@ -259,18 +271,24 @@ Deno.serve(async (req) => {
     const claudeData = await anthropicRes.json()
     const rawText    = claudeData.content?.[0]?.text || ''
 
+    console.log('[OCR] Claude raw response:', rawText.slice(0, 300))
+
     // Parse JSON from Claude's reply
     let extracted: Record<string, unknown> = {}
     try {
       const match = rawText.match(/\{[\s\S]*\}/)
       if (match) extracted = JSON.parse(match[0])
     } catch (_) {
+      console.error('[OCR] Failed to parse JSON from Claude response')
       extracted = { raw_text: rawText }
     }
 
     const confidence = computeConfidence(extracted, doc.doc_type)
     const status     = confidenceToStatus(confidence)
     const reason     = rejectionReason(confidence, doc.doc_type)
+
+    console.log(`[OCR] Done — confidence=${confidence} status=${status}`)
+    console.log('[OCR] Extracted:', JSON.stringify(extracted))
 
     const updatePayload: Record<string, unknown> = {
       status,
@@ -281,6 +299,8 @@ Deno.serve(async (req) => {
     if (reason) updatePayload.rejection_reason = reason
 
     await adminSb.from('documents').update(updatePayload).eq('id', documentId)
+
+    console.log('[OCR] DB updated — all done')
 
     return new Response(JSON.stringify({ status, confidence, extracted }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
