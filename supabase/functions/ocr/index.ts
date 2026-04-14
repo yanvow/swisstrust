@@ -167,21 +167,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify caller JWT
-    const authHeader = req.headers.get('authorization')
-    console.log(`[OCR] Auth header present=${!!authHeader}`)
-    if (!authHeader) {
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-    }
-
     const adminSb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authErr } = await adminSb.auth.getUser(token)
-    if (authErr || !user) {
-      console.error('[OCR] Auth failed:', authErr?.message)
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-    }
-    console.log(`[OCR] Auth ok — user=${user.email}`)
 
     const { documentId } = await req.json()
     if (!documentId) {
