@@ -8,7 +8,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const ANTHROPIC_API_KEY       = Deno.env.get('ANTHROPIC_API_KEY')!
 const SUPABASE_URL             = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const SUPABASE_ANON_KEY        = Deno.env.get('SUPABASE_ANON_KEY')!
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -176,13 +175,13 @@ Deno.serve(async (req) => {
     }
 
     const adminSb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-    const userSb  = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { authorization: authHeader } },
-    })
-    const { data: { user }, error: authErr } = await userSb.auth.getUser()
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authErr } = await adminSb.auth.getUser(token)
     if (authErr || !user) {
+      console.error('[OCR] Auth failed:', authErr?.message)
       return new Response('Unauthorized', { status: 401, headers: corsHeaders })
     }
+    console.log(`[OCR] Auth ok — user=${user.email}`)
 
     const { documentId } = await req.json()
     if (!documentId) {
