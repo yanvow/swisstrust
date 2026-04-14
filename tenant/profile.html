@@ -293,10 +293,13 @@ let _userId = null;
 function syncPermitType() {
   const nat = document.getElementById('nationality').value;
   const permit = document.getElementById('permit_type');
+  const swissOpt = permit.querySelector('option[value="swiss"]');
   if (nat === 'Swiss') {
+    if (swissOpt) swissOpt.hidden = false;
     permit.value = 'swiss';
     permit.disabled = true;
   } else {
+    if (swissOpt) swissOpt.hidden = true;
     permit.disabled = false;
     if (permit.value === 'swiss') permit.value = '';
   }
