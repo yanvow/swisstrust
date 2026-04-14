@@ -93,15 +93,17 @@
 const DOC_TYPES = [
   {
     key: 'passport_id',
-    label: 'Passport or Swiss ID',
+    label: () => _isSwiss ? 'Passport or Swiss ID' : 'Passport',
     icon: '🪪',
-    hint: 'Upload your passport or Swiss identity card.',
+    hint: () => _isSwiss ? 'Upload your passport or Swiss identity card.' : 'Upload your passport.',
   },
   {
     key: 'residence_permit',
     label: 'Residence permit',
     icon: '📋',
-    hint: 'Required for B, C, G, L permit holders. Skip if you are a Swiss citizen.',
+    hint: 'Required for B, C, G, L permit holders.',
+    swissOnly: false,
+    hideForSwiss: true,
   },
   {
     key: 'salary_slip_1',
@@ -146,6 +148,7 @@ const STATUS_CONFIG = {
 
 // ── State ────────────────────────────────────────────────────
 let _tenantId = null;
+let _isSwiss  = false;
 let _docsMap  = {};  // key → document row
 
 // ── Init ─────────────────────────────────────────────────────
@@ -158,6 +161,7 @@ let _docsMap  = {};  // key → document row
   const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
   if (!tenant) return;
   _tenantId = tenant.id;
+  _isSwiss  = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
 
   await refreshDocs();
 })();
@@ -172,8 +176,12 @@ async function refreshDocs() {
 // ── Render ───────────────────────────────────────────────────
 function renderAll() {
   const container = document.getElementById('docs-container');
-  container.innerHTML = DOC_TYPES.map(t => renderDocCard(t)).join('');
+  const visible = DOC_TYPES.filter(t => !(_isSwiss && t.hideForSwiss));
+  container.innerHTML = visible.map(t => renderDocCard(t)).join('');
 }
+
+function resolveLabel(t) { return typeof t.label === 'function' ? t.label() : t.label; }
+function resolveHint(t)  { return typeof t.hint  === 'function' ? t.hint()  : t.hint;  }
 
 // Returns days since a date string, or null
 function daysSince(dateStr) {
@@ -241,7 +249,7 @@ function renderDocCard(type) {
       </div>`;
   } else {
     bodyHtml = `
-      <p class="text-sm text-gray mb-16">${escHtml(type.hint)}</p>
+      <p class="text-sm text-gray mb-16">${escHtml(resolveHint(type))}</p>
       <div class="upload-zone" onclick="startUpload('${type.key}', this)" id="zone-${type.key}">
         <div class="upload-zone__icon">📁</div>
         <div class="upload-zone__text">Click or drag to upload</div>
@@ -253,7 +261,7 @@ function renderDocCard(type) {
   return `
     <div class="doc-card ${headClass}" id="card-${type.key}">
       <div class="doc-card__head">
-        <div class="doc-card__title">${type.icon} ${escHtml(type.label)}</div>
+        <div class="doc-card__title">${type.icon} ${escHtml(resolveLabel(type))}</div>
         ${badgeHtml}
       </div>
       <div class="doc-card__body">${bodyHtml}</div>
