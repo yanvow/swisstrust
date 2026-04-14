@@ -67,7 +67,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>Nationality <span class="req">*</span></label>
-            <select id="nationality" required>
+            <select id="nationality" required onchange="syncPermitType()">
               <option value="">— Select nationality</option>
               <optgroup label="Switzerland">
                 <option value="Swiss">Swiss</option>
@@ -276,6 +276,7 @@ let _userId = null;
     f('date_of_birth', data.date_of_birth);
     f('nationality', data.nationality);
     f('permit_type', data.permit_type || 'swiss');
+    syncPermitType();
     f('current_address', data.current_address);
     f('employer_name', data.employer_name);
     f('job_role', data.job_role);
@@ -289,6 +290,18 @@ let _userId = null;
 
 })();
 
+function syncPermitType() {
+  const nat = document.getElementById('nationality').value;
+  const permit = document.getElementById('permit_type');
+  if (nat === 'Swiss') {
+    permit.value = 'swiss';
+    permit.disabled = true;
+  } else {
+    permit.disabled = false;
+    if (permit.value === 'swiss') permit.value = '';
+  }
+}
+
 async function saveProfile(e) {
   e.preventDefault();
   const btn = document.getElementById('save-btn');
@@ -299,7 +312,7 @@ async function saveProfile(e) {
     full_name:             document.getElementById('full_name').value.trim(),
     date_of_birth:         document.getElementById('date_of_birth').value || null,
     nationality:           document.getElementById('nationality').value.trim(),
-    permit_type:           document.getElementById('permit_type').value,
+    permit_type:           document.getElementById('nationality').value === 'Swiss' ? 'swiss' : document.getElementById('permit_type').value,
     current_address:       document.getElementById('current_address').value.trim(),
     employer_name:         document.getElementById('employer_name').value.trim(),
     job_role:              document.getElementById('job_role').value.trim(),
