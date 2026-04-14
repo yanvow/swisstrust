@@ -105,7 +105,7 @@ async function handleRegister(e) {
   const { data, error } = await _sb.auth.signUp({
     email,
     password,
-    options: { data: { role: 'tenant', full_name: `${firstName} ${lastName}` } },
+    options: { data: { role: 'tenant', full_name: `${firstName} ${lastName}` }, emailRedirectTo: `${window.location.origin}/auth/login.html` },
   });
 
   if (error) {

@@ -617,7 +617,7 @@ async function generateCertificate(e) {
   const descKey = currentMode === 'directed' ? `directed_${directedType}` : currentMode;
   document.getElementById('modal-mode-desc').textContent = modeDescs[descKey];
 
-  document.getElementById('cert-modal').style.display = 'flex';
+  window.location.href = `certificates.html?new=${certCode}`;
 }
 
 function viewCert() {

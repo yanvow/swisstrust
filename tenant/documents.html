@@ -93,15 +93,17 @@
 const DOC_TYPES = [
   {
     key: 'passport_id',
-    label: 'Passport or Swiss ID',
+    label: () => _isSwiss ? 'Passport or Swiss ID' : 'Passport',
     icon: '🪪',
-    hint: 'Upload your passport or Swiss identity card.',
+    hint: () => _isSwiss ? 'Upload your passport or Swiss identity card.' : 'Upload your passport.',
   },
   {
     key: 'residence_permit',
     label: 'Residence permit',
     icon: '📋',
-    hint: 'Required for B, C, G, L permit holders. Skip if you are a Swiss citizen.',
+    hint: 'Required for B, C, G, L permit holders.',
+    swissOnly: false,
+    hideForSwiss: true,
   },
   {
     key: 'salary_slip_1',
@@ -146,6 +148,7 @@ const STATUS_CONFIG = {
 
 // ── State ────────────────────────────────────────────────────
 let _tenantId = null;
+let _isSwiss  = false;
 let _docsMap  = {};  // key → document row
 
 // ── Init ─────────────────────────────────────────────────────
@@ -158,6 +161,7 @@ let _docsMap  = {};  // key → document row
   const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
   if (!tenant) return;
   _tenantId = tenant.id;
+  _isSwiss  = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
 
   await refreshDocs();
 })();
@@ -172,8 +176,12 @@ async function refreshDocs() {
 // ── Render ───────────────────────────────────────────────────
 function renderAll() {
   const container = document.getElementById('docs-container');
-  container.innerHTML = DOC_TYPES.map(t => renderDocCard(t)).join('');
+  const visible = DOC_TYPES.filter(t => !(_isSwiss && t.hideForSwiss));
+  container.innerHTML = visible.map(t => renderDocCard(t)).join('');
 }
+
+function resolveLabel(t) { return typeof t.label === 'function' ? t.label() : t.label; }
+function resolveHint(t)  { return typeof t.hint  === 'function' ? t.hint()  : t.hint;  }
 
 // Returns days since a date string, or null
 function daysSince(dateStr) {
@@ -236,11 +244,12 @@ function renderDocCard(type) {
       ${doc.rejection_reason ? `<div class="alert alert-error mt-12"><span>⚠️</span><span>${escHtml(doc.rejection_reason)}</span></div>` : ''}
       <div class="upload-btn-row">
         <button class="btn btn-outline btn-sm" onclick="startUpload('${type.key}', this)">Replace</button>
+        <button class="btn btn-outline btn-sm" onclick="deleteDoc('${type.key}')" style="color:var(--red);border-color:var(--red);">Delete</button>
         <div id="err-${type.key}" class="text-xs" style="color:var(--red); display:none;"></div>
       </div>`;
   } else {
     bodyHtml = `
-      <p class="text-sm text-gray mb-16">${escHtml(type.hint)}</p>
+      <p class="text-sm text-gray mb-16">${escHtml(resolveHint(type))}</p>
       <div class="upload-zone" onclick="startUpload('${type.key}', this)" id="zone-${type.key}">
         <div class="upload-zone__icon">📁</div>
         <div class="upload-zone__text">Click or drag to upload</div>
@@ -252,7 +261,7 @@ function renderDocCard(type) {
   return `
     <div class="doc-card ${headClass}" id="card-${type.key}">
       <div class="doc-card__head">
-        <div class="doc-card__title">${type.icon} ${escHtml(type.label)}</div>
+        <div class="doc-card__title">${type.icon} ${escHtml(resolveLabel(type))}</div>
         ${badgeHtml}
       </div>
       <div class="doc-card__body">${bodyHtml}</div>
@@ -298,12 +307,11 @@ async function handleFile(docType, file, triggerEl) {
   }
 
   clearDocError(docType);
-  setCardUploading(docType, triggerEl, true);
+  setCardPhase(docType, triggerEl, 'uploading');
 
   // Build storage path
-  const ext       = file.name.split('.').pop().toLowerCase();
-  const safeName  = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path      = `${_tenantId}/${docType}/${Date.now()}_${safeName}`;
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path     = `${_tenantId}/${docType}/${Date.now()}_${safeName}`;
 
   // Upload to Supabase Storage
   const { error: uploadError } = await _sb.storage
@@ -312,41 +320,77 @@ async function handleFile(docType, file, triggerEl) {
 
   if (uploadError) {
     showDocError(docType, `Upload failed: ${uploadError.message}`);
-    setCardUploading(docType, triggerEl, false);
+    setCardPhase(docType, triggerEl, 'idle');
     return;
   }
 
-  // Upsert document record
-  const { error: dbError } = await sbHelpers.upsertDocument(_tenantId, docType, {
+  // Upsert document record (status=processing so the card renders correctly)
+  const { data: doc, error: dbError } = await sbHelpers.upsertDocument(_tenantId, docType, {
     storage_path: path,
     file_name:    file.name,
     mime_type:    file.type,
-    status:       'pending',
+    status:       'processing',
   });
 
   if (dbError) {
     showDocError(docType, `Could not save document record: ${dbError.message}`);
-    setCardUploading(docType, triggerEl, false);
+    setCardPhase(docType, triggerEl, 'idle');
     return;
   }
 
-  // Refresh the card from DB
+  if (!doc?.id) {
+    showDocError(docType, 'Could not retrieve document ID after upload. Please try again.');
+    await refreshDocs();
+    return;
+  }
+
+  // Show processing state while OCR runs
+  setCardPhase(docType, triggerEl, 'processing');
+
+  const { error: ocrError } = await sbHelpers.runOcr(doc.id);
+  if (ocrError) {
+    showDocError(docType, `OCR error: ${ocrError.message}`);
+  }
+
+  // Refresh card with final result from DB
   await refreshDocs();
 }
 
-function setCardUploading(docType, triggerEl, loading) {
+function setCardPhase(docType, triggerEl, phase) {
   const zone = document.getElementById(`zone-${docType}`);
   if (zone) {
-    zone.innerHTML = loading
-      ? `<div class="upload-zone__text"><span class="spinner"></span>Uploading…</div>`
-      : `<div class="upload-zone__icon">📁</div><div class="upload-zone__text">Click or drag to upload</div><div class="upload-zone__hint">PDF, JPG, PNG · Max 10 MB</div>`;
+    if (phase === 'uploading') {
+      zone.innerHTML = `<div class="upload-zone__text"><span class="spinner"></span>Uploading…</div>`;
+    } else if (phase === 'processing') {
+      zone.innerHTML = `<div class="upload-zone__text"><span class="spinner"></span>Analysing with AI…</div>`;
+    } else {
+      zone.innerHTML = `<div class="upload-zone__icon">📁</div><div class="upload-zone__text">Click or drag to upload</div><div class="upload-zone__hint">PDF, JPG, PNG · Max 10 MB</div>`;
+    }
     return;
   }
-  // Replace button mode
+  // Replace button mode (document already uploaded)
   if (triggerEl) {
-    triggerEl.disabled = loading;
-    triggerEl.textContent = loading ? 'Uploading…' : 'Replace';
+    triggerEl.disabled = phase !== 'idle';
+    triggerEl.textContent = phase === 'uploading' ? 'Uploading…' : phase === 'processing' ? 'Analysing…' : 'Replace';
   }
+}
+
+async function deleteDoc(docType) {
+  const doc = _docsMap[docType];
+  if (!doc) return;
+  if (!confirm('Delete this document? You will need to re-upload it.')) return;
+
+  clearDocError(docType);
+
+  // Delete from storage
+  const { error: storageErr } = await _sb.storage.from('documents').remove([doc.storage_path]);
+  if (storageErr) { showDocError(docType, `Delete failed: ${storageErr.message}`); return; }
+
+  // Delete DB record
+  const { error: dbErr } = await _sb.from('documents').delete().eq('id', doc.id);
+  if (dbErr) { showDocError(docType, `Delete failed: ${dbErr.message}`); return; }
+
+  await refreshDocs();
 }
 
 function showDocError(docType, msg) {

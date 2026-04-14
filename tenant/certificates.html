@@ -49,6 +49,15 @@
       <a href="certificate-new.html" class="btn btn-primary">+ New certificate</a>
     </div>
 
+    <div id="new-cert-banner" style="display:none; background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:var(--radius); padding:14px 20px; margin-bottom:20px; display:flex; align-items:center; gap:12px;">
+      <span style="font-size:1.25rem;">🎉</span>
+      <div style="flex:1;">
+        <div style="font-weight:600; font-size:.9375rem;">Certificate generated successfully</div>
+        <div class="text-sm text-gray">Code: <span id="new-cert-code" class="font-mono font-bold"></span> — share the QR code or code below with your agency.</div>
+      </div>
+      <button onclick="this.parentElement.style.display='none'" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-400);">×</button>
+    </div>
+
     <div id="certs-list"></div>
 
     <div class="card card--flat" style="background:var(--gray-100); text-align:center; padding:40px;">
@@ -76,6 +85,14 @@ let _tenantName  = '';
 
   _tenantName = user.user_metadata?.full_name || user.email;
   document.getElementById('nav-name').textContent = _tenantName;
+
+  const newCode = new URLSearchParams(window.location.search).get('new');
+  if (newCode) {
+    const banner = document.getElementById('new-cert-banner');
+    document.getElementById('new-cert-code').textContent = newCode;
+    banner.style.display = 'flex';
+    history.replaceState(null, '', 'certificates.html');
+  }
 
   const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
   if (!tenant) return;
