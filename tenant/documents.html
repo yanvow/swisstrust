@@ -330,6 +330,12 @@ async function handleFile(docType, file, triggerEl) {
     return;
   }
 
+  if (!doc?.id) {
+    showDocError(docType, 'Could not retrieve document ID after upload. Please try again.');
+    await refreshDocs();
+    return;
+  }
+
   // Show processing state while OCR runs
   setCardPhase(docType, triggerEl, 'processing');
 
