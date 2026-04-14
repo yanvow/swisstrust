@@ -124,7 +124,7 @@ async function handleRegister(e) {
   const { data, error } = await _sb.auth.signUp({
     email: accountEmail,
     password,
-    options: { data: { role: 'agency', company_name: companyName, address, contact_email: contactEmail } },
+    options: { data: { role: 'agency', company_name: companyName, address, contact_email: contactEmail }, emailRedirectTo: `${window.location.origin}/auth/login.html` },
   });
 
   if (error) {

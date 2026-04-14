@@ -116,7 +116,7 @@ async function registerOwner(e) {
   const { error } = await _sb.auth.signUp({
     email,
     password,
-    options: { data: { role: 'owner', full_name: `${firstName} ${lastName}`, property_address: propertyAddress } },
+    options: { data: { role: 'owner', full_name: `${firstName} ${lastName}`, property_address: propertyAddress }, emailRedirectTo: `${window.location.origin}/auth/login.html` },
   });
 
   if (error) {
