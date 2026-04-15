@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agency Dashboard — SwissTrust</title>
+  <title>Agency Dashboard — Checks</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -15,8 +15,8 @@
 <nav class="nav">
   <div class="container flex-between w-full">
     <a href="../index.html" class="nav__logo">
-      <div class="nav__logo-mark">ST</div>
-      SwissTrust
+      <div class="nav__logo-mark">C</div>
+      Checks
     </a>
     <div class="nav__links">
       <span class="text-sm text-gray" id="nav-agency"></span>
@@ -53,13 +53,13 @@
     <!-- First-login aha moment banner -->
     <div id="aha-banner" style="display:none; margin-bottom:24px; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%); color:white; border-radius:var(--radius); padding:28px 32px; position:relative;">
       <button onclick="dismissAha()" aria-label="Dismiss" style="position:absolute; top:12px; right:16px; background:none; border:none; color:rgba(255,255,255,.5); font-size:1.25rem; cursor:pointer; line-height:1;">×</button>
-      <div style="font-size:1.5rem; margin-bottom:8px;">👋 Welcome to SwissTrust</div>
+      <div style="font-size:1.5rem; margin-bottom:8px;">👋 Welcome to Checks</div>
       <div id="aha-message" style="font-size:1rem; opacity:.9; margin-bottom:16px; line-height:1.5;"></div>
       <div style="font-size:.8125rem; opacity:.6;">Tenants directed their dossier to your agency before you even signed up. Click "View dossier" on any row to see their full verified documents.</div>
     </div>
 
-    <!-- Stats -->
-    <div class="stat-grid mb-32">
+    <!-- Stats — main account only -->
+    <div class="stat-grid mb-32" id="kpi-grid">
       <div class="stat-box">
         <div class="stat-num" id="stat-total">—</div>
         <div class="stat-lbl">Total certificates</div>
@@ -126,7 +126,7 @@
         <div class="page-title" style="font-size:1.1rem; margin:0;">Pending deliveries</div>
         <span id="ghost-badge" class="badge badge-amber" style="font-size:.7rem;"></span>
       </div>
-      <div class="text-sm text-gray mb-16">These tenants directed their certificate to your agency before you joined SwissTrust. Claim them to add them to your inbox.</div>
+      <div class="text-sm text-gray mb-16">These tenants directed their certificate to your agency before you joined Checks. Claim them to add them to your inbox.</div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -146,37 +146,49 @@
 </div>
 
 <script>
-let _agencyId = null;
+let _agencyId  = null;
+let _isAdmin   = false;
 
 (async () => {
-  const user = await sbHelpers.requireAuth('agency');
+  const user = await sbHelpers.requireAuth(['agency', 'agent']);
   if (!user) return;
 
-  // Get this agency's row
-  const { data: agency } = await _sb.from('agencies').select('id, company_name').eq('user_id', user.id).single();
-  if (!agency) {
-    document.getElementById('page-subtitle').textContent = 'Agency profile not found.';
+  _isAdmin = user.user_metadata?.role === 'agency';
+
+  // Hide KPIs and profile link for agents
+  if (!_isAdmin) {
+    document.getElementById('kpi-grid').style.display = 'none';
+    const profileLink = document.querySelector('a[href="profile.html"]');
+    if (profileLink) profileLink.closest('.sidebar__link').style.display = 'none';
+  }
+
+  const { data: agency, error: agencyErr } = await sbHelpers.resolveAgency(user);
+  if (agencyErr || !agency) {
+    document.getElementById('page-subtitle').textContent = 'Agency not found.';
     return;
   }
   _agencyId = agency.id;
 
-  document.getElementById('nav-agency').textContent = agency.company_name;
+  document.getElementById('nav-agency').textContent = agency.company_name
+    + (_isAdmin ? '' : ' (agent)');
   document.getElementById('page-subtitle').textContent =
-    `Tenants who have directed their SwissTrust certificate to ${agency.company_name}.`;
+    `Tenants who have directed their Checks certificate to ${agency.company_name}.`;
 
   const { data: certs } = await sbHelpers.getCertificatesByAgency(agency.id);
   const tbody = document.getElementById('cert-tbody');
 
   if (!certs || certs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-gray text-sm" style="padding:24px; text-align:center;">No certificates yet. Share your SwissTrust agency profile with tenants so they can direct their certificates to you.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="text-gray text-sm" style="padding:24px; text-align:center;">No certificates yet. Share your Checks agency profile with tenants so they can direct their certificates to you.</td></tr>';
     ['stat-total','stat-a','stat-b','stat-eligible'].forEach(id => document.getElementById(id).textContent = '0');
     return;
   }
 
-  document.getElementById('stat-total').textContent = certs.length;
-  document.getElementById('stat-a').textContent = certs.filter(c => c.trust_score === 'A').length;
-  document.getElementById('stat-b').textContent = certs.filter(c => c.trust_score === 'B').length;
-  document.getElementById('stat-eligible').textContent = certs.filter(c => c.is_eligible).length;
+  if (_isAdmin) {
+    document.getElementById('stat-total').textContent = certs.length;
+    document.getElementById('stat-a').textContent = certs.filter(c => c.trust_score === 'A').length;
+    document.getElementById('stat-b').textContent = certs.filter(c => c.trust_score === 'B').length;
+    document.getElementById('stat-eligible').textContent = certs.filter(c => c.is_eligible).length;
+  }
 
   tbody.innerHTML = certs.map(c => {
     const t = c.tenants || {};
@@ -206,7 +218,7 @@ let _agencyId = null;
     const eligible = certs.filter(c => c.is_eligible).length;
     document.getElementById('aha-message').textContent =
       `${n} tenant dossier${n !== 1 ? 's are' : ' is'} already waiting for you — ${eligible} income-eligible. `
-      + `These applicants directed their verified SwissTrust certificate to ${agency.company_name} before you signed up.`;
+      + `These applicants directed their verified Checks certificate to ${agency.company_name} before you signed up.`;
     document.getElementById('aha-banner').style.display = 'block';
   }
 

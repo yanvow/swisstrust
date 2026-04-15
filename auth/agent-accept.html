@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accept invitation — Checks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+</head>
+<body class="auth-page">
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">C</div>
+      Checks
+    </a>
+  </div>
+</nav>
+
+<div class="auth-wrap">
+  <div class="auth-card" style="text-align:center;">
+    <div class="auth-card__logo">
+      <div class="auth-card__logo-mark">C</div>
+      Checks
+    </div>
+    <h1 class="auth-card__title" id="card-title">Accepting invitation…</h1>
+    <p class="auth-card__sub" id="card-sub">Please wait while we set up your account.</p>
+    <div id="error-msg" style="display:none; color:var(--red); font-size:.875rem; margin-top:16px;"></div>
+  </div>
+</div>
+
+<script>
+(async () => {
+  // Supabase processes the invite hash/token automatically on getSession().
+  // Poll until the session is ready (invite links set the session in the URL fragment).
+  let session = null;
+  for (let i = 0; i < 12; i++) {
+    const { data } = await _sb.auth.getSession();
+    if (data?.session) { session = data.session; break; }
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  if (!session) {
+    document.getElementById('card-title').textContent = 'Invitation link expired';
+    document.getElementById('card-sub').textContent = 'This link is invalid or has already been used. Please ask your agency admin to send a new invite.';
+    return;
+  }
+
+  const user       = session.user;
+  const inviteToken = user.user_metadata?.invite_token;
+  const agencyId   = user.user_metadata?.agency_id;
+  const agencyName = user.user_metadata?.agency_name || 'your agency';
+
+  if (!inviteToken || !agencyId) {
+    document.getElementById('card-title').textContent = 'Invalid invitation';
+    document.getElementById('card-sub').textContent = 'The invitation data is missing. Please contact your agency admin.';
+    return;
+  }
+
+  // Mark the agency_agents record as active
+  const { error } = await _sb
+    .from('agency_agents')
+    .update({
+      user_id:      user.id,
+      status:       'active',
+      accepted_at:  new Date().toISOString(),
+    })
+    .eq('invite_token', inviteToken)
+    .eq('agency_id', agencyId);
+
+  if (error) {
+    document.getElementById('card-title').textContent = 'Something went wrong';
+    document.getElementById('error-msg').textContent = error.message;
+    document.getElementById('error-msg').style.display = 'block';
+    document.getElementById('card-sub').textContent = 'Could not activate your account. Please try again or contact support.';
+    return;
+  }
+
+  document.getElementById('card-title').textContent = `Welcome to ${agencyName}!`;
+  document.getElementById('card-sub').textContent = 'Your account is ready. Redirecting to the dashboard…';
+
+  setTimeout(() => {
+    window.location.href = '../agency/dashboard.html';
+  }, 1500);
+})();
+</script>
+</body>
+</html>

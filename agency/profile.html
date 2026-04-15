@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agency Profile — SwissTrust</title>
+  <title>Agency Profile — Checks</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -15,8 +15,8 @@
 <nav class="nav">
   <div class="container flex-between w-full">
     <a href="../index.html" class="nav__logo">
-      <div class="nav__logo-mark">ST</div>
-      SwissTrust
+      <div class="nav__logo-mark">C</div>
+      Checks
     </a>
     <div class="nav__links">
       <span class="text-sm text-gray" id="nav-name"></span>
@@ -54,6 +54,39 @@
 
     <div id="error-banner" style="display:none;" class="alert alert-error mb-24">
       <span>⚠️</span><span id="error-text"></span>
+    </div>
+
+    <!-- Agents section — main account only, injected by JS -->
+    <div id="agents-section" style="display:none; margin-bottom:32px;">
+      <div class="flex-between mb-16">
+        <div>
+          <div class="page-title" style="font-size:1.1rem;">Team</div>
+          <div class="page-subtitle">Agents can view the certificate inbox but cannot edit the agency profile or see KPIs.</div>
+        </div>
+      </div>
+
+      <div class="card mb-16">
+        <form onsubmit="inviteAgent(event)" style="display:flex; gap:12px; align-items:flex-end;">
+          <div class="form-group mb-0" style="flex:1;">
+            <label for="invite-email">Invite agent by email</label>
+            <input type="email" id="invite-email" placeholder="agent@agency.ch" required>
+          </div>
+          <button type="submit" id="invite-btn" class="btn btn-primary" style="white-space:nowrap;">Send invite</button>
+        </form>
+        <div id="invite-error" style="display:none; color:var(--red); font-size:.875rem; margin-top:10px;"></div>
+        <div id="invite-success" style="display:none; color:var(--green); font-size:.875rem; margin-top:10px; font-weight:500;">✓ Invite sent</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Email</th><th>Status</th><th>Invited</th><th>Joined</th><th></th></tr>
+          </thead>
+          <tbody id="agents-tbody">
+            <tr><td colspan="5" class="text-gray text-sm" style="padding:20px; text-align:center;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="card">
@@ -119,9 +152,77 @@ let _agencyId = null;
   if (agencies.is_verified) {
     verEl.innerHTML = '<span class="badge badge-green">Verified agency</span>';
   } else {
-    verEl.innerHTML = '<span class="badge badge-amber">Pending verification</span> <span class="text-xs text-gray ml-8">SwissTrust will verify your agency within 1–2 business days.</span>';
+    verEl.innerHTML = '<span class="badge badge-amber">Pending verification</span> <span class="text-xs text-gray ml-8">Checks will verify your agency within 1–2 business days.</span>';
   }
+
+  // Show agents section for main account
+  document.getElementById('agents-section').style.display = 'block';
+  await loadAgents();
 })();
+
+async function loadAgents() {
+  const { data: agents } = await sbHelpers.getAgencyAgents(_agencyId);
+  const tbody = document.getElementById('agents-tbody');
+  if (!agents || agents.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-gray text-sm" style="padding:20px; text-align:center;">No agents yet. Invite your first team member above.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = agents.map(a => {
+    const invited = new Date(a.invited_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+    const joined  = a.accepted_at
+      ? new Date(a.accepted_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' })
+      : '—';
+    const statusBadge = a.status === 'active'
+      ? '<span class="badge badge-green">Active</span>'
+      : '<span class="badge badge-amber">Pending</span>';
+    return `<tr>
+      <td class="text-sm">${escHtml(a.email)}</td>
+      <td>${statusBadge}</td>
+      <td class="text-sm text-gray">${invited}</td>
+      <td class="text-sm text-gray">${joined}</td>
+      <td><button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red);" onclick="removeAgent('${a.id}', this)">Remove</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function inviteAgent(e) {
+  e.preventDefault();
+  const btn = document.getElementById('invite-btn');
+  const email = document.getElementById('invite-email').value.trim().toLowerCase();
+  sbHelpers.setLoading(btn, true, 'Send invite');
+  document.getElementById('invite-error').style.display = 'none';
+  document.getElementById('invite-success').style.display = 'none';
+
+  const { error } = await sbHelpers.inviteAgent(_agencyId, email);
+
+  sbHelpers.setLoading(btn, false, 'Send invite');
+  if (error) {
+    document.getElementById('invite-error').textContent = error.message || 'Could not send invite.';
+    document.getElementById('invite-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('invite-email').value = '';
+  document.getElementById('invite-success').style.display = 'block';
+  setTimeout(() => { document.getElementById('invite-success').style.display = 'none'; }, 4000);
+  await loadAgents();
+}
+
+async function removeAgent(agentId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Removing…';
+  const { error } = await sbHelpers.removeAgent(agentId);
+  if (error) {
+    btn.disabled = false;
+    btn.textContent = 'Remove';
+    alert('Could not remove agent: ' + error.message);
+    return;
+  }
+  await loadAgents();
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 async function saveProfile(e) {
   e.preventDefault();
