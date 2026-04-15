@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Certificate STD-2G7K-X4NP — SwissTrust</title>
+  <title>Certificate STD-2G7K-X4NP — Checks</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -24,8 +24,8 @@
 <nav class="nav">
   <div class="container flex-between w-full">
     <a href="../index.html" class="nav__logo">
-      <div class="nav__logo-mark">ST</div>
-      SwissTrust
+      <div class="nav__logo-mark">C</div>
+      Checks
     </a>
     <div class="nav__links" id="nav-actions">
       <!-- toggled by JS -->
@@ -44,7 +44,7 @@
   <div class="cert-view__header">
     <div class="flex-between flex-wrap gap-16">
       <div>
-        <div class="text-xs text-gray mb-4" style="letter-spacing:.06em; text-transform:uppercase; font-weight:600;">SwissTrust Certificate</div>
+        <div class="text-xs text-gray mb-4" style="letter-spacing:.06em; text-transform:uppercase; font-weight:600;">Checks Certificate</div>
         <div class="font-mono font-bold" style="font-size:1.1rem; letter-spacing:.1em; color:var(--gray-600);">STD-2G7K-X4NP</div>
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -134,6 +134,14 @@
           <div class="font-bold" style="color:var(--green);">✓ CHF 8,500 ≥ 3× CHF 2,400</div>
         </div>
       </div>
+    </div>
+
+    <!-- Lettre de motivation -->
+    <div id="motivation-card" class="card mb-24" style="display:none;">
+      <div class="card-header">
+        <div class="card-title">✉️ Lettre de motivation</div>
+      </div>
+      <p id="motivation-text" class="text-sm" style="white-space:pre-wrap; line-height:1.6;"></p>
     </div>
 
     <!-- Documents -->
@@ -273,7 +281,7 @@ async function certSignOut() {
   } else if (mode === 'directed' && cert.owner_email) {
     lockNote = `🔒 <strong>Full dossier</strong> — visible only to the authorised private landlord.`;
   } else if (mode === 'open') {
-    lockNote = `🔒 <strong>Full dossier</strong> — visible to any verified régie or landlord signed in to SwissTrust.`;
+    lockNote = `🔒 <strong>Full dossier</strong> — visible to any verified régie or landlord signed in to Checks.`;
   } else {
     lockNote = `🔒 <strong>Full dossier</strong> — visible once the tenant approves an access request.`;
   }
@@ -427,6 +435,11 @@ async function certSignOut() {
         <div><div class="text-xs text-gray mb-2">Eligibility check</div><div class="font-bold" style="color:${cert.is_eligible ? 'var(--green)' : 'var(--red)'};">${cert.is_eligible ? '✓' : '✗'} CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()} ${cert.is_eligible ? '≥' : '<'} 3× CHF ${(cert.total_chf || 0).toLocaleString()}</div></div>`;
     }
 
+    if (cert.motivation_letter) {
+      document.getElementById('motivation-text').textContent = cert.motivation_letter;
+      document.getElementById('motivation-card').style.display = 'block';
+    }
+
     const { data: tenantDocs } = await sbHelpers.getDocumentsByTenant(cert.tenant_id);
     renderDocViewers(tenantDocs || []);
     return;
@@ -469,8 +482,7 @@ const DOC_META = [
   { key: 'salary_slip_1',     label: 'Salary slip — month 1',       icon: '💰' },
   { key: 'salary_slip_2',     label: 'Salary slip — month 2',       icon: '💰' },
   { key: 'salary_slip_3',     label: 'Salary slip — month 3',       icon: '💰' },
-  { key: 'betreibungsauszug', label: 'Betreibungsauszug',           icon: '⚖️' },
-  { key: 'reference_letter',  label: 'Landlord reference letter',   icon: '🏠' },
+  { key: 'betreibungsauszug', label: 'Attestation de non-poursuite (Non-bankruptcy certificate)', icon: '⚖️' },
 ];
 const STATUS_BADGE_CV = {
   pending:       'badge badge-amber',

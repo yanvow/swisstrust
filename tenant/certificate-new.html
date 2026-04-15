@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Certificate — SwissTrust</title>
+  <title>New Certificate — Checks</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -17,8 +17,8 @@
 <nav class="nav">
   <div class="container flex-between w-full">
     <a href="../index.html" class="nav__logo">
-      <div class="nav__logo-mark">ST</div>
-      SwissTrust
+      <div class="nav__logo-mark">C</div>
+      Checks
     </a>
     <div class="nav__links">
       <span class="text-sm text-gray" id="nav-name"></span>
@@ -78,7 +78,7 @@
             <input type="radio" name="cert_mode" value="open" style="display:none;">
             <div class="mode-card__icon">🌐</div>
             <div class="mode-card__title">Open</div>
-            <div class="mode-card__desc">Any verified régie or private landlord on SwissTrust can view the full dossier.</div>
+            <div class="mode-card__desc">Any verified régie or private landlord on Checks can view the full dossier.</div>
             <div class="mode-card__badge" style="color:var(--green);">Fastest</div>
           </label>
 
@@ -205,7 +205,7 @@
 
           <!-- Not-found panel (hidden until search yields no match) -->
           <div id="agency-notfound" style="display:none; margin-top:12px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:var(--radius); padding:14px 16px;">
-            <div style="font-weight:600; font-size:.875rem; margin-bottom:6px;">Agency not on SwissTrust yet?</div>
+            <div style="font-weight:600; font-size:.875rem; margin-bottom:6px;">Agency not on Checks yet?</div>
             <div class="text-sm text-gray mb-12">You can still apply — choose one of these options:</div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
               <button type="button" class="btn btn-outline btn-sm" onclick="switchToOpen()">Switch to Open mode</button>
@@ -214,7 +214,7 @@
             </div>
             <!-- Ghost cert form -->
             <div id="ghost-form" style="display:none; border-top:1px solid #FED7AA; padding-top:12px; margin-top:4px;">
-              <div class="text-sm text-gray mb-8">Your certificate will be held for this agency. They'll see it the moment they join SwissTrust — no action needed on your part.</div>
+              <div class="text-sm text-gray mb-8">Your certificate will be held for this agency. They'll see it the moment they join Checks — no action needed on your part.</div>
               <div class="form-group mb-8">
                 <label style="font-size:.8125rem;">Agency name (as it will appear) <span class="req">*</span></label>
                 <input type="text" id="ghost-agency-name" placeholder="e.g. Agence Dupont & Fils" style="font-size:.875rem;">
@@ -234,13 +234,23 @@
 
       <!-- Open mode notice -->
       <div class="card mb-24" id="open-notice" style="display:none; background:#F0FDF4; border:1px solid #86EFAC;">
-        <div class="text-sm" style="color:#15803D;">🌐 <strong>Open certificate</strong> — any verified régie or private landlord signed in to SwissTrust can access your full dossier when they scan this QR code. All accesses are logged.</div>
+        <div class="text-sm" style="color:#15803D;">🌐 <strong>Open certificate</strong> — any verified régie or private landlord signed in to Checks can access your full dossier when they scan this QR code. All accesses are logged.</div>
       </div>
 
       <!-- On-Request mode notice -->
       <div class="card mb-24" id="onrequest-notice" style="display:none; background:#FFF7ED; border:1px solid #FED7AA;">
         <div class="text-sm" style="color:#C2410C;">🔔 <strong>On-Request certificate</strong> — professionals see your public summary and must request full access. You'll be notified and can approve or deny each request from your dashboard.</div>
       </div>
+
+      <!-- Lettre de motivation -->
+      <fieldset class="fieldset">
+        <legend>Lettre de motivation</legend>
+        <div class="form-group mb-0">
+          <label for="motivation_letter">Your cover letter <span style="color:var(--gray-400); font-weight:400;">(optional)</span></label>
+          <textarea id="motivation_letter" rows="5" placeholder="Introduce yourself and explain why you'd be a great tenant for this property…" style="resize:vertical;"></textarea>
+          <div class="form-hint">Only visible to the recipient once they unlock your certificate.</div>
+        </div>
+      </fieldset>
 
       <div class="flex gap-16">
         <button type="submit" class="btn btn-primary btn-lg">Generate QR certificate</button>
@@ -328,15 +338,21 @@ function computeTrustGrade(docs) {
   if (!b)                            score -= 20;
   else if (b.status === 'rejected')  score -= 40;
   else if (b.status !== 'auto_verified') score -= 10;
+  const now = new Date();
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 3, 1);
   ['salary_slip_1','salary_slip_2','salary_slip_3'].forEach(k => {
     const s = byType[k];
-    if (!s)                            score -= 10;
-    else if (s.status !== 'auto_verified') score -= 5;
+    if (!s)                            { score -= 10; return; }
+    if (s.status !== 'auto_verified')  score -= 5;
+    const pp = s.ocr_extracted_data?.pay_period;
+    if (pp) {
+      const [y, m] = pp.split('-').map(Number);
+      if (new Date(y, m - 1, 1) < cutoff) score -= 10; // stale slip
+    }
   });
   const id = byType['passport_id'];
   if (!id)                            score -= 15;
   else if (id.status !== 'auto_verified') score -= 8;
-  if (!byType['reference_letter']) score -= 5;
   const clamped = Math.max(0, score);
   return { grade: clamped >= 80 ? 'A' : clamped >= 60 ? 'B' : 'C' };
 }
@@ -461,8 +477,8 @@ function copyInvite(btn) {
   const agencyName = document.getElementById('agency-search').value.trim();
   const regUrl = window.location.origin + window.location.pathname.replace(/\/tenant\/.*/, '') + '/auth/agency-register.html';
   const msg = agencyName
-    ? `Hi, I'd like to share my SwissTrust tenant dossier with ${agencyName}. Please register your agency at: ${regUrl}`
-    : `Register your agency on SwissTrust to receive verified tenant dossiers: ${regUrl}`;
+    ? `Hi, I'd like to share my Checks tenant dossier with ${agencyName}. Please register your agency at: ${regUrl}`
+    : `Register your agency on Checks to receive verified tenant dossiers: ${regUrl}`;
   navigator.clipboard.writeText(msg).then(() => {
     const orig = btn.textContent;
     btn.textContent = '✓ Copied!';
@@ -587,6 +603,7 @@ async function generateCertificate(e) {
     is_eligible:      isEligible,
     cert_code:        certCode,
     qr_url:           qrUrl,
+    motivation_letter: document.getElementById('motivation_letter').value.trim() || null,
   }).select().single();
 
   sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
@@ -611,7 +628,7 @@ async function generateCertificate(e) {
   const modeDescs = {
     directed_agency: 'Directed certificate — only the selected agency can access your full dossier.',
     directed_owner:  `Directed certificate — only the landlord at ${ownerEmail} can access your full dossier.`,
-    open:            'Open certificate — any verified régie or landlord on SwissTrust can access your full dossier.',
+    open:            'Open certificate — any verified régie or landlord on Checks can access your full dossier.',
     on_request:      'On-Request certificate — professionals see your public summary and must request access. Check your dashboard to approve.',
   };
   const descKey = currentMode === 'directed' ? `directed_${directedType}` : currentMode;

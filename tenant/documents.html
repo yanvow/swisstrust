@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documents — SwissTrust</title>
+  <title>Documents — Checks</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -41,8 +41,8 @@
 <nav class="nav">
   <div class="container flex-between w-full">
     <a href="../index.html" class="nav__logo">
-      <div class="nav__logo-mark">ST</div>
-      SwissTrust
+      <div class="nav__logo-mark">C</div>
+      Checks
     </a>
     <div class="nav__links">
       <span class="text-sm text-gray" id="nav-name"></span>
@@ -125,15 +125,9 @@ const DOC_TYPES = [
   },
   {
     key: 'betreibungsauszug',
-    label: 'Betreibungsauszug (debt register extract)',
+    label: 'Attestation de non-poursuite (Non-bankruptcy certificate)',
     icon: '⚖️',
-    hint: 'Must be issued within the last 3 months. Obtain it from your local Betreibungsamt.',
-  },
-  {
-    key: 'reference_letter',
-    label: 'Landlord reference letter',
-    icon: '🏠',
-    hint: 'Optional but recommended — boosts your Trust Score. A letter from your current or previous landlord.',
+    hint: 'Must be issued within the last 3 months. Obtain it from your local Betreibungsamt / Office des poursuites.',
   },
 ];
 
@@ -147,9 +141,11 @@ const STATUS_CONFIG = {
 };
 
 // ── State ────────────────────────────────────────────────────
-let _tenantId = null;
-let _isSwiss  = false;
-let _docsMap  = {};  // key → document row
+let _tenantId   = null;
+let _isSwiss    = false;
+let _tenantName = '';
+let _tenantDob  = null;
+let _docsMap    = {};  // key → document row
 
 // ── Init ─────────────────────────────────────────────────────
 (async () => {
@@ -160,8 +156,10 @@ let _docsMap  = {};  // key → document row
 
   const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
   if (!tenant) return;
-  _tenantId = tenant.id;
-  _isSwiss  = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
+  _tenantId   = tenant.id;
+  _isSwiss    = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
+  _tenantName = (tenant.full_name || '').trim().toLowerCase();
+  _tenantDob  = tenant.date_of_birth || null;
 
   await refreshDocs();
 })();
@@ -182,6 +180,7 @@ function renderAll() {
 
 function resolveLabel(t) { return typeof t.label === 'function' ? t.label() : t.label; }
 function resolveHint(t)  { return typeof t.hint  === 'function' ? t.hint()  : t.hint;  }
+function tenant_display_name() { return _tenantName || '(not set)'; }
 
 // Returns days since a date string, or null
 function daysSince(dateStr) {
@@ -193,9 +192,26 @@ function renderDocCard(type) {
   const doc = _docsMap[type.key];
   const sc  = doc ? (STATUS_CONFIG[doc.status] || STATUS_CONFIG.pending) : null;
 
-  // Betreibungsauszug freshness check (must be ≤ 90 days old)
-  const isStale = type.key === 'betreibungsauszug' && doc
-    && daysSince(doc.created_at) > 90;
+  // Freshness checks
+  // Betreibungsauszug: use certificate_date from OCR if available, else created_at
+  const isBetreibung = type.key === 'betreibungsauszug';
+  const isSalarySlip = type.key.startsWith('salary_slip');
+  let isStale = false;
+  if (doc) {
+    if (isBetreibung) {
+      const certDate = doc.ocr_extracted_data?.certificate_date;
+      isStale = certDate ? daysSince(certDate) > 90 : daysSince(doc.created_at) > 90;
+    } else if (isSalarySlip) {
+      const payPeriod = doc.ocr_extracted_data?.pay_period; // YYYY-MM
+      if (payPeriod) {
+        const [y, m] = payPeriod.split('-').map(Number);
+        const slipDate = new Date(y, m - 1, 1);
+        const cutoff = new Date();
+        cutoff.setMonth(cutoff.getMonth() - 3);
+        isStale = slipDate < cutoff;
+      }
+    }
+  }
 
   // Override card styling when stale (even if auto_verified)
   const headClass = isStale ? 'doc-card--rejected' : (doc ? sc.cardClass : '');
@@ -211,19 +227,41 @@ function renderDocCard(type) {
     const uploadDate = new Date(doc.created_at).toLocaleDateString('en-CH', { day: '2-digit', month: 'short', year: 'numeric' });
     const confPct = doc.confidence_score != null ? Math.round(doc.confidence_score * 100) : null;
     const barColor = confPct >= 90 ? 'var(--green)' : confPct >= 65 ? 'var(--amber)' : 'var(--red)';
-    const age = type.key === 'betreibungsauszug' ? daysSince(doc.created_at) : null;
+    const certDateOcr = isBetreibung ? (doc.ocr_extracted_data?.certificate_date || null) : null;
+    const age = isBetreibung ? daysSince(certDateOcr || doc.created_at) : null;
 
     const ocrSection = buildOcrSection(doc);
 
+    // Name / DOB mismatch warnings
+    let mismatchAlerts = '';
+    if (_tenantName && doc.ocr_extracted_data) {
+      const ocrName = (doc.ocr_extracted_data.full_name || doc.ocr_extracted_data.issued_for || '').trim().toLowerCase();
+      if (ocrName && !ocrName.includes(_tenantName) && !_tenantName.includes(ocrName)) {
+        mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+          <span>⚠️</span><span>Name mismatch — document shows "<strong>${escHtml(doc.ocr_extracted_data.full_name || doc.ocr_extracted_data.issued_for)}</strong>" but your profile name is "<strong>${escHtml(tenant_display_name())}</strong>". Update your profile or re-upload the correct document.</span>
+        </div>`;
+      }
+      if (_tenantDob && doc.ocr_extracted_data.date_of_birth && doc.ocr_extracted_data.date_of_birth !== _tenantDob) {
+        mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+          <span>⚠️</span><span>Date of birth mismatch — document shows <strong>${escHtml(doc.ocr_extracted_data.date_of_birth)}</strong> but your profile has <strong>${escHtml(_tenantDob)}</strong>. Please check your profile or re-upload.</span>
+        </div>`;
+      }
+    }
+
     const expiryAlert = isStale
-      ? `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
-           <span>⚠️</span>
-           <span>This Betreibungsauszug is <strong>${age} days old</strong> — most landlords require one issued within the last 3 months. Please obtain a new one from your local Betreibungsamt and re-upload.</span>
-         </div>`
+      ? isSalarySlip
+        ? `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+             <span>⚠️</span>
+             <span>This salary slip is from <strong>${escHtml(doc.ocr_extracted_data?.pay_period || 'an unknown period')}</strong>, which is more than 3 months ago. Please upload a more recent slip.</span>
+           </div>`
+        : `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+             <span>⚠️</span>
+             <span>This attestation is <strong>${age} days old</strong> — it must be issued within the last 3 months. Please obtain a new one and re-upload.</span>
+           </div>`
       : age !== null && age > 60
         ? `<div class="alert mt-12" style="background:#FFFBEB; border:1px solid #FCD34D; display:flex; gap:8px; padding:12px 14px; border-radius:var(--radius); font-size:.875rem;">
              <span>⏳</span>
-             <span>This extract is <strong>${age} days old</strong> — it will expire in ${90 - age} day${90 - age !== 1 ? 's' : ''}. Consider renewing soon.</span>
+             <span>This attestation is <strong>${age} days old</strong> — it will expire in ${90 - age} day${90 - age !== 1 ? 's' : ''}. Consider renewing soon.</span>
            </div>`
         : '';
 
@@ -240,6 +278,7 @@ function renderDocCard(type) {
         <div class="text-xs text-gray mb-4">${confPct}% confidence</div>
       ` : ''}
       ${ocrSection}
+      ${mismatchAlerts}
       ${expiryAlert}
       ${doc.rejection_reason ? `<div class="alert alert-error mt-12"><span>⚠️</span><span>${escHtml(doc.rejection_reason)}</span></div>` : ''}
       <div class="upload-btn-row">

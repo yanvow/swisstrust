@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Certificates — SwissTrust</title>
+  <title>My Certificates — Checks</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -15,8 +15,8 @@
 <nav class="nav">
   <div class="container flex-between w-full">
     <a href="../index.html" class="nav__logo">
-      <div class="nav__logo-mark">ST</div>
-      SwissTrust
+      <div class="nav__logo-mark">C</div>
+      Checks
     </a>
     <div class="nav__links">
       <span class="text-sm text-gray" id="nav-name"></span>
@@ -128,7 +128,7 @@ let _tenantName  = '';
     } else if (ownerEmail) {
       recipientHtml = `<div><div class="text-xs text-gray mb-4">Directed to</div><div class="text-sm font-bold">${escHtml(ownerEmail)}</div></div>`;
     } else if (unregisteredName) {
-      recipientHtml = `<div><div class="text-xs text-gray mb-4">Pending delivery</div><div class="text-sm font-bold">${escHtml(unregisteredName)}</div><div class="text-xs" style="color:var(--amber);">Not yet on SwissTrust</div></div>`;
+      recipientHtml = `<div><div class="text-xs text-gray mb-4">Pending delivery</div><div class="text-sm font-bold">${escHtml(unregisteredName)}</div><div class="text-xs" style="color:var(--amber);">Not yet on Checks</div></div>`;
     } else {
       recipientHtml = `<div><div class="text-xs text-gray mb-4">Mode</div><div class="text-sm font-bold">${modeLabels[mode]}</div></div>`;
     }
@@ -252,7 +252,7 @@ function printCert(certCode) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SwissTrust Certificate — ${certCode}</title>
+  <title>Checks Certificate — ${certCode}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"><\/script>
   <style>
@@ -286,8 +286,8 @@ function printCert(certCode) {
 <body>
   <div class="header">
     <div class="logo">
-      <div class="logo-mark">ST</div>
-      SwissTrust
+      <div class="logo-mark">C</div>
+      Checks
     </div>
     <div class="verified">✓ Identity Verified</div>
   </div>
@@ -326,7 +326,7 @@ function printCert(certCode) {
   </div>
 
   <div class="footer">
-    <span>Issued via SwissTrust · swisstrust.ch</span>
+    <span>Issued via Checks · swisstrust.ch</span>
     <span>Verify at: ${escHtml(qrUrl)}</span>
   </div>
 

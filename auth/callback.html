@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signing in… — Checks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+</head>
+<body class="auth-page">
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">C</div>
+      Checks
+    </a>
+  </div>
+</nav>
+
+<div class="auth-wrap">
+  <div class="auth-card" style="text-align:center;">
+    <div class="auth-card__logo">
+      <div class="auth-card__logo-mark">C</div>
+      Checks
+    </div>
+    <p style="margin-top:16px; color:var(--gray-600);">Signing you in…</p>
+  </div>
+</div>
+
+<script>
+(async () => {
+  // Supabase exchanges the code for a session automatically when getSession() is called.
+  const role = new URLSearchParams(window.location.search).get('role');
+
+  // Wait up to 5 s for the session to be ready.
+  let session = null;
+  for (let i = 0; i < 10; i++) {
+    const { data } = await _sb.auth.getSession();
+    if (data?.session) { session = data.session; break; }
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  if (!session) {
+    window.location.href = 'login.html?error=oauth_failed';
+    return;
+  }
+
+  // If a role was passed (Google sign-up flow), write it to user metadata
+  // only when the user doesn't already have one.
+  const existingRole = session.user.user_metadata?.role;
+  if (role && !existingRole) {
+    await _sb.auth.updateUser({ data: { role } });
+  }
+
+  const finalRole = role || existingRole;
+  if      (finalRole === 'agency' || finalRole === 'agent') window.location.href = '../agency/dashboard.html';
+  else if (finalRole === 'owner')  window.location.href = '../owner/dashboard.html';
+  else if (finalRole === 'admin')  window.location.href = '../admin/dashboard.html';
+  else                             window.location.href = '../tenant/dashboard.html';
+})();
+</script>
+</body>
+</html>

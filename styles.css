@@ -69,6 +69,8 @@ small { font-size: .8125rem; }
 .btn-primary:hover { background: var(--red-dark); }
 .btn-outline { background: transparent; color: var(--charcoal); border: 1.5px solid var(--charcoal); }
 .btn-outline:hover { background: var(--charcoal); color: var(--white); }
+.btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 11px 16px; background: var(--white); color: var(--charcoal); border: 1.5px solid var(--gray-200); border-radius: var(--radius); font-size: .9375rem; font-weight: 500; cursor: pointer; transition: background .15s, border-color .15s; }
+.btn-google:hover { background: var(--gray-100); border-color: var(--gray-400); }
 .btn-outline-white { background: transparent; color: var(--white); border: 1.5px solid var(--white); }
 .btn-outline-white:hover { background: var(--white); color: var(--charcoal); }
 .btn-ghost { background: transparent; color: var(--gray-600); padding: 12px 16px; }

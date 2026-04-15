@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documents — SwissTrust Admin</title>
+  <title>Documents — Checks Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -32,8 +32,8 @@
 <nav class="nav">
   <div class="container flex-between w-full">
     <a href="../index.html" class="nav__logo">
-      <div class="nav__logo-mark">ST</div>
-      SwissTrust <span class="admin-badge">Admin</span>
+      <div class="nav__logo-mark">C</div>
+      Checks <span class="admin-badge">Admin</span>
     </a>
     <div class="nav__links">
       <span class="text-sm text-gray" id="nav-name"></span>
@@ -87,8 +87,7 @@
         <option value="salary_slip_1">Salary slip 1</option>
         <option value="salary_slip_2">Salary slip 2</option>
         <option value="salary_slip_3">Salary slip 3</option>
-        <option value="betreibungsauszug">Betreibungsauszug</option>
-        <option value="reference_letter">Reference letter</option>
+        <option value="betreibungsauszug">Attestation de non-poursuite</option>
       </select>
     </div>
 
@@ -176,7 +175,7 @@
 const DOC_LABELS = {
   passport_id:'Passport / Swiss ID', residence_permit:'Residence permit',
   salary_slip_1:'Salary slip 1', salary_slip_2:'Salary slip 2', salary_slip_3:'Salary slip 3',
-  betreibungsauszug:'Betreibungsauszug', reference_letter:'Reference letter',
+  betreibungsauszug:'Attestation de non-poursuite',
 };
 const STATUS_BADGE = {
   pending:       'badge badge-amber',

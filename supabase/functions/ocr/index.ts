@@ -84,17 +84,6 @@ Extract and return ONLY a valid JSON object:
 "is_clean" must be true only if the certificate explicitly shows NO pending debts or prosecutions.
 Use null for any field you cannot clearly read. Return ONLY the JSON, no other text.`,
 
-  reference_letter: `You are reading a landlord reference or recommendation letter.
-Extract and return ONLY a valid JSON object:
-{
-  "landlord_name": "...",
-  "landlord_contact": "...",
-  "rental_start": "YYYY-MM",
-  "rental_end": "YYYY-MM or null if ongoing",
-  "recommendation": "positive or neutral or negative",
-  "key_points": ["...", "..."]
-}
-Use null for any field you cannot clearly read. Return ONLY the JSON, no other text.`,
 }
 
 // Required fields for confidence scoring
@@ -105,7 +94,6 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
   salary_slip_2:     ['employer_name', 'gross_salary', 'pay_period'],
   salary_slip_3:     ['employer_name', 'gross_salary', 'pay_period'],
   betreibungsauszug: ['is_clean', 'certificate_date'],
-  reference_letter:  ['landlord_name', 'recommendation'],
 }
 
 const DOC_LABELS: Record<string, string> = {
@@ -114,8 +102,7 @@ const DOC_LABELS: Record<string, string> = {
   salary_slip_1:     'salary slip',
   salary_slip_2:     'salary slip',
   salary_slip_3:     'salary slip',
-  betreibungsauszug: 'Betreibungsauszug',
-  reference_letter:  'reference letter',
+  betreibungsauszug: 'attestation de non-poursuite',
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
