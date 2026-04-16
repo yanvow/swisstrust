@@ -13,13 +13,36 @@ DROP TYPE IF EXISTS permit_type          CASCADE;
 
 CREATE TYPE permit_type AS ENUM ('swiss', 'B', 'C', 'G', 'L');
 CREATE TYPE document_type AS ENUM (
+  -- Identity (all tenants)
   'passport_id',
   'residence_permit',
+  'betreibungsauszug',
+  'reference_letter',
+  -- Employee income
   'salary_slip_1',
   'salary_slip_2',
   'salary_slip_3',
-  'betreibungsauszug',
-  'reference_letter'
+  -- Self-employed income: proof of income
+  'balance_sheet',
+  'tax_assessment',
+  'bank_statement',
+  'net_income_proof',
+  'turnover_proof',
+  -- Self-employed income: proof of status
+  'avs_affiliation',
+  'commercial_register',
+  -- Guarantor
+  'guarantor_id',
+  'guarantor_salary_slip_1',
+  'guarantor_salary_slip_2',
+  'guarantor_salary_slip_3',
+  'guarantor_betreibungsauszug',
+  -- Unemployed
+  'unemployment_benefit_1',
+  'unemployment_benefit_2',
+  'unemployment_benefit_3',
+  -- Welfare / social assistance
+  'welfare_rent_coverage'
 );
 CREATE TYPE document_status AS ENUM (
   'pending',
@@ -54,14 +77,17 @@ CREATE TABLE IF NOT EXISTS agencies (
 ALTER TABLE agencies ENABLE ROW LEVEL SECURITY;
 
 -- Anyone can read agencies (for tenant dropdown)
+DROP POLICY IF EXISTS "agencies_public_read" ON agencies;
 CREATE POLICY "agencies_public_read" ON agencies
   FOR SELECT USING (true);
 
 -- Agency can update their own row
+DROP POLICY IF EXISTS "agencies_own_update" ON agencies;
 CREATE POLICY "agencies_own_update" ON agencies
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- Only authenticated user can insert their own agency
+DROP POLICY IF EXISTS "agencies_own_insert" ON agencies;
 CREATE POLICY "agencies_own_insert" ON agencies
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
@@ -92,6 +118,15 @@ CREATE TABLE IF NOT EXISTS tenants (
   is_smoker             BOOLEAN DEFAULT FALSE,
   has_pets              BOOLEAN DEFAULT FALSE,
 
+  -- Rental situation
+  needs_guarantor                  BOOLEAN DEFAULT FALSE,
+  is_employee                      BOOLEAN DEFAULT FALSE,
+  is_self_employed                 BOOLEAN DEFAULT FALSE,
+  is_unemployed                    BOOLEAN DEFAULT FALSE,
+  is_on_welfare                    BOOLEAN DEFAULT FALSE,
+  has_household_liability_insurance BOOLEAN DEFAULT FALSE,
+  rental_deposit_type              TEXT,   -- 'bank_guarantee' | 'cash_deposit' | 'insurance_guarantee' | 'cooperative_share' | 'other'
+
   -- Status
   profile_complete      BOOLEAN DEFAULT FALSE,
 
@@ -101,12 +136,15 @@ CREATE TABLE IF NOT EXISTS tenants (
 
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "tenants_own_select" ON tenants;
 CREATE POLICY "tenants_own_select" ON tenants
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "tenants_own_insert" ON tenants;
 CREATE POLICY "tenants_own_insert" ON tenants
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "tenants_own_update" ON tenants;
 CREATE POLICY "tenants_own_update" ON tenants
   FOR UPDATE USING (auth.uid() = user_id);
 
@@ -141,16 +179,19 @@ CREATE TABLE IF NOT EXISTS documents (
 
 ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "documents_own_select" ON documents;
 CREATE POLICY "documents_own_select" ON documents
   FOR SELECT USING (
     tenant_id IN (SELECT id FROM tenants WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "documents_own_insert" ON documents;
 CREATE POLICY "documents_own_insert" ON documents
   FOR INSERT WITH CHECK (
     tenant_id IN (SELECT id FROM tenants WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "documents_own_update" ON documents;
 CREATE POLICY "documents_own_update" ON documents
   FOR UPDATE USING (
     tenant_id IN (SELECT id FROM tenants WHERE user_id = auth.uid())
@@ -202,28 +243,33 @@ CREATE TABLE IF NOT EXISTS certificates (
 ALTER TABLE certificates ENABLE ROW LEVEL SECURITY;
 
 -- Tenant sees their own certificates
+DROP POLICY IF EXISTS "certificates_own_tenant_select" ON certificates;
 CREATE POLICY "certificates_own_tenant_select" ON certificates
   FOR SELECT USING (
     tenant_id IN (SELECT id FROM tenants WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "certificates_own_tenant_insert" ON certificates;
 CREATE POLICY "certificates_own_tenant_insert" ON certificates
   FOR INSERT WITH CHECK (
     tenant_id IN (SELECT id FROM tenants WHERE user_id = auth.uid())
   );
 
 -- Agency sees certificates directed to them
+DROP POLICY IF EXISTS "certificates_own_agency_select" ON certificates;
 CREATE POLICY "certificates_own_agency_select" ON certificates
   FOR SELECT USING (
     agency_id IN (SELECT id FROM agencies WHERE user_id = auth.uid())
   );
 
 -- Public read by cert_code (app layer enforces tiered content)
+DROP POLICY IF EXISTS "certificates_public_read" ON certificates;
 CREATE POLICY "certificates_public_read" ON certificates
   FOR SELECT USING (is_active = TRUE);
 
 -- Agency can read documents for certificates directed to them
 -- (defined here, after certificates table exists)
+DROP POLICY IF EXISTS "documents_agency_select" ON documents;
 CREATE POLICY "documents_agency_select" ON documents
   FOR SELECT USING (
     EXISTS (
@@ -249,6 +295,7 @@ CREATE TABLE IF NOT EXISTS document_access_logs (
 ALTER TABLE document_access_logs ENABLE ROW LEVEL SECURITY;
 
 -- Tenant reads access logs for their certificates
+DROP POLICY IF EXISTS "access_logs_tenant_select" ON document_access_logs;
 CREATE POLICY "access_logs_tenant_select" ON document_access_logs
   FOR SELECT USING (
     certificate_id IN (
@@ -259,6 +306,7 @@ CREATE POLICY "access_logs_tenant_select" ON document_access_logs
   );
 
 -- Any user (incl. anon server-side) can insert a log
+DROP POLICY IF EXISTS "access_logs_insert" ON document_access_logs;
 CREATE POLICY "access_logs_insert" ON document_access_logs
   FOR INSERT WITH CHECK (true);
 
@@ -278,14 +326,17 @@ CREATE TABLE IF NOT EXISTS owners (
 ALTER TABLE owners ENABLE ROW LEVEL SECURITY;
 
 -- Anyone can read owners (tenants can see requester name/details)
+DROP POLICY IF EXISTS "owners_public_read" ON owners;
 CREATE POLICY "owners_public_read" ON owners
   FOR SELECT USING (true);
 
 -- Owner can insert their own row
+DROP POLICY IF EXISTS "owners_own_insert" ON owners;
 CREATE POLICY "owners_own_insert" ON owners
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Owner can update their own row
+DROP POLICY IF EXISTS "owners_own_update" ON owners;
 CREATE POLICY "owners_own_update" ON owners
   FOR UPDATE USING (auth.uid() = user_id);
 
@@ -309,14 +360,17 @@ CREATE TABLE IF NOT EXISTS access_requests (
 ALTER TABLE access_requests ENABLE ROW LEVEL SECURITY;
 
 -- Requester can insert their own request
+DROP POLICY IF EXISTS "access_requests_insert" ON access_requests;
 CREATE POLICY "access_requests_insert" ON access_requests
   FOR INSERT WITH CHECK (auth.uid() = requester_user_id);
 
 -- Requester can read their own requests
+DROP POLICY IF EXISTS "access_requests_requester_select" ON access_requests;
 CREATE POLICY "access_requests_requester_select" ON access_requests
   FOR SELECT USING (auth.uid() = requester_user_id);
 
 -- Tenant reads requests for their certificates
+DROP POLICY IF EXISTS "access_requests_tenant_select" ON access_requests;
 CREATE POLICY "access_requests_tenant_select" ON access_requests
   FOR SELECT USING (
     certificate_id IN (
@@ -327,6 +381,7 @@ CREATE POLICY "access_requests_tenant_select" ON access_requests
   );
 
 -- Tenant can update status (approve / deny) on their certificates
+DROP POLICY IF EXISTS "access_requests_tenant_update" ON access_requests;
 CREATE POLICY "access_requests_tenant_update" ON access_requests
   FOR UPDATE USING (
     certificate_id IN (
@@ -405,6 +460,7 @@ ALTER TABLE certificates ADD COLUMN IF NOT EXISTS owner_email TEXT;
 ALTER TABLE certificates ADD COLUMN IF NOT EXISTS unregistered_agency_name TEXT;
 
 -- Agencies can SELECT ghost certs where their company name matches
+DROP POLICY IF EXISTS "certificates_ghost_agency_select" ON certificates;
 CREATE POLICY "certificates_ghost_agency_select" ON certificates
   FOR SELECT USING (
     is_active = TRUE
@@ -415,6 +471,7 @@ CREATE POLICY "certificates_ghost_agency_select" ON certificates
   );
 
 -- Agencies can claim (UPDATE agency_id) ghost certs directed to their name
+DROP POLICY IF EXISTS "certificates_agency_claim_ghost" ON certificates;
 CREATE POLICY "certificates_agency_claim_ghost" ON certificates
   FOR UPDATE USING (
     unregistered_agency_name IS NOT NULL
@@ -431,30 +488,37 @@ CREATE POLICY "certificates_agency_claim_ghost" ON certificates
 --   → set raw_user_meta_data to {"role":"admin"}
 -- ============================================================
 
+DROP POLICY IF EXISTS "tenants_admin_all" ON tenants;
 CREATE POLICY "tenants_admin_all" ON tenants FOR ALL
   USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
+DROP POLICY IF EXISTS "agencies_admin_all" ON agencies;
 CREATE POLICY "agencies_admin_all" ON agencies FOR ALL
   USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
+DROP POLICY IF EXISTS "documents_admin_all" ON documents;
 CREATE POLICY "documents_admin_all" ON documents FOR ALL
   USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
+DROP POLICY IF EXISTS "certificates_admin_all" ON certificates;
 CREATE POLICY "certificates_admin_all" ON certificates FOR ALL
   USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
+DROP POLICY IF EXISTS "access_logs_admin_all" ON document_access_logs;
 CREATE POLICY "access_logs_admin_all" ON document_access_logs FOR ALL
   USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
+DROP POLICY IF EXISTS "access_requests_admin_all" ON access_requests;
 CREATE POLICY "access_requests_admin_all" ON access_requests FOR ALL
   USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
+DROP POLICY IF EXISTS "owners_admin_all" ON owners;
 CREATE POLICY "owners_admin_all" ON owners FOR ALL
   USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');

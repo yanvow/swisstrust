@@ -102,7 +102,7 @@ const DOC_LABELS: Record<string, string> = {
   salary_slip_1:     'salary slip',
   salary_slip_2:     'salary slip',
   salary_slip_3:     'salary slip',
-  betreibungsauszug: 'attestation de non-poursuite',
+  betreibungsauszug: 'extract from the debt enforcement register',
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

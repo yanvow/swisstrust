@@ -89,47 +89,237 @@
 </div>
 
 <script>
-// ── Document type definitions ────────────────────────────────
-const DOC_TYPES = [
-  {
+// ── Master document type registry ───────────────────────────
+const DOC_TYPE_REGISTRY = {
+  // Identity
+  passport_id: {
     key: 'passport_id',
     label: () => _isSwiss ? 'Passport or Swiss ID' : 'Passport',
     icon: '🪪',
     hint: () => _isSwiss ? 'Upload your passport or Swiss identity card.' : 'Upload your passport.',
   },
-  {
+  residence_permit: {
     key: 'residence_permit',
     label: 'Residence permit',
     icon: '📋',
     hint: 'Required for B, C, G, L permit holders.',
-    swissOnly: false,
-    hideForSwiss: true,
   },
-  {
+  betreibungsauszug: {
+    key: 'betreibungsauszug',
+    label: 'Extract from the debt enforcement register',
+    icon: '⚖️',
+    hint: 'Must be issued within the last 3 months. Request it from your cantonal debt enforcement office (Betreibungsamt / Office des poursuites / Ufficio d\u2019esecuzione).',
+  },
+  reference_letter: {
+    key: 'reference_letter',
+    label: 'Landlord reference letter',
+    icon: '🏠',
+    hint: 'Optional — a reference letter from your current or previous landlord.',
+  },
+  // Employee income
+  salary_slip_1: {
     key: 'salary_slip_1',
     label: 'Salary slip — most recent month',
     icon: '💰',
     hint: 'Your most recent monthly salary slip.',
   },
-  {
+  salary_slip_2: {
     key: 'salary_slip_2',
     label: 'Salary slip — 2nd most recent month',
     icon: '💰',
     hint: 'The month before your most recent slip.',
   },
-  {
+  salary_slip_3: {
     key: 'salary_slip_3',
     label: 'Salary slip — 3rd most recent month',
     icon: '💰',
     hint: 'The oldest of the three required salary slips.',
   },
-  {
-    key: 'betreibungsauszug',
-    label: 'Attestation de non-poursuite (Non-bankruptcy certificate)',
-    icon: '⚖️',
-    hint: 'Must be issued within the last 3 months. Obtain it from your local Betreibungsamt / Office des poursuites.',
+  // Self-employed: proof of income
+  balance_sheet: {
+    key: 'balance_sheet',
+    label: 'Balance sheets & P&L statements',
+    icon: '📊',
+    hint: 'Last 2 years of balance sheets and profit & loss statements.',
   },
-];
+  tax_assessment: {
+    key: 'tax_assessment',
+    label: 'Tax assessment notice',
+    icon: '🧾',
+    hint: 'Most recent tax assessment notice (avis de taxation / Steuerveranlagung).',
+  },
+  bank_statement: {
+    key: 'bank_statement',
+    label: 'Bank statements',
+    icon: '🏦',
+    hint: 'Last 3 months of business bank account statements.',
+  },
+  net_income_proof: {
+    key: 'net_income_proof',
+    label: 'Net income proof',
+    icon: '💵',
+    hint: 'Document confirming your net annual income (e.g. accountant letter, official statement).',
+  },
+  turnover_proof: {
+    key: 'turnover_proof',
+    label: 'Turnover / Revenue proof',
+    icon: '📈',
+    hint: 'Document showing your annual turnover or revenue figures.',
+  },
+  // Self-employed: proof of status
+  avs_affiliation: {
+    key: 'avs_affiliation',
+    label: 'AVS/SVA affiliation certificate',
+    icon: '🏛️',
+    hint: 'Certificate of affiliation with the social security office (Caisse de compensation AVS / SVA-Ausgleichskasse).',
+  },
+  commercial_register: {
+    key: 'commercial_register',
+    label: 'Extract from the Commercial Register',
+    icon: '📝',
+    hint: 'Recent extract from the Swiss Commercial Register (Registre du commerce / Handelsregister) — order at zefix.ch.',
+  },
+  // Unemployed: unemployment benefit statements
+  unemployment_benefit_1: {
+    key: 'unemployment_benefit_1',
+    label: 'Unemployment benefit statement — most recent month',
+    icon: '📑',
+    hint: 'Your most recent monthly unemployment benefit statement (indemnités chômage / Arbeitslosengeld).',
+  },
+  unemployment_benefit_2: {
+    key: 'unemployment_benefit_2',
+    label: 'Unemployment benefit statement — 2nd most recent month',
+    icon: '📑',
+    hint: 'The month before your most recent benefit statement.',
+  },
+  unemployment_benefit_3: {
+    key: 'unemployment_benefit_3',
+    label: 'Unemployment benefit statement — 3rd most recent month',
+    icon: '📑',
+    hint: 'The oldest of the three required benefit statements.',
+  },
+  // Welfare / social assistance
+  welfare_rent_coverage: {
+    key: 'welfare_rent_coverage',
+    label: 'Certificate of rent coverage',
+    icon: '🏛️',
+    hint: 'Certificate from your social assistance organisation (e.g. Hospice général – Geneva, CSR – Vaud) confirming rent coverage.',
+  },
+  // Guarantor
+  guarantor_id: {
+    key: 'guarantor_id',
+    label: 'Guarantor — Passport or ID',
+    icon: '🪪',
+    hint: 'Passport or identity card of the guarantor.',
+  },
+  guarantor_salary_slip_1: {
+    key: 'guarantor_salary_slip_1',
+    label: 'Guarantor — Salary slip (most recent)',
+    icon: '💰',
+    hint: 'Most recent monthly salary slip of the guarantor.',
+  },
+  guarantor_salary_slip_2: {
+    key: 'guarantor_salary_slip_2',
+    label: 'Guarantor — Salary slip (2nd most recent)',
+    icon: '💰',
+    hint: '2nd most recent monthly salary slip of the guarantor.',
+  },
+  guarantor_salary_slip_3: {
+    key: 'guarantor_salary_slip_3',
+    label: 'Guarantor — Salary slip (3rd most recent)',
+    icon: '💰',
+    hint: '3rd most recent monthly salary slip of the guarantor.',
+  },
+  guarantor_betreibungsauszug: {
+    key: 'guarantor_betreibungsauszug',
+    label: 'Guarantor — Debt enforcement register extract',
+    icon: '⚖️',
+    hint: 'Must be issued within the last 3 months — for the guarantor.',
+  },
+};
+
+// ── Build active doc type list based on tenant profile ───────
+// Returns an array of section objects: { title, types[] }
+function getDocSections() {
+  const sections = [];
+
+  // Identity documents (always)
+  const identityTypes = [DOC_TYPE_REGISTRY.passport_id];
+  if (!_isSwiss) identityTypes.push(DOC_TYPE_REGISTRY.residence_permit);
+  identityTypes.push(DOC_TYPE_REGISTRY.betreibungsauszug);
+  identityTypes.push(DOC_TYPE_REGISTRY.reference_letter);
+  sections.push({ title: 'Identity documents', types: identityTypes });
+
+  if (_needsGuarantor) {
+    // Guarantor section (personal + financial)
+    sections.push({
+      title: 'Guarantor documents',
+      subtitle: 'Your guarantor must provide the following documents.',
+      types: [
+        DOC_TYPE_REGISTRY.guarantor_id,
+        DOC_TYPE_REGISTRY.guarantor_salary_slip_1,
+        DOC_TYPE_REGISTRY.guarantor_salary_slip_2,
+        DOC_TYPE_REGISTRY.guarantor_salary_slip_3,
+        DOC_TYPE_REGISTRY.guarantor_betreibungsauszug,
+      ],
+    });
+  } else {
+    if (_isEmployee) {
+      sections.push({
+        title: 'Proof of income — Employee',
+        subtitle: 'Three consecutive months of salary slips.',
+        types: [
+          DOC_TYPE_REGISTRY.salary_slip_1,
+          DOC_TYPE_REGISTRY.salary_slip_2,
+          DOC_TYPE_REGISTRY.salary_slip_3,
+        ],
+      });
+    }
+    if (_isSelfEmployed) {
+      sections.push({
+        title: 'Proof of income — Self-employed',
+        subtitle: 'Financial statements and income evidence for self-employed applicants.',
+        types: [
+          DOC_TYPE_REGISTRY.balance_sheet,
+          DOC_TYPE_REGISTRY.tax_assessment,
+          DOC_TYPE_REGISTRY.bank_statement,
+          DOC_TYPE_REGISTRY.net_income_proof,
+          DOC_TYPE_REGISTRY.turnover_proof,
+        ],
+      });
+      sections.push({
+        title: 'Proof of self-employed status',
+        subtitle: 'Official documents confirming your independent activity.',
+        types: [
+          DOC_TYPE_REGISTRY.avs_affiliation,
+          DOC_TYPE_REGISTRY.commercial_register,
+        ],
+      });
+    }
+    if (_isUnemployed) {
+      sections.push({
+        title: 'Proof of income — Unemployment benefits',
+        subtitle: 'Three consecutive months of unemployment benefit statements.',
+        types: [
+          DOC_TYPE_REGISTRY.unemployment_benefit_1,
+          DOC_TYPE_REGISTRY.unemployment_benefit_2,
+          DOC_TYPE_REGISTRY.unemployment_benefit_3,
+        ],
+      });
+    }
+    if (_isOnWelfare) {
+      sections.push({
+        title: 'Social assistance / Welfare',
+        subtitle: 'Certificate confirming rent coverage from a social assistance organisation (e.g. Hospice général – Geneva, CSR – Vaud).',
+        types: [
+          DOC_TYPE_REGISTRY.welfare_rent_coverage,
+        ],
+      });
+    }
+  }
+
+  return sections;
+}
 
 // Status rendering helpers
 const STATUS_CONFIG = {
@@ -141,11 +331,16 @@ const STATUS_CONFIG = {
 };
 
 // ── State ────────────────────────────────────────────────────
-let _tenantId   = null;
-let _isSwiss    = false;
-let _tenantName = '';
-let _tenantDob  = null;
-let _docsMap    = {};  // key → document row
+let _tenantId        = null;
+let _isSwiss         = false;
+let _needsGuarantor  = false;
+let _isEmployee      = false;
+let _isSelfEmployed  = false;
+let _isUnemployed    = false;
+let _isOnWelfare     = false;
+let _tenantName      = '';
+let _tenantDob       = null;
+let _docsMap         = {};  // key → document row
 
 // ── Init ─────────────────────────────────────────────────────
 (async () => {
@@ -156,10 +351,15 @@ let _docsMap    = {};  // key → document row
 
   const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
   if (!tenant) return;
-  _tenantId   = tenant.id;
-  _isSwiss    = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
-  _tenantName = (tenant.full_name || '').trim().toLowerCase();
-  _tenantDob  = tenant.date_of_birth || null;
+  _tenantId       = tenant.id;
+  _isSwiss        = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
+  _needsGuarantor = !!tenant.needs_guarantor;
+  _isEmployee     = !!tenant.is_employee;
+  _isSelfEmployed = !!tenant.is_self_employed;
+  _isUnemployed   = !!tenant.is_unemployed;
+  _isOnWelfare    = !!tenant.is_on_welfare;
+  _tenantName     = (tenant.full_name || '').trim().toLowerCase();
+  _tenantDob      = tenant.date_of_birth || null;
 
   await refreshDocs();
 })();
@@ -174,8 +374,29 @@ async function refreshDocs() {
 // ── Render ───────────────────────────────────────────────────
 function renderAll() {
   const container = document.getElementById('docs-container');
-  const visible = DOC_TYPES.filter(t => !(_isSwiss && t.hideForSwiss));
-  container.innerHTML = visible.map(t => renderDocCard(t)).join('');
+  const sections = getDocSections();
+
+  if (!_needsGuarantor && !_isEmployee && !_isSelfEmployed && !_isUnemployed && !_isOnWelfare) {
+    // Profile not yet configured — show a nudge
+    const identitySection = sections[0];
+    let html = identitySection.types.map(t => renderDocCard(t)).join('');
+    html += `<div class="alert alert-info mt-16" style="margin-top:16px;">
+      <span>ℹ️</span>
+      <div>
+        <strong>Rental situation not configured</strong><br>
+        <span class="text-sm">Go to <a href="profile.html" style="font-weight:600;">My profile</a> and fill in your rental situation to see all required documents (income type, guarantor, etc.).</span>
+      </div>
+    </div>`;
+    container.innerHTML = html;
+    return;
+  }
+
+  container.innerHTML = sections.map(section => `
+    <div style="margin-bottom:32px;">
+      <div style="font-size:1rem; font-weight:700; margin-bottom:4px;">${escHtml(section.title)}</div>
+      ${section.subtitle ? `<div class="text-sm text-gray mb-16">${escHtml(section.subtitle)}</div>` : '<div style="margin-bottom:16px;"></div>'}
+      ${section.types.map(t => renderDocCard(t)).join('')}
+    </div>`).join('');
 }
 
 function resolveLabel(t) { return typeof t.label === 'function' ? t.label() : t.label; }
@@ -193,21 +414,24 @@ function renderDocCard(type) {
   const sc  = doc ? (STATUS_CONFIG[doc.status] || STATUS_CONFIG.pending) : null;
 
   // Freshness checks
-  // Betreibungsauszug: use certificate_date from OCR if available, else created_at
-  const isBetreibung = type.key === 'betreibungsauszug';
-  const isSalarySlip = type.key.startsWith('salary_slip');
+  // Betreibungsauszug (and guarantor variant): use certificate_date from OCR if available, else created_at
+  const isBetreibung       = type.key === 'betreibungsauszug' || type.key === 'guarantor_betreibungsauszug';
+  const isSalarySlip       = type.key.startsWith('salary_slip') || type.key.startsWith('guarantor_salary_slip');
+  const isUnemploymentSlip = type.key.startsWith('unemployment_benefit_');
   let isStale = false;
   if (doc) {
     if (isBetreibung) {
       const certDate = doc.ocr_extracted_data?.certificate_date;
       isStale = certDate ? daysSince(certDate) > 90 : daysSince(doc.created_at) > 90;
-    } else if (isSalarySlip) {
+    } else if (isSalarySlip || isUnemploymentSlip) {
       const payPeriod = doc.ocr_extracted_data?.pay_period; // YYYY-MM
       if (payPeriod) {
         const [y, m] = payPeriod.split('-').map(Number);
         const slipDate = new Date(y, m - 1, 1);
-        const cutoff = new Date();
-        cutoff.setMonth(cutoff.getMonth() - 3);
+        // Cutoff = 1st of the month that is 3 complete months before the current month.
+        // e.g. today = Apr 16 → cutoff = Jan 1 → Jan/Feb/Mar slips are valid.
+        const now = new Date();
+        const cutoff = new Date(now.getFullYear(), now.getMonth() - 3, 1);
         isStale = slipDate < cutoff;
       }
     }
@@ -249,10 +473,10 @@ function renderDocCard(type) {
     }
 
     const expiryAlert = isStale
-      ? isSalarySlip
+      ? (isSalarySlip || isUnemploymentSlip)
         ? `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
              <span>⚠️</span>
-             <span>This salary slip is from <strong>${escHtml(doc.ocr_extracted_data?.pay_period || 'an unknown period')}</strong>, which is more than 3 months ago. Please upload a more recent slip.</span>
+             <span>This statement is from <strong>${escHtml(doc.ocr_extracted_data?.pay_period || 'an unknown period')}</strong>, which is more than 3 months ago. Please upload a more recent statement.</span>
            </div>`
         : `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
              <span>⚠️</span>

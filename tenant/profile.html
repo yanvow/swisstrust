@@ -249,6 +249,85 @@
         </div>
       </fieldset>
 
+      <!-- Rental situation -->
+      <fieldset class="fieldset">
+        <legend>Rental situation</legend>
+
+        <!-- Guarantor -->
+        <div class="toggle-row">
+          <div>
+            <div style="font-size:.9rem; font-weight:500;">I need a guarantor</div>
+            <div class="text-xs text-gray">A third party will co-sign or provide financial guarantee on your behalf</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="needs_guarantor" onchange="syncRentalSituation()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- Income type — hidden when needs_guarantor is checked -->
+        <div id="income-type-section" style="margin-top:20px;">
+          <div style="font-size:.875rem; font-weight:600; margin-bottom:4px;">Type of income</div>
+          <div class="text-xs text-gray mb-12">Select all that apply — this determines which financial documents you'll need to upload.</div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+              <input type="checkbox" id="is_employee" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;">
+              <div>
+                <div style="font-size:.9rem; font-weight:500;">Employee</div>
+                <div class="text-xs text-gray">You receive a salary from an employer — you will need to provide 3 months of salary slips.</div>
+              </div>
+            </label>
+            <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+              <input type="checkbox" id="is_self_employed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;">
+              <div>
+                <div style="font-size:.9rem; font-weight:500;">Self-employed / Independent</div>
+                <div class="text-xs text-gray">You run your own business or work as a freelancer — you will need to provide balance sheets, tax assessments, bank statements, and proof of self-employed status.</div>
+              </div>
+            </label>
+            <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+              <input type="checkbox" id="is_unemployed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;">
+              <div>
+                <div style="font-size:.9rem; font-weight:500;">Unemployed (receiving unemployment benefits)</div>
+                <div class="text-xs text-gray">You are currently receiving unemployment benefits (indemnités chômage / Arbeitslosengeld) — you will need to provide 3 months of benefit statements.</div>
+              </div>
+            </label>
+            <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+              <input type="checkbox" id="is_on_welfare" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;">
+              <div>
+                <div style="font-size:.9rem; font-weight:500;">Social assistance / Welfare</div>
+                <div class="text-xs text-gray">You are supported by a social assistance organisation (e.g. Hospice général – Geneva, CSR – Vaud) — you will need to provide a certificate of rent coverage from the organisation.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Household liability insurance (all tenants, optional) -->
+        <div class="toggle-row" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+          <div>
+            <div style="font-size:.9rem; font-weight:500;">Household liability insurance <span style="font-size:.75rem; color:var(--gray-400); font-weight:400;">(optional)</span></div>
+            <div class="text-xs text-gray">I have or plan to take out household liability insurance (RC ménage / Privathaftpflicht)</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="has_household_liability_insurance">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- Rental deposit type (all tenants, optional) -->
+        <div class="form-group" style="margin-top:16px;">
+          <label>Rental deposit method <span style="font-size:.75rem; color:var(--gray-400); font-weight:400;">(optional)</span></label>
+          <select id="rental_deposit_type">
+            <option value="">— Not specified</option>
+            <option value="bank_guarantee">Bank guarantee (blocking account)</option>
+            <option value="cash_deposit">Cash deposit</option>
+            <option value="insurance_guarantee">Insurance guarantee (e.g. SwissCaution, firstcaution)</option>
+            <option value="cooperative_share">Cooperative share / membership</option>
+            <option value="other">Other</option>
+          </select>
+          <div class="form-hint">How you plan to provide the security deposit (caution)</div>
+        </div>
+      </fieldset>
+
       <div id="save-error" style="display:none; color:var(--red); font-size:.875rem; margin-bottom:12px;"></div>
       <div class="flex gap-16">
         <button type="submit" id="save-btn" class="btn btn-primary">Save profile</button>
@@ -283,12 +362,24 @@ let _userId = null;
     f('employment_start_date', data.employment_start_date);
     f('monthly_gross_salary', data.monthly_gross_salary);
     f('occupant_count', data.occupant_count || 1);
-    if (data.is_smoker) document.getElementById('is_smoker').checked = true;
-    if (data.has_pets)  document.getElementById('has_pets').checked = true;
+    if (data.is_smoker)  document.getElementById('is_smoker').checked = true;
+    if (data.has_pets)   document.getElementById('has_pets').checked = true;
+
+    if (data.needs_guarantor)                   document.getElementById('needs_guarantor').checked = true;
+    if (data.is_employee)                        document.getElementById('is_employee').checked = true;
+    if (data.is_self_employed)                   document.getElementById('is_self_employed').checked = true;
+    if (data.is_unemployed)                      document.getElementById('is_unemployed').checked = true;
+    if (data.is_on_welfare)                      document.getElementById('is_on_welfare').checked = true;
+    if (data.has_household_liability_insurance)  document.getElementById('has_household_liability_insurance').checked = true;
+    f('rental_deposit_type', data.rental_deposit_type);
+    syncRentalSituation();
   }
-
-
 })();
+
+function syncRentalSituation() {
+  const needsGuarantor = document.getElementById('needs_guarantor').checked;
+  document.getElementById('income-type-section').style.display = needsGuarantor ? 'none' : 'block';
+}
 
 function syncPermitType() {
   const nat = document.getElementById('nationality').value;
@@ -324,6 +415,13 @@ async function saveProfile(e) {
     occupant_count:        parseInt(document.getElementById('occupant_count').value) || 1,
     is_smoker:             document.getElementById('is_smoker').checked,
     has_pets:              document.getElementById('has_pets').checked,
+    needs_guarantor:       document.getElementById('needs_guarantor').checked,
+    is_employee:           document.getElementById('is_employee').checked,
+    is_self_employed:      document.getElementById('is_self_employed').checked,
+    is_unemployed:         document.getElementById('is_unemployed').checked,
+    is_on_welfare:         document.getElementById('is_on_welfare').checked,
+    has_household_liability_insurance: document.getElementById('has_household_liability_insurance').checked,
+    rental_deposit_type:   document.getElementById('rental_deposit_type').value || null,
     profile_complete:      true,
     updated_at:            new Date().toISOString(),
   };
