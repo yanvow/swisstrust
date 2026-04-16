@@ -201,13 +201,18 @@ let _ocrData = {};
   if (!user) return;
   document.getElementById('nav-name').textContent = user.email;
 
-  // Check URL param for pre-filter
-  const urlFilter = new URLSearchParams(window.location.search).get('filter');
+  // Check URL params for pre-filter
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlFilter = urlParams.get('filter');
+  const urlTenant = urlParams.get('tenant');
   if (urlFilter && urlFilter !== 'all') {
     _currentStatus = urlFilter;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     const tab = [...document.querySelectorAll('.tab')].find(t => t.getAttribute('onclick')?.includes(`'${urlFilter}'`));
     if (tab) tab.classList.add('active');
+  }
+  if (urlTenant) {
+    document.getElementById('search').value = urlTenant;
   }
 
   await loadDocs();

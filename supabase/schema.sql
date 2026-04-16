@@ -134,6 +134,17 @@ CREATE POLICY "agents_accept_invite" ON agency_agents FOR UPDATE
   )
   WITH CHECK (true);
 
+-- Agency owner can update (suspend/remove) their own agents
+DROP POLICY IF EXISTS "agents_agency_update" ON agency_agents;
+CREATE POLICY "agents_agency_update" ON agency_agents FOR UPDATE
+  USING (agency_id IN (SELECT id FROM agencies WHERE user_id = auth.uid()))
+  WITH CHECK (true);
+
+-- Agency owner can delete their own agents
+DROP POLICY IF EXISTS "agents_agency_delete" ON agency_agents;
+CREATE POLICY "agents_agency_delete" ON agency_agents FOR DELETE
+  USING (agency_id IN (SELECT id FROM agencies WHERE user_id = auth.uid()));
+
 -- ============================================================
 -- TABLE: tenants
 -- ============================================================
@@ -573,8 +584,13 @@ CREATE POLICY "owners_admin_all" ON owners FOR ALL
 -- Exposes auth user emails to authenticated users (e.g. admin).
 -- The view owner (postgres) has access to the auth schema.
 -- ============================================================
+-- Restricted to admin role: non-admins see zero rows, admins see all.
+-- auth.jwt() reads the current session JWT, so the filter is per-caller
+-- even though the view runs with the postgres owner's object permissions.
 CREATE OR REPLACE VIEW public.user_emails AS
-  SELECT id, email FROM auth.users;
+  SELECT au.id, au.email
+  FROM auth.users au
+  WHERE (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin';
 
 GRANT SELECT ON public.user_emails TO authenticated;
 
