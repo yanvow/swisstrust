@@ -38,6 +38,22 @@
       <a href="certificates.html" class="sidebar__link"><span class="sidebar__icon">🪪</span> My certificates</a>
       <a href="certificate-new.html" class="sidebar__link"><span class="sidebar__icon">＋</span> New certificate</a>
     </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Other</div>
+      <a href="../verify.html" class="sidebar__link">
+        <span class="sidebar__icon">✓</span> Verify a certificate
+      </a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Account</div>
+      <a href="settings.html" class="sidebar__link"><span class="sidebar__icon">⚙</span> Settings</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Notifications</div>
+      <a href="dashboard.html" class="sidebar__link" id="sidebar-notif" style="display:none;">
+        <span class="sidebar__icon">🔔</span> Access requests <span id="sidebar-notif-count" class="badge badge-amber" style="font-size:.7rem; margin-left:4px;"></span>
+      </a>
+    </div>
   </aside>
 
   <main class="main-content">
@@ -265,34 +281,225 @@
           </label>
         </div>
 
+        <!-- Guarantor sections — shown when needs_guarantor is checked -->
+        <div id="guarantor-type-section" style="display:none; margin-top:20px; padding-top:20px; border-top:1px solid var(--gray-200);">
+
+          <!-- Personal information -->
+          <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Guarantor — Personal information</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full name</label>
+              <input type="text" id="guarantor_full_name" placeholder="Guarantor's legal name">
+            </div>
+            <div class="form-group">
+              <label>Date of birth</label>
+              <input type="date" id="guarantor_date_of_birth">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nationality</label>
+              <select id="guarantor_nationality" onchange="syncGuarantorPermitType()">
+                <option value="">— Select nationality</option>
+                <optgroup label="Switzerland">
+                  <option value="Swiss">Swiss</option>
+                </optgroup>
+                <optgroup label="Europe">
+                  <option value="Albanian">Albanian</option>
+                  <option value="Austrian">Austrian</option>
+                  <option value="Belgian">Belgian</option>
+                  <option value="Bosnian">Bosnian</option>
+                  <option value="Bulgarian">Bulgarian</option>
+                  <option value="Croatian">Croatian</option>
+                  <option value="Czech">Czech</option>
+                  <option value="Danish">Danish</option>
+                  <option value="Dutch">Dutch</option>
+                  <option value="Finnish">Finnish</option>
+                  <option value="French">French</option>
+                  <option value="German">German</option>
+                  <option value="Greek">Greek</option>
+                  <option value="Hungarian">Hungarian</option>
+                  <option value="Irish">Irish</option>
+                  <option value="Italian">Italian</option>
+                  <option value="Kosovan">Kosovan</option>
+                  <option value="Latvian">Latvian</option>
+                  <option value="Lithuanian">Lithuanian</option>
+                  <option value="Luxembourgish">Luxembourgish</option>
+                  <option value="Macedonian">Macedonian</option>
+                  <option value="Moldovan">Moldovan</option>
+                  <option value="Montenegrin">Montenegrin</option>
+                  <option value="Norwegian">Norwegian</option>
+                  <option value="Polish">Polish</option>
+                  <option value="Portuguese">Portuguese</option>
+                  <option value="Romanian">Romanian</option>
+                  <option value="Serbian">Serbian</option>
+                  <option value="Slovak">Slovak</option>
+                  <option value="Slovenian">Slovenian</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="Swedish">Swedish</option>
+                  <option value="Turkish">Turkish</option>
+                  <option value="Ukrainian">Ukrainian</option>
+                  <option value="British">British</option>
+                </optgroup>
+                <optgroup label="Africa">
+                  <option value="Algerian">Algerian</option>
+                  <option value="Angolan">Angolan</option>
+                  <option value="Cameroonian">Cameroonian</option>
+                  <option value="Congolese">Congolese</option>
+                  <option value="Egyptian">Egyptian</option>
+                  <option value="Ethiopian">Ethiopian</option>
+                  <option value="Ghanaian">Ghanaian</option>
+                  <option value="Ivorian">Ivorian</option>
+                  <option value="Kenyan">Kenyan</option>
+                  <option value="Moroccan">Moroccan</option>
+                  <option value="Nigerian">Nigerian</option>
+                  <option value="Senegalese">Senegalese</option>
+                  <option value="South African">South African</option>
+                  <option value="Tanzanian">Tanzanian</option>
+                  <option value="Tunisian">Tunisian</option>
+                  <option value="Ugandan">Ugandan</option>
+                </optgroup>
+                <optgroup label="Americas">
+                  <option value="American">American</option>
+                  <option value="Argentine">Argentine</option>
+                  <option value="Brazilian">Brazilian</option>
+                  <option value="Canadian">Canadian</option>
+                  <option value="Chilean">Chilean</option>
+                  <option value="Colombian">Colombian</option>
+                  <option value="Cuban">Cuban</option>
+                  <option value="Dominican">Dominican</option>
+                  <option value="Ecuadorian">Ecuadorian</option>
+                  <option value="Mexican">Mexican</option>
+                  <option value="Peruvian">Peruvian</option>
+                  <option value="Venezuelan">Venezuelan</option>
+                </optgroup>
+                <optgroup label="Asia &amp; Middle East">
+                  <option value="Afghan">Afghan</option>
+                  <option value="Armenian">Armenian</option>
+                  <option value="Azerbaijani">Azerbaijani</option>
+                  <option value="Bangladeshi">Bangladeshi</option>
+                  <option value="Chinese">Chinese</option>
+                  <option value="Georgian">Georgian</option>
+                  <option value="Indian">Indian</option>
+                  <option value="Indonesian">Indonesian</option>
+                  <option value="Iranian">Iranian</option>
+                  <option value="Iraqi">Iraqi</option>
+                  <option value="Israeli">Israeli</option>
+                  <option value="Japanese">Japanese</option>
+                  <option value="Jordanian">Jordanian</option>
+                  <option value="Kazakh">Kazakh</option>
+                  <option value="Korean">Korean</option>
+                  <option value="Kurdish">Kurdish</option>
+                  <option value="Lebanese">Lebanese</option>
+                  <option value="Malaysian">Malaysian</option>
+                  <option value="Pakistani">Pakistani</option>
+                  <option value="Palestinian">Palestinian</option>
+                  <option value="Philippine">Philippine</option>
+                  <option value="Saudi">Saudi</option>
+                  <option value="Sri Lankan">Sri Lankan</option>
+                  <option value="Syrian">Syrian</option>
+                  <option value="Thai">Thai</option>
+                  <option value="Vietnamese">Vietnamese</option>
+                </optgroup>
+                <optgroup label="Oceania">
+                  <option value="Australian">Australian</option>
+                  <option value="New Zealander">New Zealander</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Permit type</label>
+              <select id="guarantor_permit_type">
+                <option value="swiss">Swiss citizen</option>
+                <option value="B">B permit</option>
+                <option value="C">C permit</option>
+                <option value="G">G permit</option>
+                <option value="L">L permit</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Current address</label>
+            <input type="text" id="guarantor_current_address" placeholder="Street, city, postcode, country">
+          </div>
+
+          <!-- Income type -->
+          <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+            <div style="font-size:.9rem; font-weight:600; margin-bottom:4px;">Guarantor's income type</div>
+            <div class="text-xs text-gray mb-12">Select all that apply — this determines which financial documents the guarantor will need to provide.</div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+                <input type="checkbox" id="guarantor_is_employee" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncGuarantorEmployment()">
+                <div>
+                  <div style="font-size:.9rem; font-weight:500;">Employee</div>
+                  <div class="text-xs text-gray">The guarantor is employed — they will need to provide 3 months of salary slips.</div>
+                </div>
+              </label>
+              <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+                <input type="checkbox" id="guarantor_is_self_employed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncGuarantorEmployment()">
+                <div>
+                  <div style="font-size:.9rem; font-weight:500;">Self-employed / Independent</div>
+                  <div class="text-xs text-gray">The guarantor runs their own business — they will provide balance sheets, tax assessments, bank statements, and proof of income.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Employment details — shown when at least one income type is selected -->
+          <div id="guarantor-employment-section" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+            <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Guarantor — Employment</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Employer / Business name</label>
+                <input type="text" id="guarantor_employer_name" placeholder="Company name">
+              </div>
+              <div class="form-group">
+                <label>Job title / Activity</label>
+                <input type="text" id="guarantor_job_role" placeholder="Position or type of activity">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Employment start date</label>
+                <input type="date" id="guarantor_employment_start_date">
+              </div>
+              <div class="form-group">
+                <label>Monthly gross income (CHF)</label>
+                <input type="number" id="guarantor_monthly_gross_salary" placeholder="e.g. 8500">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
         <!-- Income type — hidden when needs_guarantor is checked -->
         <div id="income-type-section" style="margin-top:20px;">
           <div style="font-size:.875rem; font-weight:600; margin-bottom:4px;">Type of income</div>
           <div class="text-xs text-gray mb-12">Select all that apply — this determines which financial documents you'll need to upload.</div>
           <div style="display:flex; flex-direction:column; gap:12px;">
             <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
-              <input type="checkbox" id="is_employee" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;">
+              <input type="checkbox" id="is_employee" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
               <div>
                 <div style="font-size:.9rem; font-weight:500;">Employee</div>
                 <div class="text-xs text-gray">You receive a salary from an employer — you will need to provide 3 months of salary slips.</div>
               </div>
             </label>
             <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
-              <input type="checkbox" id="is_self_employed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;">
+              <input type="checkbox" id="is_self_employed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
               <div>
                 <div style="font-size:.9rem; font-weight:500;">Self-employed / Independent</div>
                 <div class="text-xs text-gray">You run your own business or work as a freelancer — you will need to provide balance sheets, tax assessments, bank statements, and proof of self-employed status.</div>
               </div>
             </label>
             <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
-              <input type="checkbox" id="is_unemployed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;">
+              <input type="checkbox" id="is_unemployed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
               <div>
                 <div style="font-size:.9rem; font-weight:500;">Unemployed (receiving unemployment benefits)</div>
                 <div class="text-xs text-gray">You are currently receiving unemployment benefits (indemnités chômage / Arbeitslosengeld) — you will need to provide 3 months of benefit statements.</div>
               </div>
             </label>
             <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
-              <input type="checkbox" id="is_on_welfare" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;">
+              <input type="checkbox" id="is_on_welfare" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
               <div>
                 <div style="font-size:.9rem; font-weight:500;">Social assistance / Welfare</div>
                 <div class="text-xs text-gray">You are supported by a social assistance organisation (e.g. Hospice général – Geneva, CSR – Vaud) — you will need to provide a certificate of rent coverage from the organisation.</div>
@@ -365,7 +572,19 @@ let _userId = null;
     if (data.is_smoker)  document.getElementById('is_smoker').checked = true;
     if (data.has_pets)   document.getElementById('has_pets').checked = true;
 
-    if (data.needs_guarantor)                   document.getElementById('needs_guarantor').checked = true;
+    if (data.needs_guarantor)            document.getElementById('needs_guarantor').checked = true;
+    f('guarantor_full_name',             data.guarantor_full_name);
+    f('guarantor_date_of_birth',         data.guarantor_date_of_birth);
+    f('guarantor_nationality',           data.guarantor_nationality);
+    f('guarantor_permit_type',           data.guarantor_permit_type || 'swiss');
+    syncGuarantorPermitType();
+    f('guarantor_current_address',       data.guarantor_current_address);
+    if (data.guarantor_is_employee)      document.getElementById('guarantor_is_employee').checked = true;
+    if (data.guarantor_is_self_employed) document.getElementById('guarantor_is_self_employed').checked = true;
+    f('guarantor_employer_name',         data.guarantor_employer_name);
+    f('guarantor_job_role',              data.guarantor_job_role);
+    f('guarantor_employment_start_date', data.guarantor_employment_start_date);
+    f('guarantor_monthly_gross_salary',  data.guarantor_monthly_gross_salary);
     if (data.is_employee)                        document.getElementById('is_employee').checked = true;
     if (data.is_self_employed)                   document.getElementById('is_self_employed').checked = true;
     if (data.is_unemployed)                      document.getElementById('is_unemployed').checked = true;
@@ -378,7 +597,44 @@ let _userId = null;
 
 function syncRentalSituation() {
   const needsGuarantor = document.getElementById('needs_guarantor').checked;
+  document.getElementById('guarantor-type-section').style.display = needsGuarantor ? 'block' : 'none';
   document.getElementById('income-type-section').style.display = needsGuarantor ? 'none' : 'block';
+  syncGuarantorEmployment();
+}
+
+function syncIncomeType(changed) {
+  const working  = ['is_employee', 'is_self_employed'];
+  const benefits = ['is_unemployed', 'is_on_welfare'];
+
+  if (working.includes(changed.id) && changed.checked) {
+    // Uncheck all benefit options
+    benefits.forEach(id => { document.getElementById(id).checked = false; });
+  } else if (benefits.includes(changed.id) && changed.checked) {
+    // Uncheck all working-income options and the other benefit
+    working.forEach(id  => { document.getElementById(id).checked = false; });
+    benefits.forEach(id => { if (id !== changed.id) document.getElementById(id).checked = false; });
+  }
+}
+
+function syncGuarantorEmployment() {
+  const isEmployee     = document.getElementById('guarantor_is_employee').checked;
+  const isSelfEmployed = document.getElementById('guarantor_is_self_employed').checked;
+  document.getElementById('guarantor-employment-section').style.display = (isEmployee || isSelfEmployed) ? 'block' : 'none';
+}
+
+function syncGuarantorPermitType() {
+  const nat    = document.getElementById('guarantor_nationality').value;
+  const permit = document.getElementById('guarantor_permit_type');
+  const swissOpt = permit.querySelector('option[value="swiss"]');
+  if (nat === 'Swiss') {
+    if (swissOpt) swissOpt.hidden = false;
+    permit.value    = 'swiss';
+    permit.disabled = true;
+  } else {
+    if (swissOpt) swissOpt.hidden = true;
+    permit.disabled = false;
+    if (permit.value === 'swiss') permit.value = '';
+  }
 }
 
 function syncPermitType() {
@@ -415,7 +671,18 @@ async function saveProfile(e) {
     occupant_count:        parseInt(document.getElementById('occupant_count').value) || 1,
     is_smoker:             document.getElementById('is_smoker').checked,
     has_pets:              document.getElementById('has_pets').checked,
-    needs_guarantor:       document.getElementById('needs_guarantor').checked,
+    needs_guarantor:                  document.getElementById('needs_guarantor').checked,
+    guarantor_full_name:              document.getElementById('guarantor_full_name').value.trim() || null,
+    guarantor_date_of_birth:          document.getElementById('guarantor_date_of_birth').value || null,
+    guarantor_nationality:            document.getElementById('guarantor_nationality').value || null,
+    guarantor_permit_type:            document.getElementById('guarantor_nationality').value === 'Swiss' ? 'swiss' : (document.getElementById('guarantor_permit_type').value || null),
+    guarantor_current_address:        document.getElementById('guarantor_current_address').value.trim() || null,
+    guarantor_is_employee:            document.getElementById('guarantor_is_employee').checked,
+    guarantor_is_self_employed:       document.getElementById('guarantor_is_self_employed').checked,
+    guarantor_employer_name:          document.getElementById('guarantor_employer_name').value.trim() || null,
+    guarantor_job_role:               document.getElementById('guarantor_job_role').value.trim() || null,
+    guarantor_employment_start_date:  document.getElementById('guarantor_employment_start_date').value || null,
+    guarantor_monthly_gross_salary:   parseFloat(document.getElementById('guarantor_monthly_gross_salary').value) || null,
     is_employee:           document.getElementById('is_employee').checked,
     is_self_employed:      document.getElementById('is_self_employed').checked,
     is_unemployed:         document.getElementById('is_unemployed').checked,

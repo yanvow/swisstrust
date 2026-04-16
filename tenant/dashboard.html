@@ -55,6 +55,10 @@
       </a>
     </div>
     <div class="sidebar__section">
+      <div class="sidebar__label">Account</div>
+      <a href="settings.html" class="sidebar__link"><span class="sidebar__icon">⚙</span> Settings</a>
+    </div>
+    <div class="sidebar__section">
       <div class="sidebar__label">Notifications</div>
       <a href="dashboard.html" class="sidebar__link" id="sidebar-notif" style="display:none;">
         <span class="sidebar__icon">🔔</span> Access requests <span id="sidebar-notif-count" class="badge badge-amber" style="font-size:.7rem; margin-left:4px;"></span>
@@ -141,8 +145,10 @@
 <script>
 // ── Document type meta (mirrors documents.html registry) ─────
 function getDocTypeMeta(tenant) {
-  const isSwiss        = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
-  const needsGuarantor = !!tenant.needs_guarantor;
+  const isSwiss                = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
+  const needsGuarantor         = !!tenant.needs_guarantor;
+  const guarantorIsEmployee    = !!tenant.guarantor_is_employee;
+  const guarantorIsSelfEmployed = !!tenant.guarantor_is_self_employed;
   const isEmployee     = !!tenant.is_employee;
   const isSelfEmployed = !!tenant.is_self_employed;
   const isUnemployed   = !!tenant.is_unemployed;
@@ -157,11 +163,19 @@ function getDocTypeMeta(tenant) {
   types.push({ key: 'reference_letter',  label: 'Landlord reference letter', icon: '🏠' });
 
   if (needsGuarantor) {
-    types.push({ key: 'guarantor_id',             label: 'Guarantor — Passport or ID', icon: '🪪' });
-    types.push({ key: 'guarantor_salary_slip_1',  label: 'Guarantor — Salary slip 1',  icon: '💰' });
-    types.push({ key: 'guarantor_salary_slip_2',  label: 'Guarantor — Salary slip 2',  icon: '💰' });
-    types.push({ key: 'guarantor_salary_slip_3',  label: 'Guarantor — Salary slip 3',  icon: '💰' });
-    types.push({ key: 'guarantor_betreibungsauszug', label: 'Guarantor — Debt register extract', icon: '⚖️' });
+    types.push({ key: 'guarantor_id',                label: 'Guarantor — Passport or ID',          icon: '🪪' });
+    types.push({ key: 'guarantor_betreibungsauszug',  label: 'Guarantor — Debt register extract',   icon: '⚖️' });
+    if (guarantorIsEmployee) {
+      types.push({ key: 'guarantor_salary_slip_1',  label: 'Guarantor — Salary slip 1',            icon: '💰' });
+      types.push({ key: 'guarantor_salary_slip_2',  label: 'Guarantor — Salary slip 2',            icon: '💰' });
+      types.push({ key: 'guarantor_salary_slip_3',  label: 'Guarantor — Salary slip 3',            icon: '💰' });
+    }
+    if (guarantorIsSelfEmployed) {
+      types.push({ key: 'guarantor_balance_sheet',    label: 'Guarantor — Balance sheets & P&L',   icon: '📊' });
+      types.push({ key: 'guarantor_tax_assessment',   label: 'Guarantor — Tax assessment notice',  icon: '🧾' });
+      types.push({ key: 'guarantor_bank_statement',   label: 'Guarantor — Bank statements',        icon: '🏦' });
+      types.push({ key: 'guarantor_net_income_proof', label: 'Guarantor — Net income proof',       icon: '💵' });
+    }
   } else {
     if (isEmployee) {
       types.push({ key: 'salary_slip_1', label: 'Salary slip — month 1', icon: '💰' });
@@ -201,13 +215,21 @@ function computeProvisionalTrust(docsMap, tenant) {
 
   // Income docs — deduct based on what's expected
   if (tenant.needs_guarantor) {
-    // Check guarantor salary slips
-    ['guarantor_salary_slip_1', 'guarantor_salary_slip_2', 'guarantor_salary_slip_3'].forEach(k => {
-      const s = docsMap[k];
-      if (!s)                            score -= 8;
-      else if (s.status !== 'auto_verified') score -= 4;
-    });
     if (!docsMap['guarantor_id']) score -= 10;
+    if (tenant.guarantor_is_employee) {
+      ['guarantor_salary_slip_1', 'guarantor_salary_slip_2', 'guarantor_salary_slip_3'].forEach(k => {
+        const s = docsMap[k];
+        if (!s)                                score -= 8;
+        else if (s.status !== 'auto_verified') score -= 4;
+      });
+    }
+    if (tenant.guarantor_is_self_employed) {
+      ['guarantor_balance_sheet', 'guarantor_tax_assessment'].forEach(k => {
+        const s = docsMap[k];
+        if (!s)                                score -= 8;
+        else if (s.status !== 'auto_verified') score -= 4;
+      });
+    }
   } else {
     if (tenant.is_employee) {
       ['salary_slip_1', 'salary_slip_2', 'salary_slip_3'].forEach(k => {

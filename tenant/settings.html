@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — Checks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <style>
+    .tab-bar { display:flex; gap:0; border-bottom:2px solid var(--gray-200); margin-bottom:28px; }
+    .tab-btn { padding:10px 22px; border:none; background:none; font-size:.9rem; font-weight:600; color:var(--gray-400); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:color .15s, border-color .15s; }
+    .tab-btn.active { color:var(--charcoal); border-bottom-color:var(--charcoal); }
+
+    .danger-zone { border-color: #FECACA !important; }
+    .danger-zone legend { color: var(--red); }
+
+    .payment-method-card { border:1px solid var(--gray-200); border-radius:var(--radius); padding:16px 20px; display:flex; align-items:center; gap:14px; margin-bottom:12px; }
+    .payment-method-card.is-default { border-color:#86EFAC; background:#F0FDF4; }
+    .payment-method-icon { font-size:1.5rem; flex-shrink:0; width:36px; text-align:center; }
+    .payment-method-info { flex:1; min-width:0; }
+    .payment-method-name { font-weight:600; font-size:.9rem; }
+    .payment-method-sub { font-size:.8rem; color:var(--gray-400); margin-top:2px; }
+
+    .invoice-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--gray-100); }
+    .invoice-row:last-child { border-bottom:none; }
+
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:white; border-radius:var(--radius); width:100%; max-width:500px; padding:32px; box-shadow:var(--shadow-lg); max-height:90vh; overflow-y:auto; }
+
+    .phone-row { display:flex; gap:8px; }
+    .phone-row select { width:110px; flex-shrink:0; }
+    .phone-row input { flex:1; }
+
+    .tax-id-list { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+    .tax-id-row { display:flex; gap:8px; }
+    .tax-id-row input { flex:1; }
+
+    .plan-banner { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 20px; background:var(--gray-100); border-radius:var(--radius); margin-bottom:24px; flex-wrap:wrap; }
+    .plan-name { font-weight:700; font-size:1rem; }
+    .plan-meta { font-size:.8rem; color:var(--gray-400); margin-top:2px; }
+    .usage-item { margin-bottom:20px; }
+    .usage-item:last-child { margin-bottom:0; }
+    .usage-label-row { display:flex; align-items:center; gap:12px; }
+    .usage-label { font-size:.875rem; font-weight:600; min-width:190px; flex-shrink:0; }
+    .usage-bar-wrap { flex:1; background:var(--gray-200); border-radius:9999px; height:8px; overflow:hidden; }
+    .usage-bar-fill { height:100%; border-radius:9999px; background:var(--charcoal); transition:width .4s ease; }
+    .usage-bar-fill.warn { background:var(--amber); }
+    .usage-bar-fill.over { background:var(--red); }
+    .usage-count { font-size:.875rem; font-weight:600; flex-shrink:0; width:64px; text-align:right; color:var(--charcoal); }
+    .usage-sub { font-size:.78rem; color:var(--gray-400); margin-top:4px; padding-left:202px; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">C</div>
+      Checks
+    </a>
+    <div class="nav__links">
+      <span class="text-sm text-gray" id="nav-name"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">My dossier</div>
+      <a href="dashboard.html" class="sidebar__link"><span class="sidebar__icon">⊞</span> Dashboard</a>
+      <a href="profile.html" class="sidebar__link"><span class="sidebar__icon">◎</span> My profile</a>
+      <a href="documents.html" class="sidebar__link"><span class="sidebar__icon">📄</span> Documents</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Certificates</div>
+      <a href="certificates.html" class="sidebar__link"><span class="sidebar__icon">🪪</span> My certificates</a>
+      <a href="certificate-new.html" class="sidebar__link"><span class="sidebar__icon">＋</span> New certificate</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Other</div>
+      <a href="../verify.html" class="sidebar__link">
+        <span class="sidebar__icon">✓</span> Verify a certificate
+      </a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Account</div>
+      <a href="settings.html" class="sidebar__link sidebar__link--active"><span class="sidebar__icon">⚙</span> Settings</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Notifications</div>
+      <a href="dashboard.html" class="sidebar__link" id="sidebar-notif" style="display:none;">
+        <span class="sidebar__icon">🔔</span> Access requests <span id="sidebar-notif-count" class="badge badge-amber" style="font-size:.7rem; margin-left:4px;"></span>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-title">Settings</div>
+    <div class="page-subtitle">Manage your account, payment methods, and billing.</div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-btn-options" onclick="showTab('options')">Options</button>
+      <button class="tab-btn" id="tab-btn-usage" onclick="showTab('usage')">Usage</button>
+      <button class="tab-btn" id="tab-btn-payment" onclick="showTab('payment')">Payment</button>
+    </div>
+
+    <!-- ── OPTIONS TAB ───────────────────────────────────── -->
+    <div id="tab-options">
+
+      <fieldset class="fieldset">
+        <legend>Data management</legend>
+        <div style="display:flex; flex-direction:column; gap:20px;">
+
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+            <div>
+              <div style="font-weight:600; font-size:.9rem;">Delete all documents</div>
+              <div class="text-sm text-gray" style="margin-top:4px;">Permanently removes all uploaded files (passport, salary slips, etc.) from your dossier. Your profile information is kept.</div>
+            </div>
+            <button class="btn btn-outline btn-sm" style="color:var(--amber);border-color:var(--amber);flex-shrink:0;" onclick="confirmDeleteDocuments()">Delete all documents</button>
+          </div>
+
+          <div style="border-top:1px solid var(--gray-200);padding-top:20px;display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+            <div>
+              <div style="font-weight:600; font-size:.9rem;">Clear all profile information</div>
+              <div class="text-sm text-gray" style="margin-top:4px;">Resets your name, employment, household and rental situation fields to blank. Documents are not affected.</div>
+            </div>
+            <button class="btn btn-outline btn-sm" style="color:var(--amber);border-color:var(--amber);flex-shrink:0;" onclick="confirmClearInfo()">Clear information</button>
+          </div>
+
+        </div>
+      </fieldset>
+
+      <fieldset class="fieldset" style="margin-top:24px;">
+        <legend>Notifications</legend>
+        <div style="display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+            <div>
+              <div style="font-weight:600; font-size:.9rem;">Certificate viewed</div>
+              <div class="text-sm text-gray" style="margin-top:4px;">Receive an email when a landlord or agency opens your certificate.</div>
+            </div>
+            <label class="toggle" style="display:inline-flex;align-items:center;flex-shrink:0;cursor:pointer;">
+              <input type="checkbox" id="notif-cert-viewed" onchange="saveNotifPrefs()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div style="border-top:1px solid var(--gray-100);padding-top:18px;display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+            <div>
+              <div style="font-weight:600; font-size:.9rem;">Access request decided</div>
+              <div class="text-sm text-gray" style="margin-top:4px;">Get notified when a landlord's full-dossier access request is approved or denied.</div>
+            </div>
+            <label class="toggle" style="display:inline-flex;align-items:center;flex-shrink:0;cursor:pointer;">
+              <input type="checkbox" id="notif-access-request" onchange="saveNotifPrefs()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div style="border-top:1px solid var(--gray-100);padding-top:18px;display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+            <div>
+              <div style="font-weight:600; font-size:.9rem;">Weekly digest</div>
+              <div class="text-sm text-gray" style="margin-top:4px;">A weekly summary of your certificate activity and dossier views.</div>
+            </div>
+            <label class="toggle" style="display:inline-flex;align-items:center;flex-shrink:0;cursor:pointer;">
+              <input type="checkbox" id="notif-weekly-digest" onchange="saveNotifPrefs()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div style="border-top:1px solid var(--gray-100);padding-top:18px;display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+            <div>
+              <div style="font-weight:600; font-size:.9rem;">Product news</div>
+              <div class="text-sm text-gray" style="margin-top:4px;">Occasional emails about new Checks features and updates.</div>
+            </div>
+            <label class="toggle" style="display:inline-flex;align-items:center;flex-shrink:0;cursor:pointer;">
+              <input type="checkbox" id="notif-product-news" onchange="saveNotifPrefs()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="fieldset" style="margin-top:24px;">
+        <legend>Other</legend>
+        <div class="form-row" style="margin-bottom:0;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Interface language</label>
+            <select id="pref-language" onchange="saveOtherPrefs()">
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="it">Italiano</option>
+            </select>
+            <div class="form-hint">Applies to this browser. Full translation coming soon.</div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Date format</label>
+            <select id="pref-date-format" onchange="saveOtherPrefs()">
+              <option value="dd.mm.yyyy">DD.MM.YYYY (Swiss)</option>
+              <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+              <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+              <option value="yyyy-mm-dd">YYYY-MM-DD (ISO)</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="fieldset danger-zone" style="margin-top:24px;">
+        <legend>Danger zone</legend>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:600; font-size:.9rem;">Delete my account</div>
+            <div class="text-sm text-gray" style="margin-top:4px;">Permanently deletes your Checks account, all documents, certificates, and profile data. This action cannot be undone.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red);flex-shrink:0;" id="delete-account-btn" onclick="confirmDeleteAccount()">Delete account</button>
+        </div>
+        <div id="delete-account-error" style="display:none; color:var(--red); font-size:.875rem; margin-top:12px;"></div>
+      </fieldset>
+
+    </div>
+
+    <!-- ── USAGE TAB ────────────────────────────────────── -->
+    <div id="tab-usage" style="display:none;">
+
+      <div class="plan-banner">
+        <div>
+          <div class="plan-name">Free plan <span class="badge badge-gray" style="font-size:.75rem;margin-left:6px;vertical-align:middle;">Current</span></div>
+          <div class="plan-meta">3 certificates/month · Unlimited document uploads · Basic application tracking</div>
+        </div>
+        <button class="btn btn-primary btn-sm" disabled title="Coming soon">Upgrade to Premium</button>
+      </div>
+
+      <fieldset class="fieldset">
+        <legend>Monthly usage</legend>
+        <div id="usage-monthly-list">
+          <div class="text-sm text-gray">Loading…</div>
+        </div>
+      </fieldset>
+
+      <fieldset class="fieldset" style="margin-top:20px;">
+        <legend>Storage</legend>
+        <div id="usage-storage-list">
+          <div class="text-sm text-gray">Loading…</div>
+        </div>
+      </fieldset>
+
+    </div>
+
+    <!-- ── PAYMENT TAB ───────────────────────────────────── -->
+    <div id="tab-payment" style="display:none;">
+
+      <!-- Payment methods -->
+      <fieldset class="fieldset">
+        <legend>Payment methods</legend>
+        <div id="payment-methods-list">
+          <div class="text-sm text-gray">Loading…</div>
+        </div>
+        <button class="btn btn-outline btn-sm" style="margin-top:12px;" onclick="openAddPayment()">+ Add payment method</button>
+      </fieldset>
+
+      <!-- Billing information -->
+      <fieldset class="fieldset" style="margin-top:20px;">
+        <legend>Billing information</legend>
+        <form onsubmit="saveBilling(event)" id="billing-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full name</label>
+              <input type="text" id="b-full_name" placeholder="Your legal name">
+            </div>
+            <div class="form-group">
+              <label>Billing email</label>
+              <input type="email" id="b-email" placeholder="billing@example.com">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Address</label>
+            <input type="text" id="b-address" placeholder="Street, city, postcode, country">
+          </div>
+          <div class="form-group">
+            <label>Phone number</label>
+            <div class="phone-row">
+              <select id="b-phone_country_code">
+                <option value="+41">🇨🇭 +41</option>
+                <option value="+33">🇫🇷 +33</option>
+                <option value="+49">🇩🇪 +49</option>
+                <option value="+39">🇮🇹 +39</option>
+                <option value="+43">🇦🇹 +43</option>
+                <option value="+32">🇧🇪 +32</option>
+                <option value="+31">🇳🇱 +31</option>
+                <option value="+34">🇪🇸 +34</option>
+                <option value="+351">🇵🇹 +351</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+1">🇺🇸 +1</option>
+                <option value="+55">🇧🇷 +55</option>
+                <option value="+86">🇨🇳 +86</option>
+                <option value="+91">🇮🇳 +91</option>
+                <option value="+81">🇯🇵 +81</option>
+                <option value="+82">🇰🇷 +82</option>
+                <option value="+7">🇷🇺 +7</option>
+                <option value="+90">🇹🇷 +90</option>
+                <option value="+212">🇲🇦 +212</option>
+                <option value="+213">🇩🇿 +213</option>
+                <option value="+216">🇹🇳 +216</option>
+                <option value="+234">🇳🇬 +234</option>
+                <option value="+254">🇰🇪 +254</option>
+              </select>
+              <input type="tel" id="b-phone_number" placeholder="79 123 45 67">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Tax ID(s) <span style="font-size:.75rem;color:var(--gray-400);font-weight:400;">(optional — add multiple)</span></label>
+            <div class="tax-id-list" id="tax-id-list"></div>
+            <button type="button" class="btn btn-ghost btn-sm" style="padding:6px 10px;" onclick="addTaxIdRow()">+ Add Tax ID</button>
+          </div>
+
+          <div id="billing-error" style="display:none; color:var(--red); font-size:.875rem; margin-bottom:8px;"></div>
+          <button type="submit" id="billing-save-btn" class="btn btn-primary btn-sm">Save billing information</button>
+        </form>
+      </fieldset>
+
+      <!-- Invoice history -->
+      <fieldset class="fieldset" style="margin-top:20px;">
+        <legend>Invoice history</legend>
+        <div id="invoice-list">
+          <div class="text-sm text-gray">Loading…</div>
+        </div>
+      </fieldset>
+
+    </div>
+  </main>
+</div>
+
+<!-- ── Add payment method modal ─────────────────────────── -->
+<div class="modal-overlay" id="modal-payment">
+  <div class="modal-box">
+    <div class="flex-between mb-20">
+      <div style="font-weight:700; font-size:1.05rem;">Add payment method</div>
+      <button onclick="closeAddPayment()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray-400);">×</button>
+    </div>
+    <div id="pm-error" style="display:none;color:var(--red);font-size:.875rem;margin-bottom:12px;"></div>
+
+    <div class="form-group">
+      <label>Method type <span class="req">*</span></label>
+      <select id="pm-type" onchange="syncPaymentForm()">
+        <option value="">— Select method</option>
+        <option value="wire_transfer">Wire transfer (IBAN)</option>
+        <option value="credit_card">Credit card (Visa / Mastercard)</option>
+        <option value="twint">TWINT</option>
+      </select>
+    </div>
+
+    <!-- Wire transfer fields -->
+    <div id="pm-wire" style="display:none;">
+      <div class="form-group"><label>Account holder <span class="req">*</span></label><input type="text" id="pm-account_holder" placeholder="Full legal name"></div>
+      <div class="form-group"><label>IBAN <span class="req">*</span></label><input type="text" id="pm-iban" placeholder="CH56 0483 5012 3456 7800 9"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Bank name</label><input type="text" id="pm-bank_name" placeholder="e.g. UBS, Credit Suisse"></div>
+        <div class="form-group"><label>BIC / SWIFT</label><input type="text" id="pm-bic" placeholder="UBSWCHZH80A"></div>
+      </div>
+    </div>
+
+    <!-- Credit card fields -->
+    <div id="pm-card" style="display:none;">
+      <div class="form-group">
+        <label>Card brand <span class="req">*</span></label>
+        <select id="pm-card_brand">
+          <option value="">— Select</option>
+          <option value="visa">Visa</option>
+          <option value="mastercard">Mastercard</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Cardholder name <span class="req">*</span></label><input type="text" id="pm-cardholder_name" placeholder="As printed on card"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Last 4 digits <span class="req">*</span></label><input type="text" id="pm-card_last4" placeholder="1234" maxlength="4"></div>
+        <div class="form-group"><label>Expiry (MM/YY) <span class="req">*</span></label><input type="text" id="pm-card_expiry" placeholder="12/27" maxlength="5"></div>
+      </div>
+      <div class="alert alert-info" style="font-size:.8rem; padding:10px 14px;">
+        <span>ℹ️</span>
+        <span>We store only the last 4 digits and expiry for display. Full card numbers are never stored.</span>
+      </div>
+    </div>
+
+    <!-- TWINT fields -->
+    <div id="pm-twint" style="display:none;">
+      <div class="form-group">
+        <label>TWINT phone number <span class="req">*</span></label>
+        <div class="phone-row">
+          <select id="pm-twint-cc">
+            <option value="+41">🇨🇭 +41</option>
+            <option value="+33">🇫🇷 +33</option>
+            <option value="+49">🇩🇪 +49</option>
+          </select>
+          <input type="tel" id="pm-twint_phone" placeholder="79 123 45 67">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="toggle" style="display:inline-flex; align-items:center; gap:10px; cursor:pointer; font-weight:normal;">
+        <input type="checkbox" id="pm-is_default">
+        <span class="toggle-slider"></span>
+        <span style="font-size:.875rem;">Set as default payment method</span>
+      </label>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button class="btn btn-primary" id="pm-save-btn" onclick="savePaymentMethod()">Add method</button>
+      <button class="btn btn-ghost" onclick="closeAddPayment()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _userId = null;
+let _tenantId = null;
+
+(async () => {
+  const user = await sbHelpers.requireAuth('tenant');
+  if (!user) return;
+  _userId = user.id;
+  document.getElementById('nav-name').textContent = user.user_metadata?.full_name || user.email;
+
+  const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
+  if (tenant) _tenantId = tenant.id;
+
+  loadNotifPrefs();
+  loadOtherPrefs();
+  await Promise.all([loadPaymentMethods(), loadBillingProfile(), loadInvoices(), loadUsage()]);
+})();
+
+// ── Tabs ──────────────────────────────────────────────────
+function showTab(tab) {
+  ['options','usage','payment'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
+    document.getElementById('tab-btn-' + t).classList.toggle('active', t === tab);
+  });
+}
+
+// ── Usage ─────────────────────────────────────────────────
+function usageBar(label, used, limit, sub, unlimited) {
+  const pct       = unlimited ? 0 : Math.min(100, used / limit * 100);
+  const fillClass = unlimited ? '' : pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
+  const count     = unlimited ? `${used} / ∞` : `${used} / ${limit}`;
+  const bar       = unlimited
+    ? `<div class="usage-bar-wrap"><div class="usage-bar-fill" style="width:0%;background:var(--gray-300);"></div></div>`
+    : `<div class="usage-bar-wrap"><div class="usage-bar-fill ${fillClass}" style="width:${pct}%;"></div></div>`;
+  return `<div class="usage-item">
+    <div class="usage-label-row">
+      <div class="usage-label">${label}</div>
+      ${bar}
+      <div class="usage-count">${count}</div>
+    </div>
+    ${sub ? `<div class="usage-sub">${sub}</div>` : ''}
+  </div>`;
+}
+
+async function loadUsage() {
+  if (!_tenantId) return;
+
+  const now        = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+  const [certRes, docRes] = await Promise.all([
+    _sb.from('certificates').select('id', { count: 'exact', head: true }).eq('tenant_id', _tenantId).gte('created_at', monthStart),
+    _sb.from('documents').select('id', { count: 'exact', head: true }).eq('tenant_id', _tenantId),
+  ]);
+
+  const certCount = certRes.count ?? 0;
+  const docCount  = docRes.count  ?? 0;
+
+  document.getElementById('usage-monthly-list').innerHTML =
+    usageBar('Certificates issued', certCount, 3, 'Monthly allowance resets on the 1st of each month. Upgrade for unlimited.');
+
+  document.getElementById('usage-storage-list').innerHTML =
+    usageBar('Documents uploaded', docCount, null, 'Document uploads are always unlimited on all plans.', true);
+}
+
+// ── Notifications & Other prefs ───────────────────────────
+function loadNotifPrefs() {
+  const prefs = JSON.parse(localStorage.getItem(`swisstrust:notifPrefs:${_userId}`) || '{}');
+  document.getElementById('notif-cert-viewed').checked    = prefs['cert-viewed']    ?? true;
+  document.getElementById('notif-access-request').checked = prefs['access-request'] ?? true;
+  document.getElementById('notif-weekly-digest').checked  = prefs['weekly-digest']  ?? false;
+  document.getElementById('notif-product-news').checked   = prefs['product-news']   ?? false;
+}
+
+function saveNotifPrefs() {
+  const prefs = {
+    'cert-viewed':    document.getElementById('notif-cert-viewed').checked,
+    'access-request': document.getElementById('notif-access-request').checked,
+    'weekly-digest':  document.getElementById('notif-weekly-digest').checked,
+    'product-news':   document.getElementById('notif-product-news').checked,
+  };
+  localStorage.setItem(`swisstrust:notifPrefs:${_userId}`, JSON.stringify(prefs));
+}
+
+function loadOtherPrefs() {
+  const prefs = JSON.parse(localStorage.getItem(`swisstrust:otherPrefs:${_userId}`) || '{}');
+  if (prefs.language)   document.getElementById('pref-language').value    = prefs.language;
+  if (prefs.dateFormat) document.getElementById('pref-date-format').value = prefs.dateFormat;
+}
+
+function saveOtherPrefs() {
+  const prefs = {
+    language:   document.getElementById('pref-language').value,
+    dateFormat: document.getElementById('pref-date-format').value,
+  };
+  localStorage.setItem(`swisstrust:otherPrefs:${_userId}`, JSON.stringify(prefs));
+}
+
+// ── Options ───────────────────────────────────────────────
+async function confirmDeleteDocuments() {
+  if (!_tenantId) return alert('Your tenant profile has not been created yet.');
+  if (!confirm('Permanently delete all your uploaded documents? This cannot be undone.')) return;
+  const { error } = await sbHelpers.deleteSelfDocuments(_tenantId);
+  if (error) { alert('Error: ' + error.message); return; }
+  alert('All documents have been deleted.');
+}
+
+async function confirmClearInfo() {
+  if (!_tenantId) return alert('Your tenant profile has not been created yet.');
+  if (!confirm('Clear all your profile information? Your documents will not be affected. This cannot be undone.')) return;
+  const { error } = await sbHelpers.clearSelfTenantInfo(_tenantId);
+  if (error) { alert('Error: ' + error.message); return; }
+  alert('Profile information has been cleared.');
+}
+
+async function confirmDeleteAccount() {
+  if (!confirm('PERMANENTLY delete your Checks account?\n\nThis will remove all your documents, certificates, and data. You will be signed out immediately. This cannot be undone.')) return;
+  const btn = document.getElementById('delete-account-btn');
+  const errEl = document.getElementById('delete-account-error');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+  errEl.style.display = 'none';
+  const { error } = await sbHelpers.deleteSelfAccount();
+  if (error) {
+    btn.disabled = false;
+    btn.textContent = 'Delete account';
+    errEl.textContent = error.message || 'Could not delete account. Please contact support.';
+    errEl.style.display = 'block';
+    return;
+  }
+  await _sb.auth.signOut();
+  window.location.href = '../auth/login.html';
+}
+
+// ── Payment methods ───────────────────────────────────────
+function pmTypeIcon(type) {
+  if (type === 'wire_transfer') return '🏦';
+  if (type === 'credit_card')   return '💳';
+  if (type === 'twint')         return '📱';
+  return '💰';
+}
+
+function pmDisplayName(m) {
+  if (m.method_type === 'wire_transfer') {
+    return `Wire transfer — ${m.iban || 'IBAN not set'}`;
+  }
+  if (m.method_type === 'credit_card') {
+    const brand = m.card_brand === 'visa' ? 'Visa' : m.card_brand === 'mastercard' ? 'Mastercard' : 'Card';
+    return `${brand} •••• ${m.card_last4 || '????'}`;
+  }
+  if (m.method_type === 'twint') return `TWINT — ${m.twint_phone || ''}`;
+  return m.method_type;
+}
+
+function pmSubline(m) {
+  if (m.method_type === 'wire_transfer') return m.bank_name || m.account_holder || '';
+  if (m.method_type === 'credit_card')   return `Expires ${m.card_expiry || '—'} · ${m.cardholder_name || ''}`;
+  if (m.method_type === 'twint')         return '';
+  return '';
+}
+
+async function loadPaymentMethods() {
+  const container = document.getElementById('payment-methods-list');
+  const { data: methods, error } = await sbHelpers.getPaymentMethods();
+  if (error) { container.innerHTML = `<div class="text-sm" style="color:var(--red);">Error: ${esc(error.message)}</div>`; return; }
+  if (!methods || !methods.length) {
+    container.innerHTML = '<div class="text-sm text-gray">No payment methods added yet.</div>';
+    return;
+  }
+  container.innerHTML = methods.map(m => `
+    <div class="payment-method-card ${m.is_default ? 'is-default' : ''}">
+      <div class="payment-method-icon">${pmTypeIcon(m.method_type)}</div>
+      <div class="payment-method-info">
+        <div class="payment-method-name">${esc(pmDisplayName(m))}${m.is_default ? ' <span class="badge badge-green" style="font-size:.7rem;margin-left:6px;">Default</span>' : ''}</div>
+        ${pmSubline(m) ? `<div class="payment-method-sub">${esc(pmSubline(m))}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        ${!m.is_default ? `<button class="btn btn-ghost btn-sm" onclick="makeDefault('${m.id}')" style="font-size:.8rem;padding:5px 10px;">Set default</button>` : ''}
+        <button class="btn btn-outline btn-sm" onclick="removePaymentMethod('${m.id}')" style="color:var(--red);border-color:var(--red);font-size:.8rem;padding:5px 10px;">Remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function makeDefault(methodId) {
+  const { error } = await sbHelpers.setDefaultPaymentMethod(methodId);
+  if (error) { alert('Error: ' + error.message); return; }
+  await loadPaymentMethods();
+}
+
+async function removePaymentMethod(methodId) {
+  if (!confirm('Remove this payment method?')) return;
+  const { error } = await sbHelpers.deletePaymentMethod(methodId);
+  if (error) { alert('Error: ' + error.message); return; }
+  await loadPaymentMethods();
+}
+
+function openAddPayment() {
+  document.getElementById('modal-payment').classList.add('open');
+  document.getElementById('pm-type').value = '';
+  document.getElementById('pm-error').style.display = 'none';
+  document.getElementById('pm-is_default').checked = false;
+  syncPaymentForm();
+}
+function closeAddPayment() { document.getElementById('modal-payment').classList.remove('open'); }
+
+function syncPaymentForm() {
+  const t = document.getElementById('pm-type').value;
+  document.getElementById('pm-wire').style.display  = t === 'wire_transfer' ? '' : 'none';
+  document.getElementById('pm-card').style.display  = t === 'credit_card'   ? '' : 'none';
+  document.getElementById('pm-twint').style.display = t === 'twint'         ? '' : 'none';
+}
+
+async function savePaymentMethod() {
+  const type = document.getElementById('pm-type').value;
+  const errEl = document.getElementById('pm-error');
+  errEl.style.display = 'none';
+  if (!type) { errEl.textContent = 'Please select a method type.'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('pm-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const fields = {
+    method_type: type,
+    is_default: document.getElementById('pm-is_default').checked,
+  };
+
+  if (type === 'wire_transfer') {
+    fields.account_holder = document.getElementById('pm-account_holder').value.trim();
+    fields.iban           = document.getElementById('pm-iban').value.trim().toUpperCase().replace(/\s/g,'');
+    fields.bank_name      = document.getElementById('pm-bank_name').value.trim() || null;
+    fields.bic            = document.getElementById('pm-bic').value.trim().toUpperCase() || null;
+    if (!fields.account_holder || !fields.iban) {
+      errEl.textContent = 'Account holder and IBAN are required.'; errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Add method'; return;
+    }
+  } else if (type === 'credit_card') {
+    fields.card_brand       = document.getElementById('pm-card_brand').value;
+    fields.cardholder_name  = document.getElementById('pm-cardholder_name').value.trim();
+    fields.card_last4       = document.getElementById('pm-card_last4').value.trim();
+    fields.card_expiry      = document.getElementById('pm-card_expiry').value.trim();
+    if (!fields.card_brand || !fields.cardholder_name || !fields.card_last4 || !fields.card_expiry) {
+      errEl.textContent = 'All card fields are required.'; errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Add method'; return;
+    }
+  } else if (type === 'twint') {
+    const cc = document.getElementById('pm-twint-cc').value;
+    const ph = document.getElementById('pm-twint_phone').value.trim();
+    if (!ph) {
+      errEl.textContent = 'TWINT phone number is required.'; errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Add method'; return;
+    }
+    fields.twint_phone = cc + ' ' + ph;
+  }
+
+  if (fields.is_default) await _sb.from('payment_methods').update({ is_default: false }).eq('user_id', _userId);
+
+  const { error } = await sbHelpers.addPaymentMethod(fields);
+  btn.disabled = false; btn.textContent = 'Add method';
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+  closeAddPayment();
+  await loadPaymentMethods();
+}
+
+// ── Billing profile ───────────────────────────────────────
+let _taxIds = [];
+
+async function loadBillingProfile() {
+  const { data } = await sbHelpers.getBillingProfile();
+  if (!data) return;
+  document.getElementById('b-full_name').value         = data.full_name || '';
+  document.getElementById('b-email').value             = data.email || '';
+  document.getElementById('b-address').value           = data.address || '';
+  document.getElementById('b-phone_country_code').value = data.phone_country_code || '+41';
+  document.getElementById('b-phone_number').value      = data.phone_number || '';
+  _taxIds = data.tax_ids || [];
+  renderTaxIds();
+}
+
+function renderTaxIds() {
+  const list = document.getElementById('tax-id-list');
+  if (!_taxIds.length) { list.innerHTML = ''; return; }
+  list.innerHTML = _taxIds.map((id, i) => `
+    <div class="tax-id-row">
+      <input type="text" value="${esc(id)}" oninput="_taxIds[${i}] = this.value" placeholder="e.g. CHE-123.456.789">
+      <button type="button" class="btn btn-ghost btn-sm" style="padding:6px 10px;color:var(--red);" onclick="removeTaxId(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function addTaxIdRow() {
+  _taxIds.push('');
+  renderTaxIds();
+  const inputs = document.querySelectorAll('#tax-id-list input');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function removeTaxId(i) {
+  _taxIds.splice(i, 1);
+  renderTaxIds();
+}
+
+async function saveBilling(e) {
+  e.preventDefault();
+  const btn = document.getElementById('billing-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  document.getElementById('billing-error').style.display = 'none';
+
+  const fields = {
+    full_name:         document.getElementById('b-full_name').value.trim() || null,
+    email:             document.getElementById('b-email').value.trim() || null,
+    address:           document.getElementById('b-address').value.trim() || null,
+    phone_country_code: document.getElementById('b-phone_country_code').value,
+    phone_number:      document.getElementById('b-phone_number').value.trim() || null,
+    tax_ids:           _taxIds.filter(t => t.trim()),
+  };
+
+  const { error } = await sbHelpers.upsertBillingProfile(fields);
+  btn.disabled = false; btn.textContent = 'Save billing information';
+  if (error) {
+    document.getElementById('billing-error').textContent = error.message;
+    document.getElementById('billing-error').style.display = 'block';
+    return;
+  }
+  btn.textContent = '✓ Saved';
+  btn.style.background = 'var(--green)';
+  setTimeout(() => { btn.textContent = 'Save billing information'; btn.style.background = ''; }, 2000);
+}
+
+// ── Invoices ──────────────────────────────────────────────
+const INVOICE_STATUS_BADGE = { paid: 'badge-green', pending: 'badge-amber', overdue: 'badge-red' };
+
+async function loadInvoices() {
+  const container = document.getElementById('invoice-list');
+  const { data: invoices, error } = await sbHelpers.getInvoices();
+  if (error) { container.innerHTML = `<div class="text-sm" style="color:var(--red);">Error: ${esc(error.message)}</div>`; return; }
+  if (!invoices || !invoices.length) {
+    container.innerHTML = '<div class="text-sm text-gray">No invoices yet.</div>';
+    return;
+  }
+  container.innerHTML = invoices.map(inv => {
+    const date = new Date(inv.issued_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+    return `
+    <div class="invoice-row">
+      <div style="flex:1;min-width:0;">
+        <div class="text-sm font-bold">${esc(inv.invoice_number)}</div>
+        <div class="text-xs text-gray">${esc(inv.description || '—')} · ${date}</div>
+      </div>
+      <div style="font-weight:700;font-size:.9rem;flex-shrink:0;margin-right:12px;">CHF ${Number(inv.amount_chf).toFixed(2)}</div>
+      <span class="badge ${INVOICE_STATUS_BADGE[inv.status] || 'badge-gray'}" style="font-size:.7rem;flex-shrink:0;">${inv.status}</span>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

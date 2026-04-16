@@ -13,6 +13,20 @@
     .activity-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--gray-100); font-size:.8125rem; }
     .activity-row:last-child { border-bottom:none; }
     .activity-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0; }
+
+    .usage-tab-bar { display:flex; gap:0; border-bottom:2px solid var(--gray-200); margin-bottom:20px; }
+    .usage-tab-btn { padding:8px 18px; border:none; background:none; font-size:.825rem; font-weight:600; color:var(--gray-400); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:color .15s,border-color .15s; }
+    .usage-tab-btn.active { color:var(--charcoal); border-bottom-color:var(--charcoal); }
+
+    .usage-member-row { display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--gray-100); }
+    .usage-member-row:last-child { border-bottom:none; }
+    .usage-member-name { font-size:.8125rem; font-weight:600; width:180px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .usage-bar-wrap { flex:1; background:var(--gray-200); border-radius:9999px; height:7px; overflow:hidden; }
+    .usage-bar-fill { height:100%; border-radius:9999px; background:var(--charcoal); transition:width .4s ease; }
+    .usage-bar-fill.warn { background:var(--amber); }
+    .usage-bar-fill.over { background:var(--red); }
+    .usage-count-col { font-size:.8rem; font-weight:600; width:48px; text-align:right; flex-shrink:0; color:var(--charcoal); }
+    .usage-limit-lbl { font-size:.75rem; color:var(--gray-400); width:52px; text-align:left; flex-shrink:0; }
   </style>
 </head>
 <body>
@@ -121,6 +135,28 @@
         </div>
       </div>
     </div>
+
+    <!-- ── Usage overview ───────────────────────────────── -->
+    <div class="card">
+      <div class="flex-between mb-4">
+        <div class="card-title">Member usage</div>
+        <div class="text-xs text-gray" id="usage-period">Loading…</div>
+      </div>
+      <div class="card-subtitle" style="margin-bottom:16px;">Current-month allowance consumption per member. Bars turn amber at 80 % and red at 100 %.</div>
+
+      <div class="usage-tab-bar">
+        <button class="usage-tab-btn active" id="utab-btn-tenants"  onclick="showUsageTab('tenants')">Tenants — certificates</button>
+        <button class="usage-tab-btn"        id="utab-btn-agencies" onclick="showUsageTab('agencies')">Agencies — agent seats</button>
+      </div>
+
+      <div id="utab-tenants">
+        <div id="usage-tenants-list"><div class="text-sm text-gray">Loading…</div></div>
+      </div>
+      <div id="utab-agencies" style="display:none;">
+        <div id="usage-agencies-list"><div class="text-sm text-gray">Loading…</div></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -135,6 +171,7 @@ const VIEWER_ICON = { public:'👁', agency:'🏢', owner:'👤', tenant:'🪪' 
   const [stats, activity] = await Promise.all([
     sbHelpers.adminGetStats(),
     sbHelpers.adminGetRecentActivity(),
+    loadUsageOverview(),
   ]);
 
   // Stats
@@ -199,6 +236,72 @@ const VIEWER_ICON = { public:'👁', agency:'🏢', owner:'👤', tenant:'🪪' 
 function esc(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Member usage overview ─────────────────────────────────
+function showUsageTab(tab) {
+  ['tenants','agencies'].forEach(t => {
+    document.getElementById('utab-' + t).style.display          = t === tab ? '' : 'none';
+    document.getElementById('utab-btn-' + t).classList.toggle('active', t === tab);
+  });
+}
+
+function usageMemberRow(name, used, limit, href) {
+  const pct       = Math.min(100, used / limit * 100);
+  const fillClass = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
+  const limitFree = `Free (${limit})`;
+  return `<div class="usage-member-row">
+    <div class="usage-member-name" title="${esc(name)}">${esc(name) || '<span class="text-gray">Unnamed</span>'}</div>
+    <div class="usage-bar-wrap"><div class="usage-bar-fill ${fillClass}" style="width:${pct}%;"></div></div>
+    <div class="usage-count-col">${used} / ${limit}</div>
+    <div class="usage-limit-lbl text-gray" style="font-size:.7rem;">${limitFree}</div>
+    ${href ? `<a href="${href}" class="btn btn-ghost btn-sm" style="font-size:.75rem;padding:4px 8px;flex-shrink:0;">View</a>` : ''}
+  </div>`;
+}
+
+async function loadUsageOverview() {
+  const now        = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const monthLabel = now.toLocaleDateString('en-CH', { month: 'long', year: 'numeric' });
+  document.getElementById('usage-period').textContent = monthLabel;
+
+  // ── Tenants: certificates this month ──────────────────
+  const [tenantsRes, certsRes, agenciesRes, agentsRes] = await Promise.all([
+    _sb.from('tenants').select('id, full_name').order('full_name'),
+    _sb.from('certificates').select('tenant_id').gte('created_at', monthStart),
+    _sb.from('agencies').select('id, company_name').order('company_name'),
+    _sb.from('agency_agents').select('agency_id').eq('status', 'active'),
+  ]);
+
+  // Cert counts per tenant
+  const certsByTenant = {};
+  (certsRes.data || []).forEach(c => {
+    certsByTenant[c.tenant_id] = (certsByTenant[c.tenant_id] || 0) + 1;
+  });
+
+  const tenants = tenantsRes.data || [];
+  if (!tenants.length) {
+    document.getElementById('usage-tenants-list').innerHTML = '<div class="text-sm text-gray">No tenants yet.</div>';
+  } else {
+    const sorted = [...tenants].sort((a, b) => (certsByTenant[b.id] || 0) - (certsByTenant[a.id] || 0));
+    document.getElementById('usage-tenants-list').innerHTML =
+      sorted.map(t => usageMemberRow(t.full_name, certsByTenant[t.id] || 0, 3, `tenants.html`)).join('');
+  }
+
+  // Agent counts per agency
+  const agentsByAgency = {};
+  (agentsRes.data || []).forEach(a => {
+    agentsByAgency[a.agency_id] = (agentsByAgency[a.agency_id] || 0) + 1;
+  });
+
+  const agencies = agenciesRes.data || [];
+  if (!agencies.length) {
+    document.getElementById('usage-agencies-list').innerHTML = '<div class="text-sm text-gray">No agencies yet.</div>';
+  } else {
+    const sorted = [...agencies].sort((a, b) => (agentsByAgency[b.id] || 0) - (agentsByAgency[a.id] || 0));
+    document.getElementById('usage-agencies-list').innerHTML =
+      sorted.map(a => usageMemberRow(a.company_name, agentsByAgency[a.id] || 0, 1, `agencies.html`)).join('');
+  }
 }
 </script>
 </body>

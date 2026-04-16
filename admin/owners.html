@@ -81,7 +81,7 @@
 
 <!-- Edit modal -->
 <div class="modal-overlay" id="modal">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:600px;">
     <div class="flex-between mb-20">
       <div class="modal-title" id="modal-title">Edit owner</div>
       <button onclick="closeModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray-400);">×</button>
@@ -100,6 +100,20 @@
           style="color:var(--red);border-color:var(--red);">Delete</button>
       </div>
     </div>
+
+    <hr style="border:none;border-top:1px solid var(--gray-200);margin:20px 0;">
+
+    <div style="font-weight:600;font-size:.9rem;color:var(--charcoal);margin-bottom:12px;">Payment</div>
+    <div id="payment-section"><div class="text-sm text-gray">Loading…</div></div>
+
+    <hr style="border:none;border-top:1px solid var(--gray-200);margin:20px 0;">
+
+    <div style="font-weight:600;font-size:.9rem;color:var(--red);margin-bottom:12px;">Danger zone</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" id="clear-info-btn" onclick="adminClearInfo()"
+        style="color:var(--amber);border-color:var(--amber);">Clear all information</button>
+    </div>
+    <div id="danger-err" style="display:none;color:var(--red);font-size:.8rem;margin-top:8px;"></div>
   </div>
 </div>
 
@@ -152,6 +166,63 @@ function renderTable(rows) {
     </tr>`).join('');
 }
 
+async function loadOwnerPayment(userId) {
+  const container = document.getElementById('payment-section');
+  if (!userId) { container.innerHTML = '<div class="text-sm text-gray">No auth account linked.</div>'; return; }
+  const [{ data: billing }, { data: methods }, { data: invoices }] = await Promise.all([
+    sbHelpers.adminGetBillingProfile(userId),
+    sbHelpers.adminGetPaymentMethods(userId),
+    sbHelpers.adminGetInvoices(userId),
+  ]);
+  let html = '';
+  if (billing) {
+    html += `<div style="font-size:.8rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Billing info</div>`;
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">`;
+    if (billing.full_name) html += `<div><span style="font-size:.75rem;color:var(--gray-400);">Name</span><div class="text-sm">${esc(billing.full_name)}</div></div>`;
+    if (billing.email) html += `<div><span style="font-size:.75rem;color:var(--gray-400);">Email</span><div class="text-sm">${esc(billing.email)}</div></div>`;
+    if (billing.address) html += `<div style="grid-column:1/-1;"><span style="font-size:.75rem;color:var(--gray-400);">Address</span><div class="text-sm">${esc(billing.address)}</div></div>`;
+    if (billing.phone_number) html += `<div><span style="font-size:.75rem;color:var(--gray-400);">Phone</span><div class="text-sm">${esc((billing.phone_country_code||'')+' '+billing.phone_number)}</div></div>`;
+    if (billing.tax_ids && billing.tax_ids.length) html += `<div><span style="font-size:.75rem;color:var(--gray-400);">Tax IDs</span><div class="text-sm">${billing.tax_ids.map(esc).join(', ')}</div></div>`;
+    html += `</div>`;
+  }
+  if (methods && methods.length) {
+    html += `<div style="font-size:.8rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Payment methods</div>`;
+    html += methods.map(m => {
+      const icon = m.method_type === 'wire_transfer' ? '🏦' : m.method_type === 'credit_card' ? '💳' : '📱';
+      const name = m.method_type === 'wire_transfer' ? `Wire — ${m.iban||''}` : m.method_type === 'credit_card' ? `${m.card_brand==='visa'?'Visa':'Mastercard'} •••• ${m.card_last4||''}` : `TWINT ${m.twint_phone||''}`;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--gray-100);"><span style="font-size:1.1rem;">${icon}</span><div style="flex:1;font-size:.875rem;">${esc(name)}</div>${m.is_default?'<span class="badge badge-green" style="font-size:.65rem;">Default</span>':''}</div>`;
+    }).join('') + '<div style="margin-bottom:12px;"></div>';
+  }
+  if (invoices && invoices.length) {
+    const SB = { paid:'badge-green', pending:'badge-amber', overdue:'badge-red' };
+    html += `<div style="font-size:.8rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Invoices</div>`;
+    html += invoices.map(inv => {
+      const date = new Date(inv.issued_at).toLocaleDateString('en-CH',{day:'2-digit',month:'short',year:'numeric'});
+      return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--gray-100);"><div style="flex:1;min-width:0;"><div class="text-sm font-bold">${esc(inv.invoice_number)}</div><div class="text-xs text-gray">${esc(inv.description||'—')} · ${date}</div></div><div class="text-sm font-bold" style="margin-right:8px;">CHF ${Number(inv.amount_chf).toFixed(2)}</div><span class="badge ${SB[inv.status]||'badge-gray'}" style="font-size:.65rem;">${inv.status}</span></div>`;
+    }).join('');
+  }
+  container.innerHTML = html || '<div class="text-sm text-gray">No payment information on file.</div>';
+}
+
+async function adminClearInfo() {
+  if (!_editingId) return;
+  const o = _all.find(x => x.id === _editingId);
+  if (!confirm(`Clear profile information for "${o?.full_name||'this owner'}"? This cannot be undone.`)) return;
+  const btn = document.getElementById('clear-info-btn');
+  btn.disabled = true; btn.textContent = 'Clearing…';
+  const { error } = await sbHelpers.adminClearOwnerInfo(_editingId);
+  btn.disabled = false; btn.textContent = 'Clear all information';
+  if (error) {
+    document.getElementById('danger-err').textContent = error.message;
+    document.getElementById('danger-err').style.display = 'block';
+  } else {
+    document.getElementById('danger-err').style.display = 'none';
+    const idx = _all.findIndex(x => x.id === _editingId);
+    if (idx !== -1) _all[idx] = { ..._all[idx], full_name: null, phone: null, property_address: null };
+    filterTable();
+  }
+}
+
 function openEdit(id) {
   const o = _all.find(x => x.id === id);
   if (!o) return;
@@ -160,10 +231,12 @@ function openEdit(id) {
   if (suspBtn) { suspBtn.textContent = o.is_suspended ? 'Unsuspend' : 'Suspend'; }
   document.getElementById('modal-title').textContent = 'Edit — ' + (o.full_name || 'Unnamed owner');
   document.getElementById('modal-err').style.display = 'none';
+  document.getElementById('danger-err').style.display = 'none';
   document.getElementById('f-full_name').value       = o.full_name || '';
   document.getElementById('f-phone').value            = o.phone || '';
   document.getElementById('f-property_address').value = o.property_address || '';
   document.getElementById('modal').classList.add('open');
+  loadOwnerPayment(o.user_id);
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); _editingId = null; }

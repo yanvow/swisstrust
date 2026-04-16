@@ -64,6 +64,22 @@
       <a href="certificates.html" class="sidebar__link"><span class="sidebar__icon">🪪</span> My certificates</a>
       <a href="certificate-new.html" class="sidebar__link"><span class="sidebar__icon">＋</span> New certificate</a>
     </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Other</div>
+      <a href="../verify.html" class="sidebar__link">
+        <span class="sidebar__icon">✓</span> Verify a certificate
+      </a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Account</div>
+      <a href="settings.html" class="sidebar__link"><span class="sidebar__icon">⚙</span> Settings</a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Notifications</div>
+      <a href="dashboard.html" class="sidebar__link" id="sidebar-notif" style="display:none;">
+        <span class="sidebar__icon">🔔</span> Access requests <span id="sidebar-notif-count" class="badge badge-amber" style="font-size:.7rem; margin-left:4px;"></span>
+      </a>
+    </div>
   </aside>
 
   <main class="main-content">
@@ -230,6 +246,30 @@ const DOC_TYPE_REGISTRY = {
     icon: '💰',
     hint: '3rd most recent monthly salary slip of the guarantor.',
   },
+  guarantor_balance_sheet: {
+    key: 'guarantor_balance_sheet',
+    label: 'Guarantor — Balance sheets & P&L',
+    icon: '📊',
+    hint: 'Balance sheets and profit & loss statement of the guarantor (last 2 years).',
+  },
+  guarantor_tax_assessment: {
+    key: 'guarantor_tax_assessment',
+    label: 'Guarantor — Tax assessment notice',
+    icon: '🧾',
+    hint: 'Most recent tax assessment notice for the guarantor.',
+  },
+  guarantor_bank_statement: {
+    key: 'guarantor_bank_statement',
+    label: 'Guarantor — Bank statements',
+    icon: '🏦',
+    hint: 'Last 3 months of bank statements for the guarantor.',
+  },
+  guarantor_net_income_proof: {
+    key: 'guarantor_net_income_proof',
+    label: 'Guarantor — Net income proof',
+    icon: '💵',
+    hint: 'Official attestation of net income for the guarantor.',
+  },
   guarantor_betreibungsauszug: {
     key: 'guarantor_betreibungsauszug',
     label: 'Guarantor — Debt enforcement register extract',
@@ -251,17 +291,25 @@ function getDocSections() {
   sections.push({ title: 'Identity documents', types: identityTypes });
 
   if (_needsGuarantor) {
-    // Guarantor section (personal + financial)
+    const guarantorTypes = [
+      DOC_TYPE_REGISTRY.guarantor_id,
+      DOC_TYPE_REGISTRY.guarantor_betreibungsauszug,
+    ];
+    if (_guarantorIsEmployee) {
+      guarantorTypes.push(DOC_TYPE_REGISTRY.guarantor_salary_slip_1);
+      guarantorTypes.push(DOC_TYPE_REGISTRY.guarantor_salary_slip_2);
+      guarantorTypes.push(DOC_TYPE_REGISTRY.guarantor_salary_slip_3);
+    }
+    if (_guarantorIsSelfEmployed) {
+      guarantorTypes.push(DOC_TYPE_REGISTRY.guarantor_balance_sheet);
+      guarantorTypes.push(DOC_TYPE_REGISTRY.guarantor_tax_assessment);
+      guarantorTypes.push(DOC_TYPE_REGISTRY.guarantor_bank_statement);
+      guarantorTypes.push(DOC_TYPE_REGISTRY.guarantor_net_income_proof);
+    }
     sections.push({
       title: 'Guarantor documents',
       subtitle: 'Your guarantor must provide the following documents.',
-      types: [
-        DOC_TYPE_REGISTRY.guarantor_id,
-        DOC_TYPE_REGISTRY.guarantor_salary_slip_1,
-        DOC_TYPE_REGISTRY.guarantor_salary_slip_2,
-        DOC_TYPE_REGISTRY.guarantor_salary_slip_3,
-        DOC_TYPE_REGISTRY.guarantor_betreibungsauszug,
-      ],
+      types: guarantorTypes,
     });
   } else {
     if (_isEmployee) {
@@ -333,7 +381,9 @@ const STATUS_CONFIG = {
 // ── State ────────────────────────────────────────────────────
 let _tenantId        = null;
 let _isSwiss         = false;
-let _needsGuarantor  = false;
+let _needsGuarantor          = false;
+let _guarantorIsEmployee     = false;
+let _guarantorIsSelfEmployed = false;
 let _isEmployee      = false;
 let _isSelfEmployed  = false;
 let _isUnemployed    = false;
@@ -353,7 +403,9 @@ let _docsMap         = {};  // key → document row
   if (!tenant) return;
   _tenantId       = tenant.id;
   _isSwiss        = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
-  _needsGuarantor = !!tenant.needs_guarantor;
+  _needsGuarantor          = !!tenant.needs_guarantor;
+  _guarantorIsEmployee     = !!tenant.guarantor_is_employee;
+  _guarantorIsSelfEmployed = !!tenant.guarantor_is_self_employed;
   _isEmployee     = !!tenant.is_employee;
   _isSelfEmployed = !!tenant.is_self_employed;
   _isUnemployed   = !!tenant.is_unemployed;
