@@ -14,8 +14,6 @@
     .modal-overlay.open { display:flex; }
     .modal-box { background:white; border-radius:var(--radius); width:100%; max-width:480px; padding:32px; box-shadow:var(--shadow-lg); }
     .modal-title { font-weight:700; font-size:1.1rem; margin-bottom:20px; }
-    tr.clickable { cursor:pointer; }
-    tr.clickable:hover td { background:var(--gray-100); }
   </style>
 </head>
 <body>
@@ -127,6 +125,7 @@ function filterTable() {
   let rows = _all;
   if (q) rows = rows.filter(o =>
     (o.full_name||'').toLowerCase().includes(q) ||
+    (o.email||'').toLowerCase().includes(q) ||
     (o.property_address||'').toLowerCase().includes(q) ||
     (o.phone||'').toLowerCase().includes(q)
   );
@@ -140,15 +139,16 @@ function renderTable(rows) {
     return;
   }
   tbody.innerHTML = rows.map(o => `
-    <tr class="clickable" onclick="openEdit('${o.id}')" style="${o.is_suspended?'opacity:.5;':''}">
+    <tr style="${o.is_suspended?'opacity:.5;':''}">
       <td>
         <div class="font-bold">${esc(o.full_name||'—')}</div>
+        ${o.email ? `<div class="text-xs text-gray">${esc(o.email)}</div>` : ''}
         ${o.is_suspended ? '<span class="badge badge-red" style="font-size:.65rem;">Suspended</span>' : ''}
       </td>
       <td class="text-sm">${esc(o.phone||'—')}</td>
       <td class="text-sm text-gray">${esc(o.property_address||'—')}</td>
       <td class="text-sm text-gray">${new Date(o.created_at).toLocaleDateString('en-CH',{day:'2-digit',month:'short',year:'numeric'})}</td>
-      <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openEdit('${o.id}')">Edit</button></td>
+      <td><button class="btn btn-outline btn-sm" onclick="openEdit('${o.id}')">Edit</button></td>
     </tr>`).join('');
 }
 

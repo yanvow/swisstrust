@@ -174,6 +174,9 @@ CREATE TABLE IF NOT EXISTS tenants (
   profile_complete      BOOLEAN DEFAULT FALSE,
   is_suspended          BOOLEAN DEFAULT FALSE,
 
+  -- Auth
+  email                 TEXT,
+
   created_at            TIMESTAMPTZ DEFAULT NOW(),
   updated_at            TIMESTAMPTZ DEFAULT NOW()
 );
@@ -364,6 +367,7 @@ CREATE TABLE IF NOT EXISTS owners (
   phone            TEXT,
   property_address TEXT,
   is_suspended     BOOLEAN DEFAULT FALSE,
+  email            TEXT,
   created_at       TIMESTAMPTZ DEFAULT NOW(),
   updated_at       TIMESTAMPTZ DEFAULT NOW()
 );
@@ -447,10 +451,11 @@ BEGIN
   CASE NEW.raw_user_meta_data->>'role'
 
     WHEN 'tenant' THEN
-      INSERT INTO public.tenants (user_id, full_name)
+      INSERT INTO public.tenants (user_id, full_name, email)
       VALUES (
         NEW.id,
-        NEW.raw_user_meta_data->>'full_name'
+        NEW.raw_user_meta_data->>'full_name',
+        NEW.email
       );
 
     WHEN 'agency' THEN
@@ -463,11 +468,12 @@ BEGIN
       );
 
     WHEN 'owner' THEN
-      INSERT INTO public.owners (user_id, full_name, property_address)
+      INSERT INTO public.owners (user_id, full_name, property_address, email)
       VALUES (
         NEW.id,
         COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-        NEW.raw_user_meta_data->>'property_address'
+        NEW.raw_user_meta_data->>'property_address',
+        NEW.email
       );
 
     ELSE
