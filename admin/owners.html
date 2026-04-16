@@ -14,6 +14,8 @@
     .modal-overlay.open { display:flex; }
     .modal-box { background:white; border-radius:var(--radius); width:100%; max-width:480px; padding:32px; box-shadow:var(--shadow-lg); }
     .modal-title { font-weight:700; font-size:1.1rem; margin-bottom:20px; }
+    tr.clickable { cursor:pointer; }
+    tr.clickable:hover td { background:var(--gray-100); }
   </style>
 </head>
 <body>
@@ -70,7 +72,6 @@
             <th>Phone</th>
             <th>Property address</th>
             <th>Joined</th>
-            <th></th>
             <th></th>
           </tr>
         </thead>
@@ -139,7 +140,7 @@ function renderTable(rows) {
     return;
   }
   tbody.innerHTML = rows.map(o => `
-    <tr style="${o.is_suspended?'opacity:.5;':''}">
+    <tr class="clickable" onclick="openEdit('${o.id}')" style="${o.is_suspended?'opacity:.5;':''}">
       <td>
         <div class="font-bold">${esc(o.full_name||'—')}</div>
         ${o.is_suspended ? '<span class="badge badge-red" style="font-size:.65rem;">Suspended</span>' : ''}
@@ -147,13 +148,7 @@ function renderTable(rows) {
       <td class="text-sm">${esc(o.phone||'—')}</td>
       <td class="text-sm text-gray">${esc(o.property_address||'—')}</td>
       <td class="text-sm text-gray">${new Date(o.created_at).toLocaleDateString('en-CH',{day:'2-digit',month:'short',year:'numeric'})}</td>
-      <td><button class="btn btn-outline btn-sm" onclick="openEdit('${o.id}')">Edit</button></td>
-      <td style="white-space:nowrap;">
-        <button class="btn btn-outline btn-sm" onclick="quickSuspend('${o.id}',${!o.is_suspended})"
-          style="color:var(--amber);border-color:var(--amber);">${o.is_suspended?'Unsuspend':'Suspend'}</button>
-        <button class="btn btn-outline btn-sm" onclick="quickDelete('${o.id}')"
-          style="color:var(--red);border-color:var(--red);margin-left:4px;">Delete</button>
-      </td>
+      <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openEdit('${o.id}')">Edit</button></td>
     </tr>`).join('');
 }
 
@@ -211,22 +206,6 @@ async function deleteOwner() {
   filterTable(); closeModal();
 }
 
-async function quickSuspend(id, suspend) {
-  const { data, error } = await sbHelpers.adminSuspendOwner(id, suspend);
-  if (error) { alert('Error: ' + error.message); return; }
-  const idx = _all.findIndex(x => x.id === id);
-  if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
-  filterTable();
-}
-
-async function quickDelete(id) {
-  const o = _all.find(x => x.id === id);
-  if (!confirm(`Delete owner "${o?.full_name}"? This cannot be undone.`)) return;
-  const { error } = await sbHelpers.adminDeleteOwner(id);
-  if (error) { alert('Error: ' + error.message); return; }
-  _all = _all.filter(x => x.id !== id);
-  filterTable();
-}
 
 function esc(s) {
   if (!s) return '';
