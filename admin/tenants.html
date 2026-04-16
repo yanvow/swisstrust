@@ -17,8 +17,6 @@
     .field-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .search-bar { display:flex; gap:10px; margin-bottom:20px; }
     .search-bar input { flex:1; }
-    tr.clickable { cursor:pointer; }
-    tr.clickable:hover td { background:var(--gray-100); }
   </style>
 </head>
 <body>
@@ -310,6 +308,7 @@ function filterTable() {
   let rows = _allTenants;
   if (q) rows = rows.filter(t =>
     (t.full_name||'').toLowerCase().includes(q) ||
+    (t.email||'').toLowerCase().includes(q) ||
     (t.nationality||'').toLowerCase().includes(q) ||
     (t.employer_name||'').toLowerCase().includes(q)
   );
@@ -322,9 +321,10 @@ function renderTable(rows) {
   const tbody = document.getElementById('tbody');
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" class="text-gray text-sm" style="padding:24px;text-align:center;">No tenants found.</td></tr>'; return; }
   tbody.innerHTML = rows.map(t => `
-    <tr class="clickable" onclick="openEdit('${t.id}')" style="${t.is_suspended?'opacity:.5;':''}">
+    <tr style="${t.is_suspended?'opacity:.5;':''}">
       <td>
         <div class="font-bold">${esc(t.full_name||'—')}</div>
+        ${t.email ? `<div class="text-xs text-gray">${esc(t.email)}</div>` : ''}
         ${t.is_suspended ? '<span class="badge badge-red" style="font-size:.65rem;">Suspended</span>' : ''}
       </td>
       <td>${esc(t.nationality||'—')} ${t.permit_type ? `<span class="badge badge-gray" style="font-size:.7rem;">${t.permit_type}</span>` : ''}</td>
@@ -333,11 +333,11 @@ function renderTable(rows) {
       <td class="text-sm">${t.occupant_count||1}</td>
       <td><span class="badge ${t.profile_complete?'badge-green':'badge-amber'}" style="font-size:.7rem;">${t.profile_complete?'Complete':'Incomplete'}</span></td>
       <td class="text-sm text-gray">${new Date(t.created_at).toLocaleDateString('en-CH',{day:'2-digit',month:'short',year:'numeric'})}</td>
-      <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openEdit('${t.id}')">Edit</button></td>
+      <td><button class="btn btn-outline btn-sm" onclick="openEdit('${t.id}')">Edit</button></td>
       <td style="white-space:nowrap;">
-        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();quickSuspend('${t.id}', ${!t.is_suspended})"
+        <button class="btn btn-outline btn-sm" onclick="quickSuspend('${t.id}', ${!t.is_suspended})"
           style="color:var(--amber);border-color:var(--amber);">${t.is_suspended?'Unsuspend':'Suspend'}</button>
-        <button class="btn btn-outline btn-sm ml-4" onclick="event.stopPropagation();quickDelete('${t.id}')"
+        <button class="btn btn-outline btn-sm ml-4" onclick="quickDelete('${t.id}')"
           style="color:var(--red);border-color:var(--red);margin-left:4px;">Delete</button>
       </td>
     </tr>`).join('');

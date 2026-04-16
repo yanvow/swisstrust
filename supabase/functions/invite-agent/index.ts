@@ -27,8 +27,9 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userErr } = await adminSb.auth.getUser(token)
     if (userErr || !user) return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-    if (user.user_metadata?.role !== 'agency') {
-      return new Response('Forbidden — only the main agency account can invite agents', { status: 403, headers: corsHeaders })
+    const callerRole = user.user_metadata?.role
+    if (callerRole !== 'agency' && callerRole !== 'admin') {
+      return new Response('Forbidden — only agency accounts or admins can invite agents', { status: 403, headers: corsHeaders })
     }
 
     // ── 2. Validate input ────────────────────────────────────────
@@ -41,13 +42,10 @@ Deno.serve(async (req) => {
     }
     const normalEmail = email.toLowerCase().trim()
 
-    // ── 3. Verify the agency belongs to this user ────────────────
-    const { data: agency, error: agencyErr } = await adminSb
-      .from('agencies')
-      .select('id, company_name')
-      .eq('id', agencyId)
-      .eq('user_id', user.id)
-      .single()
+    // ── 3. Verify the agency exists (admins) or belongs to this user (agencies) ──
+    let agencyQuery = adminSb.from('agencies').select('id, company_name').eq('id', agencyId)
+    if (callerRole === 'agency') agencyQuery = agencyQuery.eq('user_id', user.id)
+    const { data: agency, error: agencyErr } = await agencyQuery.single()
     if (agencyErr || !agency) {
       return new Response('Agency not found', { status: 404, headers: corsHeaders })
     }
