@@ -3,6 +3,7 @@
 // Deploy: supabase functions deploy ocr
 // Secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-api03-...
 
+// @ts-nocheck — Deno runtime; standard TS language server does not resolve Deno/esm.sh globals.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const ANTHROPIC_API_KEY       = Deno.env.get('ANTHROPIC_API_KEY')!
@@ -154,7 +155,21 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ── 1. Authenticate the calling user ────────────────────────
+    const authHeader = req.headers.get('Authorization') || ''
+    const token      = authHeader.replace('Bearer ', '')
+    if (!token) {
+      console.error('[OCR] Missing Authorization header')
+      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+    }
+
     const adminSb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    const { data: { user }, error: userErr } = await adminSb.auth.getUser(token)
+    if (userErr || !user) {
+      console.error('[OCR] Invalid token:', userErr?.message)
+      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+    }
 
     const { documentId } = await req.json()
     if (!documentId) {
@@ -162,18 +177,26 @@ Deno.serve(async (req) => {
       return new Response('Missing documentId', { status: 400, headers: corsHeaders })
     }
 
-    console.log(`[OCR] Starting — documentId=${documentId}`)
+    console.log(`[OCR] Starting — documentId=${documentId} caller=${user.id}`)
 
-    // Fetch document
+    // Fetch document (joined to tenant to verify ownership)
     const { data: doc, error: docErr } = await adminSb
       .from('documents')
-      .select('*')
+      .select('*, tenants!inner(user_id)')
       .eq('id', documentId)
       .single()
 
     if (docErr || !doc) {
       console.error('[OCR] Document not found:', docErr?.message)
       return new Response('Document not found', { status: 404, headers: corsHeaders })
+    }
+
+    // Only the tenant who owns the document (or an admin) may trigger OCR
+    const callerRole = user.user_metadata?.role
+    const ownerUserId = (doc as any).tenants?.user_id
+    if (callerRole !== 'admin' && ownerUserId !== user.id) {
+      console.error(`[OCR] Forbidden — caller=${user.id} owner=${ownerUserId}`)
+      return new Response('Forbidden', { status: 403, headers: corsHeaders })
     }
 
     console.log(`[OCR] docType=${doc.doc_type} path=${doc.storage_path} mime=${doc.mime_type}`)
