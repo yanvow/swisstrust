@@ -139,25 +139,59 @@
 </div>
 
 <script>
-// ── Document type definitions (mirrors documents.html) ───────
-const DOC_TYPE_META_ALL = [
-  { key: 'passport_id',       labelSwiss: 'Passport or Swiss ID', labelOther: 'Passport', icon: '🪪' },
-  { key: 'residence_permit',  label: 'Residence permit',          icon: '📋', hideForSwiss: true },
-  { key: 'salary_slip_1',     label: 'Salary slip — month 1',     icon: '💰' },
-  { key: 'salary_slip_2',     label: 'Salary slip — month 2',     icon: '💰' },
-  { key: 'salary_slip_3',     label: 'Salary slip — month 3',     icon: '💰' },
-  { key: 'betreibungsauszug', label: 'Betreibungsauszug',         icon: '⚖️' },
-  { key: 'reference_letter',  label: 'Landlord reference letter', icon: '🏠' },
-];
+// ── Document type meta (mirrors documents.html registry) ─────
+function getDocTypeMeta(tenant) {
+  const isSwiss        = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
+  const needsGuarantor = !!tenant.needs_guarantor;
+  const isEmployee     = !!tenant.is_employee;
+  const isSelfEmployed = !!tenant.is_self_employed;
+  const isUnemployed   = !!tenant.is_unemployed;
+  const isOnWelfare    = !!tenant.is_on_welfare;
 
-function getDocTypeMeta(isSwiss) {
-  return DOC_TYPE_META_ALL
-    .filter(t => !(isSwiss && t.hideForSwiss))
-    .map(t => ({ ...t, label: t.labelSwiss ? (isSwiss ? t.labelSwiss : t.labelOther) : t.label }));
+  const types = [];
+
+  // Identity — always
+  types.push({ key: 'passport_id', label: isSwiss ? 'Passport or Swiss ID' : 'Passport', icon: '🪪' });
+  if (!isSwiss) types.push({ key: 'residence_permit', label: 'Residence permit', icon: '📋' });
+  types.push({ key: 'betreibungsauszug', label: 'Debt enforcement register extract', icon: '⚖️' });
+  types.push({ key: 'reference_letter',  label: 'Landlord reference letter', icon: '🏠' });
+
+  if (needsGuarantor) {
+    types.push({ key: 'guarantor_id',             label: 'Guarantor — Passport or ID', icon: '🪪' });
+    types.push({ key: 'guarantor_salary_slip_1',  label: 'Guarantor — Salary slip 1',  icon: '💰' });
+    types.push({ key: 'guarantor_salary_slip_2',  label: 'Guarantor — Salary slip 2',  icon: '💰' });
+    types.push({ key: 'guarantor_salary_slip_3',  label: 'Guarantor — Salary slip 3',  icon: '💰' });
+    types.push({ key: 'guarantor_betreibungsauszug', label: 'Guarantor — Debt register extract', icon: '⚖️' });
+  } else {
+    if (isEmployee) {
+      types.push({ key: 'salary_slip_1', label: 'Salary slip — month 1', icon: '💰' });
+      types.push({ key: 'salary_slip_2', label: 'Salary slip — month 2', icon: '💰' });
+      types.push({ key: 'salary_slip_3', label: 'Salary slip — month 3', icon: '💰' });
+    }
+    if (isSelfEmployed) {
+      types.push({ key: 'balance_sheet',      label: 'Balance sheets & P&L', icon: '📊' });
+      types.push({ key: 'tax_assessment',     label: 'Tax assessment notice', icon: '🧾' });
+      types.push({ key: 'bank_statement',     label: 'Bank statements',       icon: '🏦' });
+      types.push({ key: 'net_income_proof',   label: 'Net income proof',      icon: '💵' });
+      types.push({ key: 'turnover_proof',     label: 'Turnover / Revenue',    icon: '📈' });
+      types.push({ key: 'avs_affiliation',    label: 'AVS/SVA affiliation',   icon: '🏛️' });
+      types.push({ key: 'commercial_register',label: 'Commercial register extract', icon: '📝' });
+    }
+    if (isUnemployed) {
+      types.push({ key: 'unemployment_benefit_1', label: 'Unemployment benefit statement — month 1', icon: '📑' });
+      types.push({ key: 'unemployment_benefit_2', label: 'Unemployment benefit statement — month 2', icon: '📑' });
+      types.push({ key: 'unemployment_benefit_3', label: 'Unemployment benefit statement — month 3', icon: '📑' });
+    }
+    if (isOnWelfare) {
+      types.push({ key: 'welfare_rent_coverage', label: 'Certificate of rent coverage', icon: '🏛️' });
+    }
+  }
+
+  return types;
 }
 
 // ── Trust score (provisional — same formula as certificate generation) ──
-function computeProvisionalTrust(docsMap) {
+function computeProvisionalTrust(docsMap, tenant) {
   let score = 100;
 
   const b = docsMap['betreibungsauszug'];
@@ -165,11 +199,43 @@ function computeProvisionalTrust(docsMap) {
   else if (b.status === 'rejected')  score -= 40;
   else if (b.status !== 'auto_verified') score -= 10;
 
-  ['salary_slip_1', 'salary_slip_2', 'salary_slip_3'].forEach(k => {
-    const s = docsMap[k];
-    if (!s)                            score -= 10;
-    else if (s.status !== 'auto_verified') score -= 5;
-  });
+  // Income docs — deduct based on what's expected
+  if (tenant.needs_guarantor) {
+    // Check guarantor salary slips
+    ['guarantor_salary_slip_1', 'guarantor_salary_slip_2', 'guarantor_salary_slip_3'].forEach(k => {
+      const s = docsMap[k];
+      if (!s)                            score -= 8;
+      else if (s.status !== 'auto_verified') score -= 4;
+    });
+    if (!docsMap['guarantor_id']) score -= 10;
+  } else {
+    if (tenant.is_employee) {
+      ['salary_slip_1', 'salary_slip_2', 'salary_slip_3'].forEach(k => {
+        const s = docsMap[k];
+        if (!s)                            score -= 10;
+        else if (s.status !== 'auto_verified') score -= 5;
+      });
+    }
+    if (tenant.is_self_employed) {
+      ['balance_sheet', 'tax_assessment', 'avs_affiliation'].forEach(k => {
+        const s = docsMap[k];
+        if (!s)                            score -= 8;
+        else if (s.status !== 'auto_verified') score -= 4;
+      });
+    }
+    if (tenant.is_unemployed) {
+      ['unemployment_benefit_1', 'unemployment_benefit_2', 'unemployment_benefit_3'].forEach(k => {
+        const s = docsMap[k];
+        if (!s)                            score -= 10;
+        else if (s.status !== 'auto_verified') score -= 5;
+      });
+    }
+    if (tenant.is_on_welfare) {
+      const s = docsMap['welfare_rent_coverage'];
+      if (!s)                            score -= 20;
+      else if (s.status !== 'auto_verified') score -= 10;
+    }
+  }
 
   const id = docsMap['passport_id'];
   if (!id)                            score -= 15;
@@ -218,7 +284,7 @@ const STATUS_ROW = {
   if (!tenant) return;
 
   const isSwiss    = tenant.permit_type === 'swiss' || tenant.nationality === 'Swiss';
-  const DOC_TYPE_META = getDocTypeMeta(isSwiss);
+  const DOC_TYPE_META = getDocTypeMeta(tenant);
 
   // ── Load documents ────────────────────────────────────────
   const { data: docs } = await sbHelpers.getDocumentsByTenant(tenant.id);
@@ -227,7 +293,7 @@ const STATUS_ROW = {
 
   const uploadedCount  = Object.keys(docsMap).length;
   const verifiedCount  = Object.values(docsMap).filter(d => d.status === 'auto_verified').length;
-  const { score, grade } = computeProvisionalTrust(docsMap);
+  const { score, grade } = computeProvisionalTrust(docsMap, tenant);
 
   // ── Load certificates ─────────────────────────────────────
   const { data: certs } = await sbHelpers.getCertificatesByTenant(tenant.id);
@@ -242,29 +308,32 @@ const STATUS_ROW = {
   trustEl.style.color  = grade === 'A' ? 'var(--green)' : grade === 'B' ? 'var(--amber)' : 'var(--red)';
 
   // ── Progress card ─────────────────────────────────────────
-  const profileComplete = !!tenant.profile_complete;
-  const hasEmployment   = !!(tenant.employer_name && tenant.monthly_gross_salary);
-  const requiredDocs    = ['passport_id','salary_slip_1','salary_slip_2','salary_slip_3','betreibungsauszug'].filter(k => !(isSwiss && k === 'residence_permit'));
+  const profileComplete   = !!tenant.profile_complete;
+  const hasEmployment     = !!(tenant.employer_name && tenant.monthly_gross_salary);
+  const rentalConfigured  = tenant.needs_guarantor || tenant.is_employee || tenant.is_self_employed || tenant.is_unemployed || tenant.is_on_welfare;
+  // Required docs = all types shown in the Documents page (reference_letter is optional — exclude it)
+  const requiredDocs = DOC_TYPE_META.map(t => t.key).filter(k => k !== 'reference_letter');
   const uploadedRequired = requiredDocs.filter(k => !!docsMap[k]).length;
   const missingRequired  = requiredDocs.length - uploadedRequired;
 
-  // 4 checkpoints: profile, employment, required docs, at least 1 cert
-  const checks = [profileComplete, hasEmployment, missingRequired === 0, certCount > 0];
+  // 5 checkpoints: profile, employment, rental situation, required docs, at least 1 cert
+  const checks = [profileComplete, hasEmployment, !!rentalConfigured, missingRequired === 0, certCount > 0];
   const pct = Math.round((checks.filter(Boolean).length / checks.length) * 100);
 
   document.getElementById('progress-badge').textContent = `${pct}% complete`;
   document.getElementById('progress-fill').style.width  = `${pct}%`;
 
   const checkItems = [
-    { done: profileComplete, label: 'Personal information complete',    link: 'profile.html' },
-    { done: hasEmployment,   label: 'Employment details filled',        link: 'profile.html' },
+    { done: profileComplete,    label: 'Personal information complete', link: 'profile.html' },
+    { done: hasEmployment,      label: 'Employment details filled',     link: 'profile.html' },
+    { done: !!rentalConfigured, label: rentalConfigured ? 'Rental situation configured' : 'Rental situation not configured (income type / guarantor)', link: 'profile.html', linkLabel: 'Configure →' },
     { done: missingRequired === 0,
       label: missingRequired === 0
         ? 'All required documents uploaded'
         : `${missingRequired} required document${missingRequired > 1 ? 's' : ''} still missing`,
       link: 'documents.html',
       linkLabel: 'Upload now →' },
-    { done: certCount > 0,  label: certCount > 0 ? `${certCount} certificate${certCount > 1 ? 's' : ''} generated` : 'No certificates yet', link: 'certificate-new.html', linkLabel: 'Generate →' },
+    { done: certCount > 0, label: certCount > 0 ? `${certCount} certificate${certCount > 1 ? 's' : ''} generated` : 'No certificates yet', link: 'certificate-new.html', linkLabel: 'Generate →' },
   ];
 
   document.getElementById('progress-checklist').innerHTML = checkItems.map(item => `
