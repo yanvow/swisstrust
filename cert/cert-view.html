@@ -277,7 +277,7 @@ async function certSignOut() {
   // ── Public lock note ────────────────────────────────────────
   let lockNote = '';
   if (mode === 'directed' && agency.company_name) {
-    lockNote = `🔒 <strong>Full dossier</strong> — ID copy, salary slips, Betreibungsauszug and exact income details are visible only to <strong>${agency.company_name}</strong>.`;
+    lockNote = `🔒 <strong>Full dossier</strong> — ID copy, salary slips, debt enforcement register extract and exact income details are visible only to <strong>${agency.company_name}</strong>.`;
   } else if (mode === 'directed' && cert.owner_email) {
     lockNote = `🔒 <strong>Full dossier</strong> — visible only to the authorised private landlord.`;
   } else if (mode === 'open') {
@@ -482,7 +482,7 @@ const DOC_META = [
   { key: 'salary_slip_1',     label: 'Salary slip — month 1',       icon: '💰' },
   { key: 'salary_slip_2',     label: 'Salary slip — month 2',       icon: '💰' },
   { key: 'salary_slip_3',     label: 'Salary slip — month 3',       icon: '💰' },
-  { key: 'betreibungsauszug', label: 'Attestation de non-poursuite (Non-bankruptcy certificate)', icon: '⚖️' },
+  { key: 'betreibungsauszug', label: 'Extract from the debt enforcement register', icon: '⚖️' },
 ];
 const STATUS_BADGE_CV = {
   pending:       'badge badge-amber',
