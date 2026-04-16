@@ -162,11 +162,12 @@
 
     <div id="modal-err" style="display:none;color:var(--red);font-size:.875rem;margin-top:12px;"></div>
 
-    <div style="display:flex;gap:10px;margin-top:20px;border-top:1px solid var(--gray-200);padding-top:20px;">
+    <div style="display:flex;gap:10px;margin-top:20px;border-top:1px solid var(--gray-200);padding-top:20px;flex-wrap:wrap;">
       <button class="btn btn-primary" id="save-btn" onclick="saveDoc()">Save changes</button>
       <button class="btn btn-outline btn-sm" onclick="quickVerify()" style="color:var(--green);border-color:var(--green);">✓ Mark verified</button>
       <button class="btn btn-outline btn-sm" onclick="quickReject()" style="color:var(--red);border-color:var(--red);">✗ Reject</button>
-      <button class="btn btn-ghost" onclick="closeModal()" style="margin-left:auto;">Cancel</button>
+      <button class="btn btn-outline btn-sm" onclick="deleteDoc()" style="color:var(--red);border-color:var(--red);margin-left:auto;">🗑 Delete document</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -395,6 +396,21 @@ async function saveDoc() {
 
   const idx = _all.findIndex(d => d.id === _editingId);
   if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
+  filterTable();
+  closeModal();
+}
+
+async function deleteDoc() {
+  if (!_editingId) return;
+  const doc = _all.find(d => d.id === _editingId);
+  if (!confirm(`Delete this document (${doc?.file_name || doc?.doc_type || 'document'})? This cannot be undone.`)) return;
+  const { error } = await sbHelpers.adminDeleteDocument(_editingId, doc?.storage_path);
+  if (error) {
+    document.getElementById('modal-err').textContent = error.message;
+    document.getElementById('modal-err').style.display = 'block';
+    return;
+  }
+  _all = _all.filter(d => d.id !== _editingId);
   filterTable();
   closeModal();
 }

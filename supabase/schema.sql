@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS agencies (
   address       TEXT NOT NULL,
   contact_email TEXT NOT NULL,
   is_verified   BOOLEAN DEFAULT FALSE,
+  is_suspended  BOOLEAN DEFAULT FALSE,
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -129,6 +130,7 @@ CREATE TABLE IF NOT EXISTS tenants (
 
   -- Status
   profile_complete      BOOLEAN DEFAULT FALSE,
+  is_suspended          BOOLEAN DEFAULT FALSE,
 
   created_at            TIMESTAMPTZ DEFAULT NOW(),
   updated_at            TIMESTAMPTZ DEFAULT NOW()
@@ -319,6 +321,7 @@ CREATE TABLE IF NOT EXISTS owners (
   full_name        TEXT NOT NULL,
   phone            TEXT,
   property_address TEXT,
+  is_suspended     BOOLEAN DEFAULT FALSE,
   created_at       TIMESTAMPTZ DEFAULT NOW(),
   updated_at       TIMESTAMPTZ DEFAULT NOW()
 );

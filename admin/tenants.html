@@ -61,6 +61,7 @@
         <div class="page-title">Tenants</div>
         <div class="page-subtitle" id="page-subtitle">Loading…</div>
       </div>
+      <button class="btn btn-primary btn-sm" onclick="openCreate()">+ New tenant</button>
     </div>
 
     <div class="search-bar">
@@ -81,12 +82,13 @@
             <th>Employer</th>
             <th>Salary (gross)</th>
             <th>Occupants</th>
-            <th>Profile</th>
+            <th>Status</th>
             <th>Joined</th>
+            <th></th>
             <th></th>
           </tr>
         </thead>
-        <tbody id="tbody"><tr><td colspan="8" class="text-gray text-sm" style="padding:24px;text-align:center;">Loading…</td></tr></tbody>
+        <tbody id="tbody"><tr><td colspan="9" class="text-gray text-sm" style="padding:24px;text-align:center;">Loading…</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -241,9 +243,47 @@
         <select id="f-profile_complete"><option value="false">No</option><option value="true">Yes</option></select>
       </div>
     </div>
-    <div style="display:flex;gap:10px;margin-top:20px;">
+    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
       <button class="btn btn-primary" id="save-btn" onclick="saveEdit()">Save changes</button>
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn btn-outline btn-sm" id="suspend-btn" onclick="toggleSuspend()"
+          style="color:var(--amber);border-color:var(--amber);">Suspend</button>
+        <button class="btn btn-outline btn-sm" onclick="deleteTenant()"
+          style="color:var(--red);border-color:var(--red);">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create modal -->
+<div class="modal-overlay" id="modal-create">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="flex-between mb-20">
+      <div class="modal-title">New tenant profile</div>
+      <button onclick="closeCreate()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray-400);">×</button>
+    </div>
+    <div id="create-err" style="display:none;color:var(--red);font-size:.875rem;margin-bottom:12px;"></div>
+    <div class="form-group"><label>Full name <span class="req">*</span></label><input id="c-full_name" type="text" placeholder="Legal full name" required></div>
+    <div class="form-group"><label>Date of birth</label><input id="c-date_of_birth" type="date"></div>
+    <div class="form-group">
+      <label>Nationality</label>
+      <input id="c-nationality" type="text" placeholder="e.g. Swiss, French, Italian…">
+    </div>
+    <div class="form-group">
+      <label>Permit type</label>
+      <select id="c-permit_type">
+        <option value="">—</option>
+        <option value="swiss">Swiss citizen</option>
+        <option value="B">B permit</option>
+        <option value="C">C permit</option>
+        <option value="G">G permit</option>
+        <option value="L">L permit</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-primary" id="create-btn" onclick="createTenant()">Create tenant</button>
+      <button class="btn btn-ghost" onclick="closeCreate()">Cancel</button>
     </div>
   </div>
 </div>
@@ -280,10 +320,13 @@ function filterTable() {
 
 function renderTable(rows) {
   const tbody = document.getElementById('tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="text-gray text-sm" style="padding:24px;text-align:center;">No tenants found.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" class="text-gray text-sm" style="padding:24px;text-align:center;">No tenants found.</td></tr>'; return; }
   tbody.innerHTML = rows.map(t => `
-    <tr class="clickable" onclick="openEdit('${t.id}')">
-      <td><div class="font-bold">${esc(t.full_name||'—')}</div></td>
+    <tr class="clickable" onclick="openEdit('${t.id}')" style="${t.is_suspended?'opacity:.5;':''}">
+      <td>
+        <div class="font-bold">${esc(t.full_name||'—')}</div>
+        ${t.is_suspended ? '<span class="badge badge-red" style="font-size:.65rem;">Suspended</span>' : ''}
+      </td>
       <td>${esc(t.nationality||'—')} ${t.permit_type ? `<span class="badge badge-gray" style="font-size:.7rem;">${t.permit_type}</span>` : ''}</td>
       <td class="text-sm">${esc(t.employer_name||'—')}</td>
       <td class="text-sm">${t.monthly_gross_salary ? 'CHF '+Number(t.monthly_gross_salary).toLocaleString() : '—'}</td>
@@ -291,6 +334,12 @@ function renderTable(rows) {
       <td><span class="badge ${t.profile_complete?'badge-green':'badge-amber'}" style="font-size:.7rem;">${t.profile_complete?'Complete':'Incomplete'}</span></td>
       <td class="text-sm text-gray">${new Date(t.created_at).toLocaleDateString('en-CH',{day:'2-digit',month:'short',year:'numeric'})}</td>
       <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openEdit('${t.id}')">Edit</button></td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();quickSuspend('${t.id}', ${!t.is_suspended})"
+          style="color:var(--amber);border-color:var(--amber);">${t.is_suspended?'Unsuspend':'Suspend'}</button>
+        <button class="btn btn-outline btn-sm ml-4" onclick="event.stopPropagation();quickDelete('${t.id}')"
+          style="color:var(--red);border-color:var(--red);margin-left:4px;">Delete</button>
+      </td>
     </tr>`).join('');
 }
 
@@ -298,6 +347,8 @@ function openEdit(id) {
   const t = _allTenants.find(x => x.id === id);
   if (!t) return;
   _editingId = id;
+  const suspBtn = document.getElementById('suspend-btn');
+  if (suspBtn) { suspBtn.textContent = t.is_suspended ? 'Unsuspend' : 'Suspend'; }
   document.getElementById('modal-title').textContent = 'Edit — ' + (t.full_name || 'Unnamed tenant');
   document.getElementById('modal-err').style.display = 'none';
 
@@ -347,6 +398,78 @@ async function saveEdit() {
   if (idx !== -1) _allTenants[idx] = { ..._allTenants[idx], ...data };
   filterTable();
   closeModal();
+}
+
+// ── Suspend / Delete from modal ───────────────────────────
+async function toggleSuspend() {
+  if (!_editingId) return;
+  const t = _allTenants.find(x => x.id === _editingId);
+  if (!t) return;
+  const newVal = !t.is_suspended;
+  const { data, error } = await sbHelpers.adminSuspendTenant(_editingId, newVal);
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _allTenants.findIndex(x => x.id === _editingId);
+  if (idx !== -1) _allTenants[idx] = { ..._allTenants[idx], ...data };
+  filterTable();
+  closeModal();
+}
+
+async function deleteTenant() {
+  if (!_editingId) return;
+  const t = _allTenants.find(x => x.id === _editingId);
+  if (!confirm(`Delete tenant "${t?.full_name || 'this tenant'}"? This cannot be undone and will remove all their documents.`)) return;
+  const { error } = await sbHelpers.adminDeleteTenant(_editingId);
+  if (error) { alert('Error: ' + error.message); return; }
+  _allTenants = _allTenants.filter(x => x.id !== _editingId);
+  filterTable();
+  closeModal();
+}
+
+// ── Inline row actions ────────────────────────────────────
+async function quickSuspend(id, suspend) {
+  const { data, error } = await sbHelpers.adminSuspendTenant(id, suspend);
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _allTenants.findIndex(x => x.id === id);
+  if (idx !== -1) _allTenants[idx] = { ..._allTenants[idx], ...data };
+  filterTable();
+}
+
+async function quickDelete(id) {
+  const t = _allTenants.find(x => x.id === id);
+  if (!confirm(`Delete tenant "${t?.full_name || 'this tenant'}"? This cannot be undone.`)) return;
+  const { error } = await sbHelpers.adminDeleteTenant(id);
+  if (error) { alert('Error: ' + error.message); return; }
+  _allTenants = _allTenants.filter(x => x.id !== id);
+  filterTable();
+}
+
+// ── Create modal ──────────────────────────────────────────
+function openCreate() { document.getElementById('modal-create').classList.add('open'); }
+function closeCreate() {
+  document.getElementById('modal-create').classList.remove('open');
+  document.getElementById('create-err').style.display = 'none';
+  ['c-full_name','c-date_of_birth','c-nationality','c-permit_type'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+}
+
+async function createTenant() {
+  const name = document.getElementById('c-full_name').value.trim();
+  if (!name) { document.getElementById('create-err').textContent = 'Full name is required.'; document.getElementById('create-err').style.display='block'; return; }
+  const btn = document.getElementById('create-btn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  const fields = {
+    full_name:     name,
+    date_of_birth: document.getElementById('c-date_of_birth').value || null,
+    nationality:   document.getElementById('c-nationality').value.trim() || null,
+    permit_type:   document.getElementById('c-permit_type').value || null,
+  };
+  const { data, error } = await sbHelpers.adminCreateTenant(fields);
+  btn.disabled = false; btn.textContent = 'Create tenant';
+  if (error) { document.getElementById('create-err').textContent = error.message; document.getElementById('create-err').style.display='block'; return; }
+  _allTenants.unshift(data);
+  filterTable();
+  closeCreate();
 }
 
 function esc(s) {
