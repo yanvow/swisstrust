@@ -174,9 +174,6 @@ CREATE TABLE IF NOT EXISTS tenants (
   profile_complete      BOOLEAN DEFAULT FALSE,
   is_suspended          BOOLEAN DEFAULT FALSE,
 
-  -- Auth
-  email                 TEXT,
-
   created_at            TIMESTAMPTZ DEFAULT NOW(),
   updated_at            TIMESTAMPTZ DEFAULT NOW()
 );
@@ -367,7 +364,6 @@ CREATE TABLE IF NOT EXISTS owners (
   phone            TEXT,
   property_address TEXT,
   is_suspended     BOOLEAN DEFAULT FALSE,
-  email            TEXT,
   created_at       TIMESTAMPTZ DEFAULT NOW(),
   updated_at       TIMESTAMPTZ DEFAULT NOW()
 );
@@ -451,11 +447,10 @@ BEGIN
   CASE NEW.raw_user_meta_data->>'role'
 
     WHEN 'tenant' THEN
-      INSERT INTO public.tenants (user_id, full_name, email)
+      INSERT INTO public.tenants (user_id, full_name)
       VALUES (
         NEW.id,
-        NEW.raw_user_meta_data->>'full_name',
-        NEW.email
+        NEW.raw_user_meta_data->>'full_name'
       );
 
     WHEN 'agency' THEN
@@ -468,12 +463,11 @@ BEGIN
       );
 
     WHEN 'owner' THEN
-      INSERT INTO public.owners (user_id, full_name, property_address, email)
+      INSERT INTO public.owners (user_id, full_name, property_address)
       VALUES (
         NEW.id,
         COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-        NEW.raw_user_meta_data->>'property_address',
-        NEW.email
+        NEW.raw_user_meta_data->>'property_address'
       );
 
     ELSE
@@ -573,6 +567,16 @@ DROP POLICY IF EXISTS "owners_admin_all" ON owners;
 CREATE POLICY "owners_admin_all" ON owners FOR ALL
   USING  ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+-- ============================================================
+-- VIEW: user_emails
+-- Exposes auth user emails to authenticated users (e.g. admin).
+-- The view owner (postgres) has access to the auth schema.
+-- ============================================================
+CREATE OR REPLACE VIEW public.user_emails AS
+  SELECT id, email FROM auth.users;
+
+GRANT SELECT ON public.user_emails TO authenticated;
 
 -- ============================================================
 -- Storage buckets
