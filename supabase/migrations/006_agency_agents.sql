@@ -44,6 +44,6 @@ CREATE POLICY "agents_own_select" ON agency_agents FOR SELECT
 DROP POLICY IF EXISTS "agents_accept_invite" ON agency_agents;
 CREATE POLICY "agents_accept_invite" ON agency_agents FOR UPDATE
   USING (
-    invite_token = (auth.jwt() -> 'user_metadata' ->> 'invite_token')::uuid
+    invite_token::text = (auth.jwt() -> 'user_metadata' ->> 'invite_token')
   )
   WITH CHECK (true);
