@@ -154,9 +154,10 @@
       <textarea id="f-admin_note" rows="2" style="resize:vertical;font-size:.875rem;"></textarea>
     </div>
 
-    <div style="display:flex;gap:8px;margin-top:20px;">
+    <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;">
       <button class="btn btn-primary" id="save-btn" onclick="saveCert()">Save changes</button>
       <button class="btn btn-outline btn-sm" id="deactivate-btn" onclick="quickDeactivate()" style="color:var(--red);border-color:var(--red);">Deactivate</button>
+      <button class="btn btn-outline btn-sm" onclick="deleteCert()" style="color:var(--red);border-color:var(--red);">🗑 Delete</button>
       <button class="btn btn-ghost" onclick="closeModal()" style="margin-left:auto;">Cancel</button>
     </div>
   </div>
@@ -246,6 +247,21 @@ function openEdit(id) {
   document.getElementById('f-admin_note').value = c.admin_note || '';
   document.getElementById('deactivate-btn').style.display = c.is_active ? 'inline-flex' : 'none';
   document.getElementById('modal').classList.add('open');
+}
+
+async function deleteCert() {
+  if (!_editingId) return;
+  const c = _all.find(x => x.id === _editingId);
+  if (!confirm(`Permanently delete certificate ${c?.cert_code}? The QR code will stop working immediately and this cannot be undone.`)) return;
+  const { error } = await sbHelpers.adminDeleteCertificate(_editingId);
+  if (error) {
+    document.getElementById('modal-err').textContent = error.message;
+    document.getElementById('modal-err').style.display = 'block';
+    return;
+  }
+  _all = _all.filter(x => x.id !== _editingId);
+  filterTable();
+  closeModal();
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); _editingId = null; }

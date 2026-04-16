@@ -71,6 +71,7 @@
             <th>Property address</th>
             <th>Joined</th>
             <th></th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="tbody"><tr><td colspan="5" class="text-gray text-sm" style="padding:24px;text-align:center;">Loading…</td></tr></tbody>
@@ -90,9 +91,15 @@
     <div class="form-group"><label>Full name</label><input id="f-full_name" type="text"></div>
     <div class="form-group"><label>Phone</label><input id="f-phone" type="tel"></div>
     <div class="form-group"><label>Property address</label><input id="f-property_address" type="text"></div>
-    <div style="display:flex;gap:10px;margin-top:20px;">
+    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
       <button class="btn btn-primary" id="save-btn" onclick="saveEdit()">Save changes</button>
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn btn-outline btn-sm" id="suspend-btn" onclick="toggleSuspend()"
+          style="color:var(--amber);border-color:var(--amber);">Suspend</button>
+        <button class="btn btn-outline btn-sm" onclick="deleteOwner()"
+          style="color:var(--red);border-color:var(--red);">Delete</button>
+      </div>
     </div>
   </div>
 </div>
@@ -132,12 +139,21 @@ function renderTable(rows) {
     return;
   }
   tbody.innerHTML = rows.map(o => `
-    <tr>
-      <td><div class="font-bold">${esc(o.full_name||'—')}</div></td>
+    <tr style="${o.is_suspended?'opacity:.5;':''}">
+      <td>
+        <div class="font-bold">${esc(o.full_name||'—')}</div>
+        ${o.is_suspended ? '<span class="badge badge-red" style="font-size:.65rem;">Suspended</span>' : ''}
+      </td>
       <td class="text-sm">${esc(o.phone||'—')}</td>
       <td class="text-sm text-gray">${esc(o.property_address||'—')}</td>
       <td class="text-sm text-gray">${new Date(o.created_at).toLocaleDateString('en-CH',{day:'2-digit',month:'short',year:'numeric'})}</td>
       <td><button class="btn btn-outline btn-sm" onclick="openEdit('${o.id}')">Edit</button></td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-outline btn-sm" onclick="quickSuspend('${o.id}',${!o.is_suspended})"
+          style="color:var(--amber);border-color:var(--amber);">${o.is_suspended?'Unsuspend':'Suspend'}</button>
+        <button class="btn btn-outline btn-sm" onclick="quickDelete('${o.id}')"
+          style="color:var(--red);border-color:var(--red);margin-left:4px;">Delete</button>
+      </td>
     </tr>`).join('');
 }
 
@@ -145,6 +161,8 @@ function openEdit(id) {
   const o = _all.find(x => x.id === id);
   if (!o) return;
   _editingId = id;
+  const suspBtn = document.getElementById('suspend-btn');
+  if (suspBtn) { suspBtn.textContent = o.is_suspended ? 'Unsuspend' : 'Suspend'; }
   document.getElementById('modal-title').textContent = 'Edit — ' + (o.full_name || 'Unnamed owner');
   document.getElementById('modal-err').style.display = 'none';
   document.getElementById('f-full_name').value       = o.full_name || '';
@@ -171,6 +189,43 @@ async function saveEdit() {
   if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
   filterTable();
   closeModal();
+}
+
+async function toggleSuspend() {
+  if (!_editingId) return;
+  const o = _all.find(x => x.id === _editingId);
+  const { data, error } = await sbHelpers.adminSuspendOwner(_editingId, !o.is_suspended);
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _all.findIndex(x => x.id === _editingId);
+  if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
+  filterTable(); closeModal();
+}
+
+async function deleteOwner() {
+  if (!_editingId) return;
+  const o = _all.find(x => x.id === _editingId);
+  if (!confirm(`Delete owner "${o?.full_name}"? This cannot be undone.`)) return;
+  const { error } = await sbHelpers.adminDeleteOwner(_editingId);
+  if (error) { alert('Error: ' + error.message); return; }
+  _all = _all.filter(x => x.id !== _editingId);
+  filterTable(); closeModal();
+}
+
+async function quickSuspend(id, suspend) {
+  const { data, error } = await sbHelpers.adminSuspendOwner(id, suspend);
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _all.findIndex(x => x.id === id);
+  if (idx !== -1) _all[idx] = { ..._all[idx], ...data };
+  filterTable();
+}
+
+async function quickDelete(id) {
+  const o = _all.find(x => x.id === id);
+  if (!confirm(`Delete owner "${o?.full_name}"? This cannot be undone.`)) return;
+  const { error } = await sbHelpers.adminDeleteOwner(id);
+  if (error) { alert('Error: ' + error.message); return; }
+  _all = _all.filter(x => x.id !== id);
+  filterTable();
 }
 
 function esc(s) {
