@@ -269,6 +269,24 @@
       <a id="docs-review-link" href="documents.html" class="btn btn-ghost btn-sm" style="font-size:.8rem;">Review all in Documents →</a>
     </div>
     <div id="docs-list"><div class="text-sm text-gray">Loading…</div></div>
+
+    <hr class="section-divider">
+
+    <div class="section-heading">Payment</div>
+    <div id="payment-section">
+      <div class="text-sm text-gray">Loading…</div>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="section-heading" style="color:var(--red);">Danger zone</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" id="delete-docs-btn" onclick="adminDeleteAllDocs()"
+        style="color:var(--amber);border-color:var(--amber);">Delete all documents</button>
+      <button class="btn btn-outline btn-sm" id="clear-info-btn" onclick="adminClearAllInfo()"
+        style="color:var(--amber);border-color:var(--amber);">Clear all information</button>
+    </div>
+    <div id="danger-err" style="display:none;color:var(--red);font-size:.8rem;margin-top:8px;"></div>
   </div>
 </div>
 
@@ -384,6 +402,8 @@ function openEdit(id) {
 
   document.getElementById('modal').classList.add('open');
   loadTenantDocs(id, t.full_name);
+  loadTenantPayment(t.user_id);
+  document.getElementById('danger-err').style.display = 'none';
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); _editingId = null; }
@@ -511,6 +531,96 @@ const DOC_STATUS_BADGE = {
   pending: 'badge-amber', processing: 'badge-blue',
   auto_verified: 'badge-green', flagged: 'badge-amber', rejected: 'badge-red',
 };
+
+// ── Payment info panel ────────────────────────────────────
+
+async function loadTenantPayment(userId) {
+  const container = document.getElementById('payment-section');
+  if (!userId) { container.innerHTML = '<div class="text-sm text-gray">No auth account linked.</div>'; return; }
+
+  const [{ data: billing }, { data: methods }, { data: invoices }] = await Promise.all([
+    sbHelpers.adminGetBillingProfile(userId),
+    sbHelpers.adminGetPaymentMethods(userId),
+    sbHelpers.adminGetInvoices(userId),
+  ]);
+
+  let html = '';
+
+  if (billing) {
+    html += `<div style="font-size:.8rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Billing info</div>`;
+    html += `<div class="field-grid" style="gap:8px;margin-bottom:12px;">`;
+    if (billing.full_name)  html += `<div><span class="text-xs text-gray">Name</span><div class="text-sm">${esc(billing.full_name)}</div></div>`;
+    if (billing.email)      html += `<div><span class="text-xs text-gray">Email</span><div class="text-sm">${esc(billing.email)}</div></div>`;
+    if (billing.address)    html += `<div style="grid-column:1/-1;"><span class="text-xs text-gray">Address</span><div class="text-sm">${esc(billing.address)}</div></div>`;
+    if (billing.phone_number) html += `<div><span class="text-xs text-gray">Phone</span><div class="text-sm">${esc((billing.phone_country_code||'')+' '+billing.phone_number)}</div></div>`;
+    if (billing.tax_ids && billing.tax_ids.length) html += `<div><span class="text-xs text-gray">Tax IDs</span><div class="text-sm">${billing.tax_ids.map(esc).join(', ')}</div></div>`;
+    html += `</div>`;
+  } else {
+    html += `<div class="text-sm text-gray" style="margin-bottom:12px;">No billing profile set.</div>`;
+  }
+
+  if (methods && methods.length) {
+    html += `<div style="font-size:.8rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Payment methods</div>`;
+    html += methods.map(m => {
+      const icon = m.method_type === 'wire_transfer' ? '🏦' : m.method_type === 'credit_card' ? '💳' : '📱';
+      const name = m.method_type === 'wire_transfer' ? `Wire — ${m.iban||''}` : m.method_type === 'credit_card' ? `${m.card_brand === 'visa' ? 'Visa' : 'Mastercard'} •••• ${m.card_last4||''}` : `TWINT ${m.twint_phone||''}`;
+      return `<div class="doc-row"><span style="font-size:1.1rem;">${icon}</span><div style="flex:1;font-size:.875rem;">${esc(name)}</div>${m.is_default ? '<span class="badge badge-green" style="font-size:.65rem;">Default</span>' : ''}</div>`;
+    }).join('');
+    html += '<div style="margin-bottom:12px;"></div>';
+  }
+
+  if (invoices && invoices.length) {
+    const STATUS_BADGE = { paid:'badge-green', pending:'badge-amber', overdue:'badge-red' };
+    html += `<div style="font-size:.8rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Invoices</div>`;
+    html += invoices.map(inv => {
+      const date = new Date(inv.issued_at).toLocaleDateString('en-CH',{day:'2-digit',month:'short',year:'numeric'});
+      return `<div class="doc-row"><div style="flex:1;min-width:0;"><div class="text-sm font-bold">${esc(inv.invoice_number)}</div><div class="text-xs text-gray">${esc(inv.description||'—')} · ${date}</div></div><div class="text-sm font-bold" style="margin-right:8px;">CHF ${Number(inv.amount_chf).toFixed(2)}</div><span class="badge ${STATUS_BADGE[inv.status]||'badge-gray'}" style="font-size:.65rem;">${inv.status}</span></div>`;
+    }).join('');
+  }
+
+  if (!billing && (!methods || !methods.length) && (!invoices || !invoices.length)) {
+    container.innerHTML = '<div class="text-sm text-gray">No payment information on file.</div>';
+    return;
+  }
+  container.innerHTML = html;
+}
+
+// ── Danger zone ───────────────────────────────────────────
+
+async function adminDeleteAllDocs() {
+  if (!_editingId) return;
+  const t = _allTenants.find(x => x.id === _editingId);
+  if (!confirm(`Delete ALL documents for "${t?.full_name||'this tenant'}"? Files will be permanently removed from storage.`)) return;
+  const btn = document.getElementById('delete-docs-btn');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  const { error } = await sbHelpers.adminDeleteTenantDocuments(_editingId);
+  btn.disabled = false; btn.textContent = 'Delete all documents';
+  if (error) {
+    document.getElementById('danger-err').textContent = error.message;
+    document.getElementById('danger-err').style.display = 'block';
+    return;
+  }
+  document.getElementById('danger-err').style.display = 'none';
+  await loadTenantDocs(_editingId, t?.full_name);
+}
+
+async function adminClearAllInfo() {
+  if (!_editingId) return;
+  const t = _allTenants.find(x => x.id === _editingId);
+  if (!confirm(`Clear ALL profile information for "${t?.full_name||'this tenant'}"? This resets their profile to blank.`)) return;
+  const btn = document.getElementById('clear-info-btn');
+  btn.disabled = true; btn.textContent = 'Clearing…';
+  const { error } = await sbHelpers.adminClearTenantInfo(_editingId);
+  btn.disabled = false; btn.textContent = 'Clear all information';
+  if (error) {
+    document.getElementById('danger-err').textContent = error.message;
+    document.getElementById('danger-err').style.display = 'block';
+    return;
+  }
+  document.getElementById('danger-err').style.display = 'none';
+  const idx = _allTenants.findIndex(x => x.id === _editingId);
+  if (idx !== -1) { _allTenants[idx] = { ..._allTenants[idx], full_name: null, profile_complete: false }; filterTable(); }
+}
 
 async function loadTenantDocs(tenantId, tenantName) {
   const container = document.getElementById('docs-list');
