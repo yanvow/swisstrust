@@ -208,29 +208,233 @@
         </div>
       </fieldset>
 
-      <!-- Employment -->
+      <!-- Type of income -->
       <fieldset class="fieldset">
+        <legend>Type of income</legend>
+        <div class="text-xs text-gray mb-12">Select all that apply — this determines which financial documents you'll need to upload.</div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+            <input type="checkbox" id="is_employee" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Employee</div>
+              <div class="text-xs text-gray">You receive a salary from an employer — you will need to provide 3 months of salary slips.</div>
+            </div>
+          </label>
+          <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+            <input type="checkbox" id="is_self_employed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Self-employed / Independent</div>
+              <div class="text-xs text-gray">You run your own business or work as a freelancer — you will need to provide balance sheets, tax assessments, bank statements, and proof of self-employed status.</div>
+            </div>
+          </label>
+          <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+            <input type="checkbox" id="is_unemployed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Unemployed (receiving unemployment benefits)</div>
+              <div class="text-xs text-gray">You are currently receiving unemployment benefits (indemnités chômage / Arbeitslosengeld) — you will need to provide 3 months of benefit statements.</div>
+            </div>
+          </label>
+          <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+            <input type="checkbox" id="is_on_welfare" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Social assistance / Welfare</div>
+              <div class="text-xs text-gray">You are supported by a social assistance organisation — you will need to provide a certificate of rent coverage.</div>
+            </div>
+          </label>
+          <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+            <input type="checkbox" id="is_no_income" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">No income</div>
+              <div class="text-xs text-gray">You currently have no income of any kind.</div>
+            </div>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- Employment (shown if employee) -->
+      <fieldset class="fieldset" id="employment-fieldset" style="display:none;">
         <legend>Employment</legend>
         <div class="form-row">
           <div class="form-group">
-            <label>Employer name <span class="req">*</span></label>
-            <input type="text" id="employer_name" placeholder="Company name" required>
+            <label>Employer name</label>
+            <input type="text" id="employer_name" placeholder="Company name">
           </div>
           <div class="form-group">
-            <label>Job title / role <span class="req">*</span></label>
-            <input type="text" id="job_role" placeholder="Your position" required>
+            <label>Job title / role</label>
+            <input type="text" id="job_role" placeholder="Your position">
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Employment start date <span class="req">*</span></label>
-            <input type="date" id="employment_start_date" required>
+            <label>Employment start date</label>
+            <input type="date" id="employment_start_date">
           </div>
           <div class="form-group">
-            <label>Monthly gross salary (CHF) <span class="req">*</span></label>
-            <input type="number" id="monthly_gross_salary" placeholder="e.g. 8500" required>
+            <label>Monthly gross salary (CHF)</label>
+            <input type="number" id="monthly_gross_salary" placeholder="e.g. 8500">
             <div class="form-hint">Used to calculate rent eligibility (salary ≥ 3× rent)</div>
           </div>
+        </div>
+      </fieldset>
+
+      <!-- Self-employment (shown if independent) -->
+      <fieldset class="fieldset" id="self-employment-fieldset" style="display:none;">
+        <legend>Self-employment</legend>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Business name</label>
+            <input type="text" id="business_name" placeholder="Company or trading name">
+          </div>
+          <div class="form-group">
+            <label>Type of activity</label>
+            <input type="text" id="business_activity" placeholder="e.g. IT consulting, retail">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Juridical form</label>
+            <select id="juridical_form">
+              <option value="">— Select form</option>
+              <option value="sole_proprietorship">Raison individuelle / Einzelunternehmen</option>
+              <option value="sarl_gmbh">Sàrl / GmbH</option>
+              <option value="sa_ag">SA / AG</option>
+              <option value="association">Association / Verein</option>
+              <option value="foundation">Fondation / Stiftung</option>
+              <option value="snc">Société en nom collectif / Kollektivgesellschaft</option>
+              <option value="sc">Société en commandite / Kommanditgesellschaft</option>
+              <option value="cooperative">Coopérative / Genossenschaft</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Business start date</label>
+            <input type="date" id="business_start_date">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Average annual net income (CHF)</label>
+          <input type="number" id="annual_net_income" placeholder="e.g. 85000">
+          <div class="form-hint">Average over the last 2–3 years if available</div>
+        </div>
+      </fieldset>
+
+      <!-- Previous employment (shown if unemployed with benefits) -->
+      <fieldset class="fieldset" id="previous-employment-fieldset" style="display:none;">
+        <legend>Previous employment</legend>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Last employer name</label>
+            <input type="text" id="previous_employer_name" placeholder="Company name">
+          </div>
+          <div class="form-group">
+            <label>Last job title</label>
+            <input type="text" id="previous_job_role" placeholder="Your position">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Employment end date</label>
+          <input type="date" id="previous_employment_end_date" style="max-width:240px;">
+        </div>
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--gray-200);">
+          <div style="font-size:.875rem; font-weight:600; margin-bottom:12px;">Unemployment benefits</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Benefit start date</label>
+              <input type="date" id="unemployment_benefit_start_date">
+            </div>
+            <div class="form-group">
+              <label>Monthly benefit amount (CHF)</label>
+              <input type="number" id="unemployment_benefit_amount" placeholder="e.g. 4200">
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Welfare (shown if social assistance) -->
+      <fieldset class="fieldset" id="welfare-fieldset" style="display:none;">
+        <legend>Social assistance / Welfare</legend>
+        <div class="form-group">
+          <label>Social assistance organisation</label>
+          <select id="welfare_organisation">
+            <option value="">— Select organisation</option>
+            <optgroup label="Zurich (ZH)">
+              <option value="seb_zh">Soziale Einrichtungen und Betriebe (SEB)</option>
+            </optgroup>
+            <optgroup label="Bern (BE)">
+              <option value="sozialdienste_bern">Soziale Dienste Stadt Bern</option>
+            </optgroup>
+            <optgroup label="Luzern (LU)">
+              <option value="disg_lu">Dienststelle Soziales und Gesellschaft (DISG)</option>
+            </optgroup>
+            <optgroup label="Uri (UR)">
+              <option value="sozialamt_ur">Sozialamt Kanton Uri</option>
+            </optgroup>
+            <optgroup label="Schwyz (SZ)">
+              <option value="afso_sz">Amt für Soziales (AFSO)</option>
+            </optgroup>
+            <optgroup label="Obwalden (OW)">
+              <option value="fuersorge_ow">Fürsorgebehörde Obwalden</option>
+            </optgroup>
+            <optgroup label="Nidwalden (NW)">
+              <option value="sozialamt_nw">Amt für Soziales Nidwalden</option>
+            </optgroup>
+            <optgroup label="Glarus (GL)">
+              <option value="sozialamt_gl">Sozialamt Glarus</option>
+            </optgroup>
+            <optgroup label="Zug (ZG)">
+              <option value="sozialamt_zg">Amt für Soziales Zug</option>
+            </optgroup>
+            <optgroup label="Fribourg (FR)">
+              <option value="sasoc_fr">Service de l'action sociale (SASoc)</option>
+            </optgroup>
+            <optgroup label="Solothurn (SO)">
+              <option value="saso_so">Amt für soziale Sicherheit Solothurn</option>
+            </optgroup>
+            <optgroup label="Basel-Stadt (BS)">
+              <option value="sozialhilfe_bs">Sozialhilfe Basel-Stadt</option>
+            </optgroup>
+            <optgroup label="Basel-Landschaft (BL)">
+              <option value="sozialbeitraege_bl">Amt für Sozialbeiträge Basel-Landschaft</option>
+            </optgroup>
+            <optgroup label="Schaffhausen (SH)">
+              <option value="sozialamt_sh">Sozialamt Schaffhausen</option>
+            </optgroup>
+            <optgroup label="Appenzell Ausserrhoden (AR)">
+              <option value="sozialamt_ar">Sozialamt Appenzell Ausserrhoden</option>
+            </optgroup>
+            <optgroup label="Appenzell Innerrhoden (AI)">
+              <option value="sozialamt_ai">Sozialamt Appenzell Innerrhoden</option>
+            </optgroup>
+            <optgroup label="St. Gallen (SG)">
+              <option value="sozialamt_sg">Amt für Soziales St.Gallen</option>
+            </optgroup>
+            <optgroup label="Graubünden (GR)">
+              <option value="sozialamt_gr">Amt für Soziales Graubünden</option>
+            </optgroup>
+            <optgroup label="Aargau (AG)">
+              <option value="dgs_ag">Departement Gesundheit und Soziales Aargau</option>
+            </optgroup>
+            <optgroup label="Thurgau (TG)">
+              <option value="sozialamt_tg">Amt für Soziales Thurgau</option>
+            </optgroup>
+            <optgroup label="Ticino (TI)">
+              <option value="dasf_ti">Divisione dell'azione sociale e delle famiglie (DASF)</option>
+            </optgroup>
+            <optgroup label="Vaud (VD)">
+              <option value="csr_vd">Centre social régional (CSR)</option>
+            </optgroup>
+            <optgroup label="Valais / Wallis (VS)">
+              <option value="sas_vs">Service de l'action sociale / Dienststelle für Sozialhilfe</option>
+            </optgroup>
+            <optgroup label="Neuchâtel (NE)">
+              <option value="sai_ne">Service des aides individuelles (SAI)</option>
+            </optgroup>
+            <optgroup label="Genève (GE)">
+              <option value="hospice_ge">Hospice général</option>
+            </optgroup>
+            <optgroup label="Jura (JU)">
+              <option value="sas_ju">Service de l'action sociale (SAS)</option>
+            </optgroup>
+          </select>
         </div>
       </fieldset>
 
@@ -282,7 +486,7 @@
         </div>
 
         <!-- Guarantor sections — shown when needs_guarantor is checked -->
-        <div id="guarantor-type-section" style="display:none; margin-top:20px; padding-top:20px; border-top:1px solid var(--gray-200);">
+        <div id="guarantor-type-section" style="display:none; margin-top:16px;">
 
           <!-- Personal information -->
           <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Guarantor — Personal information</div>
@@ -445,17 +649,17 @@
             </div>
           </div>
 
-          <!-- Employment details — shown when at least one income type is selected -->
+          <!-- Guarantor employment — shown when guarantor_is_employee -->
           <div id="guarantor-employment-section" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
             <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Guarantor — Employment</div>
             <div class="form-row">
               <div class="form-group">
-                <label>Employer / Business name</label>
+                <label>Employer name</label>
                 <input type="text" id="guarantor_employer_name" placeholder="Company name">
               </div>
               <div class="form-group">
-                <label>Job title / Activity</label>
-                <input type="text" id="guarantor_job_role" placeholder="Position or type of activity">
+                <label>Job title</label>
+                <input type="text" id="guarantor_job_role" placeholder="Position">
               </div>
             </div>
             <div class="form-row">
@@ -464,52 +668,56 @@
                 <input type="date" id="guarantor_employment_start_date">
               </div>
               <div class="form-group">
-                <label>Monthly gross income (CHF)</label>
+                <label>Monthly gross salary (CHF)</label>
                 <input type="number" id="guarantor_monthly_gross_salary" placeholder="e.g. 8500">
               </div>
             </div>
           </div>
 
-        </div>
-
-        <!-- Income type — hidden when needs_guarantor is checked -->
-        <div id="income-type-section" style="margin-top:20px;">
-          <div style="font-size:.875rem; font-weight:600; margin-bottom:4px;">Type of income</div>
-          <div class="text-xs text-gray mb-12">Select all that apply — this determines which financial documents you'll need to upload.</div>
-          <div style="display:flex; flex-direction:column; gap:12px;">
-            <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
-              <input type="checkbox" id="is_employee" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
-              <div>
-                <div style="font-size:.9rem; font-weight:500;">Employee</div>
-                <div class="text-xs text-gray">You receive a salary from an employer — you will need to provide 3 months of salary slips.</div>
+          <!-- Guarantor self-employment — shown when guarantor_is_self_employed -->
+          <div id="guarantor-self-employment-section" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+            <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Guarantor — Self-employment</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Business name</label>
+                <input type="text" id="guarantor_business_name" placeholder="Company or trading name">
               </div>
-            </label>
-            <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
-              <input type="checkbox" id="is_self_employed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
-              <div>
-                <div style="font-size:.9rem; font-weight:500;">Self-employed / Independent</div>
-                <div class="text-xs text-gray">You run your own business or work as a freelancer — you will need to provide balance sheets, tax assessments, bank statements, and proof of self-employed status.</div>
+              <div class="form-group">
+                <label>Type of activity</label>
+                <input type="text" id="guarantor_business_activity" placeholder="e.g. IT consulting, retail">
               </div>
-            </label>
-            <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
-              <input type="checkbox" id="is_unemployed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
-              <div>
-                <div style="font-size:.9rem; font-weight:500;">Unemployed (receiving unemployment benefits)</div>
-                <div class="text-xs text-gray">You are currently receiving unemployment benefits (indemnités chômage / Arbeitslosengeld) — you will need to provide 3 months of benefit statements.</div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Juridical form</label>
+                <select id="guarantor_juridical_form">
+                  <option value="">— Select form</option>
+                  <option value="sole_proprietorship">Raison individuelle / Einzelunternehmen</option>
+                  <option value="sarl_gmbh">Sàrl / GmbH</option>
+                  <option value="sa_ag">SA / AG</option>
+                  <option value="association">Association / Verein</option>
+                  <option value="foundation">Fondation / Stiftung</option>
+                  <option value="snc">Société en nom collectif / Kollektivgesellschaft</option>
+                  <option value="sc">Société en commandite / Kommanditgesellschaft</option>
+                  <option value="cooperative">Coopérative / Genossenschaft</option>
+                </select>
               </div>
-            </label>
-            <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
-              <input type="checkbox" id="is_on_welfare" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncIncomeType(this)">
-              <div>
-                <div style="font-size:.9rem; font-weight:500;">Social assistance / Welfare</div>
-                <div class="text-xs text-gray">You are supported by a social assistance organisation (e.g. Hospice général – Geneva, CSR – Vaud) — you will need to provide a certificate of rent coverage from the organisation.</div>
+              <div class="form-group">
+                <label>Business start date</label>
+                <input type="date" id="guarantor_business_start_date">
               </div>
-            </label>
+            </div>
+            <div class="form-group">
+              <label>Average annual net income (CHF)</label>
+              <input type="number" id="guarantor_annual_net_income" placeholder="e.g. 85000">
+              <div class="form-hint">Average over the last 2–3 years if available</div>
+            </div>
           </div>
+
         </div>
 
         <!-- Household liability insurance (all tenants, optional) -->
-        <div class="toggle-row" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+        <div class="toggle-row" id="household-insurance-row" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
           <div>
             <div style="font-size:.9rem; font-weight:500;">Household liability insurance <span style="font-size:.75rem; color:var(--gray-400); font-weight:400;">(optional)</span></div>
             <div class="text-xs text-gray">I have or plan to take out household liability insurance (RC ménage / Privathaftpflicht)</div>
@@ -564,10 +772,6 @@ let _userId = null;
     f('permit_type', data.permit_type || 'swiss');
     syncPermitType();
     f('current_address', data.current_address);
-    f('employer_name', data.employer_name);
-    f('job_role', data.job_role);
-    f('employment_start_date', data.employment_start_date);
-    f('monthly_gross_salary', data.monthly_gross_salary);
     f('occupant_count', data.occupant_count || 1);
     if (data.is_smoker)  document.getElementById('is_smoker').checked = true;
     if (data.has_pets)   document.getElementById('has_pets').checked = true;
@@ -585,10 +789,32 @@ let _userId = null;
     f('guarantor_job_role',              data.guarantor_job_role);
     f('guarantor_employment_start_date', data.guarantor_employment_start_date);
     f('guarantor_monthly_gross_salary',  data.guarantor_monthly_gross_salary);
-    if (data.is_employee)                        document.getElementById('is_employee').checked = true;
-    if (data.is_self_employed)                   document.getElementById('is_self_employed').checked = true;
-    if (data.is_unemployed)                      document.getElementById('is_unemployed').checked = true;
-    if (data.is_on_welfare)                      document.getElementById('is_on_welfare').checked = true;
+    if (data.is_employee)     document.getElementById('is_employee').checked     = true;
+    if (data.is_self_employed) document.getElementById('is_self_employed').checked = true;
+    if (data.is_unemployed)   document.getElementById('is_unemployed').checked   = true;
+    if (data.is_on_welfare)   document.getElementById('is_on_welfare').checked   = true;
+    if (data.is_no_income)    document.getElementById('is_no_income').checked    = true;
+    syncIncomeType(null);
+    f('employer_name',         data.employer_name);
+    f('job_role',              data.job_role);
+    f('employment_start_date', data.employment_start_date);
+    f('monthly_gross_salary',  data.monthly_gross_salary);
+    f('business_name',         data.business_name);
+    f('business_activity',     data.business_activity);
+    f('juridical_form',        data.juridical_form);
+    f('business_start_date',   data.business_start_date);
+    f('annual_net_income',     data.annual_net_income);
+    f('previous_employer_name',          data.previous_employer_name);
+    f('previous_job_role',               data.previous_job_role);
+    f('previous_employment_end_date',    data.previous_employment_end_date);
+    f('unemployment_benefit_start_date', data.unemployment_benefit_start_date);
+    f('unemployment_benefit_amount',     data.unemployment_benefit_amount);
+    f('welfare_organisation',  data.welfare_organisation);
+    f('guarantor_business_name',       data.guarantor_business_name);
+    f('guarantor_business_activity',   data.guarantor_business_activity);
+    f('guarantor_juridical_form',      data.guarantor_juridical_form);
+    f('guarantor_business_start_date', data.guarantor_business_start_date);
+    f('guarantor_annual_net_income',   data.guarantor_annual_net_income);
     if (data.has_household_liability_insurance)  document.getElementById('has_household_liability_insurance').checked = true;
     f('rental_deposit_type', data.rental_deposit_type);
     syncRentalSituation();
@@ -598,28 +824,44 @@ let _userId = null;
 function syncRentalSituation() {
   const needsGuarantor = document.getElementById('needs_guarantor').checked;
   document.getElementById('guarantor-type-section').style.display = needsGuarantor ? 'block' : 'none';
-  document.getElementById('income-type-section').style.display = needsGuarantor ? 'none' : 'block';
+  const insuranceRow = document.getElementById('household-insurance-row');
+  insuranceRow.style.borderTop  = needsGuarantor ? '1px solid var(--gray-200)' : '';
+  insuranceRow.style.paddingTop = needsGuarantor ? '16px' : '';
+  insuranceRow.style.marginTop  = needsGuarantor ? '20px' : '';
   syncGuarantorEmployment();
 }
 
 function syncIncomeType(changed) {
-  const working  = ['is_employee', 'is_self_employed'];
-  const benefits = ['is_unemployed', 'is_on_welfare'];
-
-  if (working.includes(changed.id) && changed.checked) {
-    // Uncheck all benefit options
-    benefits.forEach(id => { document.getElementById(id).checked = false; });
-  } else if (benefits.includes(changed.id) && changed.checked) {
-    // Uncheck all working-income options and the other benefit
-    working.forEach(id  => { document.getElementById(id).checked = false; });
-    benefits.forEach(id => { if (id !== changed.id) document.getElementById(id).checked = false; });
+  if (changed) {
+    const working  = ['is_employee', 'is_self_employed'];
+    const benefits = ['is_unemployed', 'is_on_welfare'];
+    const all      = [...working, ...benefits, 'is_no_income'];
+    if (changed.id === 'is_no_income' && changed.checked) {
+      // No income selected — uncheck everything else
+      all.filter(id => id !== 'is_no_income').forEach(id => { document.getElementById(id).checked = false; });
+    } else if (changed.checked) {
+      // Any other option selected — uncheck no_income
+      document.getElementById('is_no_income').checked = false;
+      // Working and benefits are mutually exclusive with each other
+      if (working.includes(changed.id)) {
+        benefits.forEach(id => { document.getElementById(id).checked = false; });
+      } else if (benefits.includes(changed.id)) {
+        working.forEach(id  => { document.getElementById(id).checked = false; });
+        benefits.forEach(id => { if (id !== changed.id) document.getElementById(id).checked = false; });
+      }
+    }
   }
+  document.getElementById('employment-fieldset').style.display          = document.getElementById('is_employee').checked    ? '' : 'none';
+  document.getElementById('self-employment-fieldset').style.display     = document.getElementById('is_self_employed').checked ? '' : 'none';
+  document.getElementById('previous-employment-fieldset').style.display = document.getElementById('is_unemployed').checked   ? '' : 'none';
+  document.getElementById('welfare-fieldset').style.display             = document.getElementById('is_on_welfare').checked   ? '' : 'none';
 }
 
 function syncGuarantorEmployment() {
   const isEmployee     = document.getElementById('guarantor_is_employee').checked;
   const isSelfEmployed = document.getElementById('guarantor_is_self_employed').checked;
-  document.getElementById('guarantor-employment-section').style.display = (isEmployee || isSelfEmployed) ? 'block' : 'none';
+  document.getElementById('guarantor-employment-section').style.display      = isEmployee     ? 'block' : 'none';
+  document.getElementById('guarantor-self-employment-section').style.display = isSelfEmployed ? 'block' : 'none';
 }
 
 function syncGuarantorPermitType() {
@@ -664,10 +906,31 @@ async function saveProfile(e) {
     nationality:           document.getElementById('nationality').value.trim(),
     permit_type:           document.getElementById('nationality').value === 'Swiss' ? 'swiss' : document.getElementById('permit_type').value,
     current_address:       document.getElementById('current_address').value.trim(),
-    employer_name:         document.getElementById('employer_name').value.trim(),
-    job_role:              document.getElementById('job_role').value.trim(),
-    employment_start_date: document.getElementById('employment_start_date').value || null,
-    monthly_gross_salary:  parseFloat(document.getElementById('monthly_gross_salary').value) || null,
+    is_employee:           document.getElementById('is_employee').checked,
+    is_self_employed:      document.getElementById('is_self_employed').checked,
+    is_unemployed:         document.getElementById('is_unemployed').checked,
+    is_on_welfare:         document.getElementById('is_on_welfare').checked,
+    is_no_income:          document.getElementById('is_no_income').checked,
+    employer_name:                   document.getElementById('employer_name').value.trim() || null,
+    job_role:                        document.getElementById('job_role').value.trim() || null,
+    employment_start_date:           document.getElementById('employment_start_date').value || null,
+    monthly_gross_salary:            parseFloat(document.getElementById('monthly_gross_salary').value) || null,
+    business_name:                   document.getElementById('business_name').value.trim() || null,
+    business_activity:               document.getElementById('business_activity').value.trim() || null,
+    juridical_form:                  document.getElementById('juridical_form').value || null,
+    business_start_date:             document.getElementById('business_start_date').value || null,
+    annual_net_income:               parseFloat(document.getElementById('annual_net_income').value) || null,
+    previous_employer_name:          document.getElementById('previous_employer_name').value.trim() || null,
+    previous_job_role:               document.getElementById('previous_job_role').value.trim() || null,
+    previous_employment_end_date:    document.getElementById('previous_employment_end_date').value || null,
+    unemployment_benefit_start_date: document.getElementById('unemployment_benefit_start_date').value || null,
+    unemployment_benefit_amount:     parseFloat(document.getElementById('unemployment_benefit_amount').value) || null,
+    welfare_organisation:            document.getElementById('welfare_organisation').value || null,
+    guarantor_business_name:         document.getElementById('guarantor_business_name').value.trim() || null,
+    guarantor_business_activity:     document.getElementById('guarantor_business_activity').value.trim() || null,
+    guarantor_juridical_form:        document.getElementById('guarantor_juridical_form').value || null,
+    guarantor_business_start_date:   document.getElementById('guarantor_business_start_date').value || null,
+    guarantor_annual_net_income:     parseFloat(document.getElementById('guarantor_annual_net_income').value) || null,
     occupant_count:        parseInt(document.getElementById('occupant_count').value) || 1,
     is_smoker:             document.getElementById('is_smoker').checked,
     has_pets:              document.getElementById('has_pets').checked,
@@ -683,10 +946,6 @@ async function saveProfile(e) {
     guarantor_job_role:               document.getElementById('guarantor_job_role').value.trim() || null,
     guarantor_employment_start_date:  document.getElementById('guarantor_employment_start_date').value || null,
     guarantor_monthly_gross_salary:   parseFloat(document.getElementById('guarantor_monthly_gross_salary').value) || null,
-    is_employee:           document.getElementById('is_employee').checked,
-    is_self_employed:      document.getElementById('is_self_employed').checked,
-    is_unemployed:         document.getElementById('is_unemployed').checked,
-    is_on_welfare:         document.getElementById('is_on_welfare').checked,
     has_household_liability_insurance: document.getElementById('has_household_liability_insurance').checked,
     rental_deposit_type:   document.getElementById('rental_deposit_type').value || null,
     profile_complete:      true,
