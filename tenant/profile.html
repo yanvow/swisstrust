@@ -72,13 +72,18 @@
         <legend>Personal information</legend>
         <div class="form-row">
           <div class="form-group">
-            <label>Full name <span class="req">*</span></label>
-            <input type="text" id="full_name" placeholder="Full legal name" required>
+            <label>Display name <span class="req">*</span></label>
+            <input type="text" id="full_name" placeholder="Your name as you'd like it shown" required>
           </div>
           <div class="form-group">
             <label>Date of birth <span class="req">*</span></label>
             <input type="date" id="date_of_birth" required>
           </div>
+        </div>
+        <div class="form-group">
+          <label>Full government name</label>
+          <input type="text" id="gov_name" placeholder="Exact name as on your passport or ID card">
+          <div class="form-hint">Must match your identity documents exactly. Leave blank if same as display name.</div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -443,7 +448,20 @@
         <legend>Household</legend>
         <div class="form-group">
           <label>Number of occupants (including yourself) <span class="req">*</span></label>
-          <input type="number" id="occupant_count" value="1" min="1" max="10" style="max-width:120px;" required>
+          <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
+            <div>
+              <div class="text-xs text-gray mb-4">Adults</div>
+              <input type="number" id="adult_count" value="1" min="1" max="20" style="max-width:100px;" oninput="syncOccupantCount()">
+            </div>
+            <div>
+              <div class="text-xs text-gray mb-4">Children</div>
+              <input type="number" id="children_count" value="0" min="0" max="20" style="max-width:100px;" oninput="syncOccupantCount()">
+            </div>
+            <div style="padding-bottom:4px; color:var(--gray-400); font-size:.85rem;">
+              Total: <strong id="occupant_total">1</strong>
+            </div>
+          </div>
+          <input type="hidden" id="occupant_count" value="1">
         </div>
         <div>
           <div class="toggle-row">
@@ -462,9 +480,41 @@
               <div class="text-xs text-gray">Do you have or plan to have pets?</div>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="has_pets">
+              <input type="checkbox" id="has_pets" onchange="togglePetTypes()">
               <span class="toggle-slider"></span>
             </label>
+          </div>
+          <div id="pet_types_row" style="display:none; padding:10px 0 4px 0;">
+            <label style="font-size:.875rem; color:var(--gray-600);">Which pets?</label>
+            <input type="text" id="pet_types" placeholder="e.g. dog, cat" style="margin-top:6px; width:100%;">
+          </div>
+          <div class="toggle-row" style="margin-top:4px;">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Plays an instrument</div>
+              <div class="text-xs text-gray">Do you or any occupant play a musical instrument?</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="plays_instrument" onchange="toggleInstrument()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div id="instrument_row" style="display:none; padding:10px 0 4px 0;">
+            <label style="font-size:.875rem; color:var(--gray-600);">Which instrument(s)?</label>
+            <input type="text" id="instrument_types" placeholder="e.g. piano, guitar" style="margin-top:6px; width:100%;">
+          </div>
+          <div class="toggle-row" style="margin-top:4px;">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Vehicle</div>
+              <div class="text-xs text-gray">Do you own or regularly use a vehicle?</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="has_vehicle" onchange="toggleVehicle()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div id="vehicle_row" style="display:none; padding:10px 0 4px 0;">
+            <label style="font-size:.875rem; color:var(--gray-600);">What type?</label>
+            <input type="text" id="vehicle_types" placeholder="e.g. car, motorcycle, van" style="margin-top:6px; width:100%;">
           </div>
         </div>
       </fieldset>
@@ -499,6 +549,10 @@
               <label>Date of birth</label>
               <input type="date" id="guarantor_date_of_birth">
             </div>
+          </div>
+          <div class="form-group">
+            <label>Full government name <span class="text-xs text-gray" style="font-weight:400;">(as it appears on official documents, if different)</span></label>
+            <input type="text" id="guarantor_gov_name" placeholder="Exact name as on your passport or ID card">
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -754,6 +808,8 @@
 
 <script>
 let _userId = null;
+let _tenantId = null;
+let _prevNationality = null;  // nationality at load time, to detect changes
 
 (async () => {
   const user = await sbHelpers.requireAuth('tenant');
@@ -765,19 +821,40 @@ let _userId = null;
   // Load existing profile
   const { data } = await sbHelpers.getTenantByUserId(user.id);
   if (data) {
+    _tenantId = data.id;
+    _prevNationality = data.nationality || null;
     const f = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
     f('full_name', data.full_name);
+    f('gov_name', data.gov_name);
     f('date_of_birth', data.date_of_birth);
     f('nationality', data.nationality);
     f('permit_type', data.permit_type || 'swiss');
     syncPermitType();
     f('current_address', data.current_address);
+    f('adult_count',    data.adult_count    ?? 1);
+    f('children_count', data.children_count ?? 0);
     f('occupant_count', data.occupant_count || 1);
-    if (data.is_smoker)  document.getElementById('is_smoker').checked = true;
-    if (data.has_pets)   document.getElementById('has_pets').checked = true;
+    syncOccupantCount();
+    if (data.is_smoker) document.getElementById('is_smoker').checked = true;
+    if (data.has_pets) {
+      document.getElementById('has_pets').checked = true;
+      togglePetTypes();
+    }
+    if (data.pet_types) document.getElementById('pet_types').value = data.pet_types;
+    if (data.plays_instrument) {
+      document.getElementById('plays_instrument').checked = true;
+      toggleInstrument();
+    }
+    if (data.instrument_types) document.getElementById('instrument_types').value = data.instrument_types;
+    if (data.has_vehicle) {
+      document.getElementById('has_vehicle').checked = true;
+      toggleVehicle();
+    }
+    if (data.vehicle_types) document.getElementById('vehicle_types').value = data.vehicle_types;
 
     if (data.needs_guarantor)            document.getElementById('needs_guarantor').checked = true;
     f('guarantor_full_name',             data.guarantor_full_name);
+    f('guarantor_gov_name',              data.guarantor_gov_name);
     f('guarantor_date_of_birth',         data.guarantor_date_of_birth);
     f('guarantor_nationality',           data.guarantor_nationality);
     f('guarantor_permit_type',           data.guarantor_permit_type || 'swiss');
@@ -864,6 +941,29 @@ function syncGuarantorEmployment() {
   document.getElementById('guarantor-self-employment-section').style.display = isSelfEmployed ? 'block' : 'none';
 }
 
+function togglePetTypes() {
+  const show = document.getElementById('has_pets').checked;
+  document.getElementById('pet_types_row').style.display = show ? 'block' : 'none';
+}
+
+function toggleVehicle() {
+  const show = document.getElementById('has_vehicle').checked;
+  document.getElementById('vehicle_row').style.display = show ? 'block' : 'none';
+}
+
+function toggleInstrument() {
+  const show = document.getElementById('plays_instrument').checked;
+  document.getElementById('instrument_row').style.display = show ? 'block' : 'none';
+}
+
+function syncOccupantCount() {
+  const adults   = Math.max(1, parseInt(document.getElementById('adult_count').value) || 1);
+  const children = Math.max(0, parseInt(document.getElementById('children_count').value) || 0);
+  const total = adults + children;
+  document.getElementById('occupant_count').value = total;
+  document.getElementById('occupant_total').textContent = total;
+}
+
 function syncGuarantorPermitType() {
   const nat    = document.getElementById('guarantor_nationality').value;
   const permit = document.getElementById('guarantor_permit_type');
@@ -902,6 +1002,7 @@ async function saveProfile(e) {
 
   const fields = {
     full_name:             document.getElementById('full_name').value.trim(),
+    gov_name:              document.getElementById('gov_name').value.trim() || null,
     date_of_birth:         document.getElementById('date_of_birth').value || null,
     nationality:           document.getElementById('nationality').value.trim(),
     permit_type:           document.getElementById('nationality').value === 'Swiss' ? 'swiss' : document.getElementById('permit_type').value,
@@ -931,11 +1032,19 @@ async function saveProfile(e) {
     guarantor_juridical_form:        document.getElementById('guarantor_juridical_form').value || null,
     guarantor_business_start_date:   document.getElementById('guarantor_business_start_date').value || null,
     guarantor_annual_net_income:     parseFloat(document.getElementById('guarantor_annual_net_income').value) || null,
+    adult_count:           parseInt(document.getElementById('adult_count').value) || 1,
+    children_count:        parseInt(document.getElementById('children_count').value) || 0,
     occupant_count:        parseInt(document.getElementById('occupant_count').value) || 1,
     is_smoker:             document.getElementById('is_smoker').checked,
     has_pets:              document.getElementById('has_pets').checked,
+    pet_types:             document.getElementById('has_pets').checked ? (document.getElementById('pet_types').value.trim() || null) : null,
+    plays_instrument:      document.getElementById('plays_instrument').checked,
+    instrument_types:      document.getElementById('plays_instrument').checked ? (document.getElementById('instrument_types').value.trim() || null) : null,
+    has_vehicle:           document.getElementById('has_vehicle').checked,
+    vehicle_types:         document.getElementById('has_vehicle').checked ? (document.getElementById('vehicle_types').value.trim() || null) : null,
     needs_guarantor:                  document.getElementById('needs_guarantor').checked,
     guarantor_full_name:              document.getElementById('guarantor_full_name').value.trim() || null,
+    guarantor_gov_name:               document.getElementById('guarantor_gov_name').value.trim() || null,
     guarantor_date_of_birth:          document.getElementById('guarantor_date_of_birth').value || null,
     guarantor_nationality:            document.getElementById('guarantor_nationality').value || null,
     guarantor_permit_type:            document.getElementById('guarantor_nationality').value === 'Swiss' ? 'swiss' : (document.getElementById('guarantor_permit_type').value || null),
@@ -952,6 +1061,10 @@ async function saveProfile(e) {
     updated_at:            new Date().toISOString(),
   };
 
+  const newNationality = fields.nationality;
+  const wasSwiss = _prevNationality === 'Swiss';
+  const nowSwiss = newNationality === 'Swiss';
+
   const { error } = await sbHelpers.upsertTenant(_userId, fields);
 
   if (error) {
@@ -960,9 +1073,29 @@ async function saveProfile(e) {
     return;
   }
 
+  // Nationality changed: delete docs that no longer apply
+  if (_tenantId && wasSwiss !== nowSwiss) {
+    const toRemove = ['passport_id'];
+    if (!wasSwiss && nowSwiss) toRemove.push('residence_permit');
+    await deleteObsoleteDocs(toRemove);
+  }
+
+  _prevNationality = newNationality;
+
   btn.textContent = '✓ Saved';
   btn.style.background = 'var(--green)';
   setTimeout(() => { btn.textContent = 'Save profile'; btn.style.background = ''; sbHelpers.setLoading(btn, false, 'Save profile'); }, 2000);
+}
+
+// Delete specific doc types for the current tenant (storage + DB row)
+async function deleteObsoleteDocs(docTypes) {
+  const { data: docs } = await sbHelpers.getDocumentsByTenant(_tenantId);
+  if (!docs) return;
+  const toDelete = docs.filter(d => docTypes.includes(d.doc_type));
+  for (const doc of toDelete) {
+    if (doc.storage_path) await _sb.storage.from('documents').remove([doc.storage_path]);
+    await _sb.from('documents').delete().eq('id', doc.id);
+  }
 }
 </script>
 </body>

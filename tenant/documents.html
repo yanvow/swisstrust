@@ -126,12 +126,6 @@ const DOC_TYPE_REGISTRY = {
     icon: '⚖️',
     hint: 'Must be issued within the last 3 months. Request it from your cantonal debt enforcement office (Betreibungsamt / Office des poursuites / Ufficio d\u2019esecuzione).',
   },
-  reference_letter: {
-    key: 'reference_letter',
-    label: 'Landlord reference letter',
-    icon: '🏠',
-    hint: 'Optional — a reference letter from your current or previous landlord.',
-  },
   // Employee income
   salary_slip_1: {
     key: 'salary_slip_1',
@@ -287,7 +281,6 @@ function getDocSections() {
   const identityTypes = [DOC_TYPE_REGISTRY.passport_id];
   if (!_isSwiss) identityTypes.push(DOC_TYPE_REGISTRY.residence_permit);
   identityTypes.push(DOC_TYPE_REGISTRY.betreibungsauszug);
-  identityTypes.push(DOC_TYPE_REGISTRY.reference_letter);
   sections.push({ title: 'Identity documents', types: identityTypes });
 
   if (_needsGuarantor) {
@@ -388,8 +381,14 @@ let _isEmployee      = false;
 let _isSelfEmployed  = false;
 let _isUnemployed    = false;
 let _isOnWelfare     = false;
-let _tenantName      = '';
-let _tenantDob       = null;
+let _tenantName        = '';   // lowercase, for comparison
+let _tenantNameRaw     = '';   // original casing, for display
+let _tenantGovName     = '';   // lowercase, for comparison
+let _tenantGovNameRaw  = '';   // original casing, for display
+let _tenantNationality = '';   // original casing (e.g. "French")
+let _tenantPermitType  = '';   // e.g. "B", "C", "swiss"
+let _tenantDob         = null;
+let _tenantMonthlySalary = null;
 let _docsMap         = {};  // key → document row
 
 // ── Init ─────────────────────────────────────────────────────
@@ -410,8 +409,14 @@ let _docsMap         = {};  // key → document row
   _isSelfEmployed = !!tenant.is_self_employed;
   _isUnemployed   = !!tenant.is_unemployed;
   _isOnWelfare    = !!tenant.is_on_welfare;
-  _tenantName     = (tenant.full_name || '').trim().toLowerCase();
-  _tenantDob      = tenant.date_of_birth || null;
+  _tenantNameRaw     = (tenant.full_name || '').trim();
+  _tenantName        = _tenantNameRaw.toLowerCase();
+  _tenantGovNameRaw  = (tenant.gov_name || '').trim();
+  _tenantGovName     = _tenantGovNameRaw.toLowerCase();
+  _tenantNationality = (tenant.nationality || '').trim();
+  _tenantPermitType  = (tenant.permit_type || '').trim().toUpperCase();
+  _tenantDob           = tenant.date_of_birth || null;
+  _tenantMonthlySalary = tenant.monthly_gross_salary || null;
 
   await refreshDocs();
 })();
@@ -453,7 +458,124 @@ function renderAll() {
 
 function resolveLabel(t) { return typeof t.label === 'function' ? t.label() : t.label; }
 function resolveHint(t)  { return typeof t.hint  === 'function' ? t.hint()  : t.hint;  }
-function tenant_display_name() { return _tenantName || '(not set)'; }
+function tenant_display_name() { return _tenantNameRaw || '(not set)'; }
+
+async function setGovName(name) {
+  const { error } = await _sb.from('tenants').update({ gov_name: name }).eq('id', _tenantId);
+  if (error) { alert('Failed to update government name. Please edit your profile manually.'); return; }
+  _tenantGovNameRaw = name.trim();
+  _tenantGovName    = _tenantGovNameRaw.toLowerCase();
+  await refreshDocs();
+}
+
+// Maps ISO 3166 alpha-2/alpha-3 codes AND country names to the profile adjective values.
+// OCR may return codes (CHE, FR) or country names (Switzerland, France) — normalise them all.
+const NATIONALITY_MAP = {
+  // Switzerland
+  'che':'Swiss','ch':'Swiss','switzerland':'Swiss','suisse':'Swiss','schweiz':'Swiss','svizzera':'Swiss',
+  // Europe
+  'alb':'Albanian','al':'Albanian','albania':'Albanian',
+  'aut':'Austrian','at':'Austrian','austria':'Austrian',
+  'bel':'Belgian','be':'Belgian','belgium':'Belgian','belgique':'Belgian','belgien':'Belgian',
+  'bih':'Bosnian','ba':'Bosnian','bosnia':'Bosnian','bosnia and herzegovina':'Bosnian',
+  'bgr':'Bulgarian','bg':'Bulgarian','bulgaria':'Bulgarian',
+  'hrv':'Croatian','hr':'Croatian','croatia':'Croatian',
+  'cze':'Czech','cz':'Czech','czech republic':'Czech','czechia':'Czech',
+  'dnk':'Danish','dk':'Danish','denmark':'Danish',
+  'nld':'Dutch','nl':'Dutch','netherlands':'Dutch','holland':'Dutch',
+  'fin':'Finnish','fi':'Finnish','finland':'Finnish',
+  'fra':'French','fr':'French','france':'French',
+  'deu':'German','de':'German','germany':'German','deutschland':'German',
+  'grc':'Greek','gr':'Greek','greece':'Greek',
+  'hun':'Hungarian','hu':'Hungarian','hungary':'Hungarian',
+  'irl':'Irish','ie':'Irish','ireland':'Irish',
+  'ita':'Italian','it':'Italian','italy':'Italian','italia':'Italian',
+  'xkx':'Kosovan','xk':'Kosovan','kosovo':'Kosovan',
+  'lva':'Latvian','lv':'Latvian','latvia':'Latvian',
+  'ltu':'Lithuanian','lt':'Lithuanian','lithuania':'Lithuanian',
+  'lux':'Luxembourgish','lu':'Luxembourgish','luxembourg':'Luxembourgish',
+  'mkd':'Macedonian','mk':'Macedonian','north macedonia':'Macedonian','macedonia':'Macedonian',
+  'mda':'Moldovan','md':'Moldovan','moldova':'Moldovan',
+  'mne':'Montenegrin','me':'Montenegrin','montenegro':'Montenegrin',
+  'nor':'Norwegian','no':'Norwegian','norway':'Norwegian',
+  'pol':'Polish','pl':'Polish','poland':'Polish',
+  'prt':'Portuguese','pt':'Portuguese','portugal':'Portuguese',
+  'rou':'Romanian','ro':'Romanian','romania':'Romanian',
+  'srb':'Serbian','rs':'Serbian','serbia':'Serbian',
+  'svk':'Slovak','sk':'Slovak','slovakia':'Slovak',
+  'svn':'Slovenian','si':'Slovenian','slovenia':'Slovenian',
+  'esp':'Spanish','es':'Spanish','spain':'Spanish',
+  'swe':'Swedish','se':'Swedish','sweden':'Swedish',
+  'tur':'Turkish','tr':'Turkish','turkey':'Turkish','türkiye':'Turkish',
+  'ukr':'Ukrainian','ua':'Ukrainian','ukraine':'Ukrainian',
+  'gbr':'British','gb':'British','uk':'British','united kingdom':'British','great britain':'British',
+  // Africa
+  'dza':'Algerian','dz':'Algerian','algeria':'Algerian',
+  'ago':'Angolan','ao':'Angolan','angola':'Angolan',
+  'cmr':'Cameroonian','cm':'Cameroonian','cameroon':'Cameroonian',
+  'cod':'Congolese','cd':'Congolese','cog':'Congolese','cg':'Congolese','congo':'Congolese',
+  'egy':'Egyptian','eg':'Egyptian','egypt':'Egyptian',
+  'eth':'Ethiopian','et':'Ethiopian','ethiopia':'Ethiopian',
+  'gha':'Ghanaian','gh':'Ghanaian','ghana':'Ghanaian',
+  'civ':'Ivorian','ci':'Ivorian','ivory coast':'Ivorian','côte d\'ivoire':'Ivorian',
+  'ken':'Kenyan','ke':'Kenyan','kenya':'Kenyan',
+  'mar':'Moroccan','ma':'Moroccan','morocco':'Moroccan','maroc':'Moroccan',
+  'nga':'Nigerian','ng':'Nigerian','nigeria':'Nigerian',
+  'sen':'Senegalese','sn':'Senegalese','senegal':'Senegalese',
+  'zaf':'South African','za':'South African','south africa':'South African',
+  'tza':'Tanzanian','tz':'Tanzanian','tanzania':'Tanzanian',
+  'tun':'Tunisian','tn':'Tunisian','tunisia':'Tunisian',
+  'uga':'Ugandan','ug':'Ugandan','uganda':'Ugandan',
+  // Americas
+  'usa':'American','us':'American','united states':'American','united states of america':'American',
+  'arg':'Argentine','ar':'Argentine','argentina':'Argentine',
+  'bra':'Brazilian','br':'Brazilian','brazil':'Brazilian','brasil':'Brazilian',
+  'can':'Canadian','ca':'Canadian','canada':'Canadian',
+  'chl':'Chilean','cl':'Chilean','chile':'Chilean',
+  'col':'Colombian','co':'Colombian','colombia':'Colombian',
+  'cub':'Cuban','cu':'Cuban','cuba':'Cuban',
+  'dom':'Dominican','do':'Dominican','dominican republic':'Dominican',
+  'ecu':'Ecuadorian','ec':'Ecuadorian','ecuador':'Ecuadorian',
+  'mex':'Mexican','mx':'Mexican','mexico':'Mexican','méxico':'Mexican',
+  'per':'Peruvian','pe':'Peruvian','peru':'Peruvian','perú':'Peruvian',
+  'ven':'Venezuelan','ve':'Venezuelan','venezuela':'Venezuelan',
+  // Asia & Middle East
+  'afg':'Afghan','af':'Afghan','afghanistan':'Afghan',
+  'arm':'Armenian','am':'Armenian','armenia':'Armenian',
+  'aze':'Azerbaijani','az':'Azerbaijani','azerbaijan':'Azerbaijani',
+  'bgd':'Bangladeshi','bd':'Bangladeshi','bangladesh':'Bangladeshi',
+  'chn':'Chinese','cn':'Chinese','china':'Chinese',
+  'geo':'Georgian','ge':'Georgian','georgia':'Georgian',
+  'ind':'Indian','in':'Indian','india':'Indian',
+  'idn':'Indonesian','id':'Indonesian','indonesia':'Indonesian',
+  'irn':'Iranian','ir':'Iranian','iran':'Iranian',
+  'irq':'Iraqi','iq':'Iraqi','iraq':'Iraqi',
+  'isr':'Israeli','il':'Israeli','israel':'Israeli',
+  'jpn':'Japanese','jp':'Japanese','japan':'Japanese',
+  'jor':'Jordanian','jo':'Jordanian','jordan':'Jordanian',
+  'kaz':'Kazakh','kz':'Kazakh','kazakhstan':'Kazakh',
+  'kor':'Korean','kr':'Korean','south korea':'Korean','korea':'Korean',
+  'lbn':'Lebanese','lb':'Lebanese','lebanon':'Lebanese',
+  'mys':'Malaysian','my':'Malaysian','malaysia':'Malaysian',
+  'pak':'Pakistani','pk':'Pakistani','pakistan':'Pakistani',
+  'pse':'Palestinian','ps':'Palestinian','palestine':'Palestinian',
+  'phl':'Philippine','ph':'Philippine','philippines':'Philippine',
+  'sau':'Saudi','sa':'Saudi','saudi arabia':'Saudi',
+  'lka':'Sri Lankan','lk':'Sri Lankan','sri lanka':'Sri Lankan',
+  'syr':'Syrian','sy':'Syrian','syria':'Syrian',
+  'tha':'Thai','th':'Thai','thailand':'Thai',
+  'vnm':'Vietnamese','vn':'Vietnamese','vietnam':'Vietnamese','viet nam':'Vietnamese',
+  // Oceania
+  'aus':'Australian','au':'Australian','australia':'Australian',
+  'nzl':'New Zealander','nz':'New Zealander','new zealand':'New Zealander',
+};
+
+// Normalise an OCR nationality value to the profile adjective (or return null if unknown)
+function normaliseNationality(raw) {
+  if (!raw) return null;
+  const key = raw.trim().toLowerCase();
+  return NATIONALITY_MAP[key] || null;
+}
 
 // Returns days since a date string, or null
 function daysSince(dateStr) {
@@ -471,6 +593,7 @@ function renderDocCard(type) {
   const isSalarySlip       = type.key.startsWith('salary_slip') || type.key.startsWith('guarantor_salary_slip');
   const isUnemploymentSlip = type.key.startsWith('unemployment_benefit_');
   let isStale = false;
+  let isFuturePeriod = false;
   if (doc) {
     if (isBetreibung) {
       const certDate = doc.ocr_extracted_data?.certificate_date;
@@ -483,19 +606,23 @@ function renderDocCard(type) {
         // Cutoff = 1st of the month that is 3 complete months before the current month.
         // e.g. today = Apr 16 → cutoff = Jan 1 → Jan/Feb/Mar slips are valid.
         const now = new Date();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const cutoff = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        isStale = slipDate < cutoff;
+        isFuturePeriod = slipDate > currentMonthStart;
+        isStale = !isFuturePeriod && slipDate < cutoff;
       }
     }
   }
 
-  // Override card styling when stale (even if auto_verified)
-  const headClass = isStale ? 'doc-card--rejected' : (doc ? sc.cardClass : '');
+  // Override card styling when stale or future-dated (even if auto_verified)
+  const headClass = (isStale || isFuturePeriod) ? 'doc-card--rejected' : (doc ? sc.cardClass : '');
   const badgeHtml = isStale
     ? `<span class="badge badge-red">Expired — renew now</span>`
-    : doc
-      ? `<span class="${sc.badge}">${sc.label}</span>`
-      : `<span class="badge badge-gray">Not uploaded</span>`;
+    : isFuturePeriod
+      ? `<span class="badge badge-red">Invalid — future date</span>`
+      : doc
+        ? `<span class="${sc.badge}">${sc.label}</span>`
+        : `<span class="badge badge-gray">Not uploaded</span>`;
 
   let bodyHtml;
   if (doc) {
@@ -511,20 +638,95 @@ function renderDocCard(type) {
     // Name / DOB mismatch warnings
     let mismatchAlerts = '';
     if (_tenantName && doc.ocr_extracted_data) {
-      const ocrName = (doc.ocr_extracted_data.full_name || doc.ocr_extracted_data.issued_for || '').trim().toLowerCase();
-      if (ocrName && !ocrName.includes(_tenantName) && !_tenantName.includes(ocrName)) {
-        mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
-          <span>⚠️</span><span>Name mismatch — document shows "<strong>${escHtml(doc.ocr_extracted_data.full_name || doc.ocr_extracted_data.issued_for)}</strong>" but your profile name is "<strong>${escHtml(tenant_display_name())}</strong>". Update your profile or re-upload the correct document.</span>
-        </div>`;
+      const rawOcrName = (doc.ocr_extracted_data.full_name || doc.ocr_extracted_data.issued_for || '').trim();
+      const ocrName = rawOcrName.toLowerCase();
+      if (ocrName) {
+        // Compare against gov_name first, fall back to display name
+        const nameToMatch = _tenantGovName || _tenantName;
+        const nameMatches = ocrName.includes(nameToMatch) || nameToMatch.includes(ocrName);
+        if (!nameMatches) {
+          if (!_tenantGovName) {
+            // No gov_name set — suggest setting it
+            mismatchAlerts += `<div class="alert mt-12" style="background:#FFFBEB; border:1px solid #FCD34D; display:flex; gap:8px; padding:12px 14px; border-radius:var(--radius); font-size:.875rem; align-items:flex-start;">
+              <span>⚠️</span>
+              <div style="flex:1;">
+                <strong>Government name not set</strong> — your document shows "<strong>${escHtml(rawOcrName)}</strong>" but your profile name is "<strong>${escHtml(tenant_display_name())}</strong>".
+                Your profile may be missing your full government name.
+                <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+                  <button onclick="setGovName(${escHtml(JSON.stringify(rawOcrName))})" class="btn btn-sm" style="background:#1D4ED8; color:#fff; border:none; cursor:pointer; padding:6px 14px; border-radius:6px; font-size:.8125rem;">Use document name</button>
+                  <a href="profile.html" class="btn btn-sm btn-ghost" style="padding:6px 14px; font-size:.8125rem;">Edit profile</a>
+                </div>
+              </div>
+            </div>`;
+          } else {
+            // gov_name is set but still doesn't match
+            mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+              <span>⚠️</span><span>Name mismatch — document shows "<strong>${escHtml(rawOcrName)}</strong>" but your government name is "<strong>${escHtml(_tenantGovNameRaw)}</strong>". Please <a href="profile.html" style="color:#1D4ED8; font-weight:600;">update your profile</a> or re-upload the correct document.</span>
+            </div>`;
+          }
+        }
       }
       if (_tenantDob && doc.ocr_extracted_data.date_of_birth && doc.ocr_extracted_data.date_of_birth !== _tenantDob) {
         mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
-          <span>⚠️</span><span>Date of birth mismatch — document shows <strong>${escHtml(doc.ocr_extracted_data.date_of_birth)}</strong> but your profile has <strong>${escHtml(_tenantDob)}</strong>. Please check your profile or re-upload.</span>
+          <span>⚠️</span><span>Date of birth mismatch — document shows <strong>${escHtml(doc.ocr_extracted_data.date_of_birth)}</strong> but your profile has <strong>${escHtml(_tenantDob)}</strong>. Please <a href="profile.html" style="color:#1D4ED8; font-weight:600;">update your profile</a> or re-upload the correct document.</span>
         </div>`;
+      }
+
+      // Expiry date check (passport_id → expiry_date, residence_permit → valid_until)
+      const expiryField = doc.ocr_extracted_data.expiry_date || doc.ocr_extracted_data.valid_until;
+      if (expiryField) {
+        const expiryDate = new Date(expiryField);
+        if (!isNaN(expiryDate) && expiryDate < new Date()) {
+          mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+            <span>⚠️</span><span>Document expired — this document expired on <strong>${escHtml(expiryField)}</strong>. You must obtain a renewed document and re-upload it.</span>
+          </div>`;
+        }
+      }
+
+      // Nationality check (passport_id and residence_permit both extract nationality)
+      const rawOcrNat = (doc.ocr_extracted_data.nationality || '').trim();
+      if (rawOcrNat && _tenantNationality) {
+        const normalisedOcrNat = normaliseNationality(rawOcrNat) || rawOcrNat;
+        if (normalisedOcrNat.toLowerCase() !== _tenantNationality.toLowerCase()) {
+          mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+            <span>⚠️</span><span>Nationality mismatch — document shows <strong>${escHtml(normalisedOcrNat)}</strong> but your profile has <strong>${escHtml(_tenantNationality)}</strong>. Please <a href="profile.html" style="color:#1D4ED8; font-weight:600;">update your profile</a> or re-upload the correct document.</span>
+          </div>`;
+        }
+      }
+
+      // Permit type check (residence_permit only)
+      const ocrPermit = (doc.ocr_extracted_data.permit_type || '').trim().toUpperCase();
+      if (ocrPermit && _tenantPermitType && _tenantPermitType !== 'SWISS' && doc.doc_type === 'residence_permit') {
+        if (ocrPermit !== _tenantPermitType) {
+          mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+            <span>⚠️</span><span>Permit type mismatch — document shows permit <strong>${escHtml(ocrPermit)}</strong> but your profile has permit <strong>${escHtml(_tenantPermitType)}</strong>. Please <a href="profile.html" style="color:#1D4ED8; font-weight:600;">update your profile</a> or re-upload the correct document.</span>
+          </div>`;
+        }
+      }
+
+      // Average gross salary check — runs on salary_slip_3 card when all 3 slips are uploaded
+      if (type.key === 'salary_slip_3' && _tenantMonthlySalary) {
+        const salaries = ['salary_slip_1', 'salary_slip_2', 'salary_slip_3']
+          .map(k => _docsMap[k]?.ocr_extracted_data?.gross_salary)
+          .filter(v => v != null && !isNaN(Number(v)))
+          .map(Number);
+        if (salaries.length === 3) {
+          const avg = salaries.reduce((a, b) => a + b, 0) / 3;
+          if (avg < _tenantMonthlySalary) {
+            mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+              <span>⚠️</span><span>Average gross salary across your 3 payslips (<strong>CHF ${Math.round(avg).toLocaleString()}</strong>) is lower than the monthly gross salary in your profile (<strong>CHF ${Math.round(_tenantMonthlySalary).toLocaleString()}</strong>). Please <a href="profile.html" style="color:#1D4ED8; font-weight:600;">update your profile</a>.</span>
+            </div>`;
+          }
+        }
       }
     }
 
-    const expiryAlert = isStale
+    const expiryAlert = isFuturePeriod
+      ? `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+           <span>⚠️</span>
+           <span>This statement shows a pay period of <strong>${escHtml(doc.ocr_extracted_data?.pay_period || 'an unknown period')}</strong>, which is in the future. Please upload a valid payslip.</span>
+         </div>`
+      : isStale
       ? (isSalarySlip || isUnemploymentSlip)
         ? `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
              <span>⚠️</span>

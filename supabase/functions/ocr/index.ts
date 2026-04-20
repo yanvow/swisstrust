@@ -23,21 +23,24 @@ Extract the following and return ONLY a valid JSON object:
 {
   "full_name": "...",
   "date_of_birth": "YYYY-MM-DD",
-  "nationality": "...",
+  "nationality": "English adjective e.g. Swiss, French, German, Italian",
   "document_number": "...",
   "expiry_date": "YYYY-MM-DD",
   "document_type": "passport or id_card"
 }
+For nationality, always use the English adjective form (e.g. Swiss, French, German), not ISO codes.
 Use null for any field you cannot clearly read. Return ONLY the JSON, no other text.`,
 
   residence_permit: `You are reading a Swiss residence permit (Aufenthaltsbewilligung / Permis de séjour / Permesso di soggiorno).
 Extract and return ONLY a valid JSON object:
 {
   "full_name": "...",
+  "nationality": "English adjective e.g. French, German, Italian",
   "permit_type": "B or C or G or L",
   "valid_until": "YYYY-MM-DD",
   "canton": "..."
 }
+For nationality, always use the English adjective form (e.g. French, German, Italian), not ISO codes.
 Use null for any field you cannot clearly read. Return ONLY the JSON, no other text.`,
 
   salary_slip_1: `You are reading a Swiss salary slip (fiche de salaire / Lohnabrechnung / busta paga).
@@ -90,7 +93,7 @@ Use null for any field you cannot clearly read. Return ONLY the JSON, no other t
 // Required fields for confidence scoring
 const REQUIRED_FIELDS: Record<string, string[]> = {
   passport_id:       ['full_name', 'date_of_birth', 'document_number'],
-  residence_permit:  ['full_name', 'permit_type', 'valid_until'],
+  residence_permit:  ['full_name', 'nationality', 'permit_type', 'valid_until'],
   salary_slip_1:     ['employer_name', 'gross_salary', 'pay_period'],
   salary_slip_2:     ['employer_name', 'gross_salary', 'pay_period'],
   salary_slip_3:     ['employer_name', 'gross_salary', 'pay_period'],

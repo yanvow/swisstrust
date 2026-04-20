@@ -1,0 +1,4 @@
+ALTER TABLE tenants
+  ADD COLUMN IF NOT EXISTS pet_types        TEXT,
+  ADD COLUMN IF NOT EXISTS plays_instrument BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS instrument_types TEXT;

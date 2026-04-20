@@ -1,0 +1,3 @@
+ALTER TABLE tenants
+  ADD COLUMN IF NOT EXISTS adult_count   SMALLINT,
+  ADD COLUMN IF NOT EXISTS children_count SMALLINT;

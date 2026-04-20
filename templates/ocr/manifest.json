@@ -13,7 +13,6 @@
     "salary_slip_1": "salary_slip.json",
     "salary_slip_2": "salary_slip.json",
     "salary_slip_3": "salary_slip.json",
-    "betreibungsauszug": "betreibungsauszug.json",
-    "reference_letter": "reference_letter.json"
+    "betreibungsauszug": "betreibungsauszug.json"
   }
 }
