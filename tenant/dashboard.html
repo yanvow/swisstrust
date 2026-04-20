@@ -160,8 +160,6 @@ function getDocTypeMeta(tenant) {
   types.push({ key: 'passport_id', label: isSwiss ? 'Passport or Swiss ID' : 'Passport', icon: '🪪' });
   if (!isSwiss) types.push({ key: 'residence_permit', label: 'Residence permit', icon: '📋' });
   types.push({ key: 'betreibungsauszug', label: 'Debt enforcement register extract', icon: '⚖️' });
-  types.push({ key: 'reference_letter',  label: 'Landlord reference letter', icon: '🏠' });
-
   if (needsGuarantor) {
     types.push({ key: 'guarantor_id',                label: 'Guarantor — Passport or ID',          icon: '🪪' });
     types.push({ key: 'guarantor_betreibungsauszug',  label: 'Guarantor — Debt register extract',   icon: '⚖️' });
@@ -263,8 +261,6 @@ function computeProvisionalTrust(docsMap, tenant) {
   if (!id)                            score -= 15;
   else if (id.status !== 'auto_verified') score -= 8;
 
-  if (!docsMap['reference_letter']) score -= 5;
-
   const clamped = Math.max(0, score);
   const grade   = clamped >= 80 ? 'A' : clamped >= 60 ? 'B' : 'C';
   return { score: clamped, grade };
@@ -334,7 +330,7 @@ const STATUS_ROW = {
   const hasEmployment     = !!(tenant.employer_name && tenant.monthly_gross_salary);
   const rentalConfigured  = tenant.needs_guarantor || tenant.is_employee || tenant.is_self_employed || tenant.is_unemployed || tenant.is_on_welfare;
   // Required docs = all types shown in the Documents page (reference_letter is optional — exclude it)
-  const requiredDocs = DOC_TYPE_META.map(t => t.key).filter(k => k !== 'reference_letter');
+  const requiredDocs = DOC_TYPE_META.map(t => t.key);
   const uploadedRequired = requiredDocs.filter(k => !!docsMap[k]).length;
   const missingRequired  = requiredDocs.length - uploadedRequired;
 

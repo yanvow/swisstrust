@@ -17,7 +17,6 @@ CREATE TYPE document_type AS ENUM (
   'passport_id',
   'residence_permit',
   'betreibungsauszug',
-  'reference_letter',
   -- Employee income
   'salary_slip_1',
   'salary_slip_2',
@@ -154,6 +153,7 @@ CREATE TABLE IF NOT EXISTS tenants (
 
   -- Personal
   full_name             TEXT,
+  gov_name              TEXT,   -- full government name as on passport/ID (may differ from display name)
   date_of_birth         DATE,
   nationality           TEXT,
   current_address       TEXT,
@@ -168,9 +168,16 @@ CREATE TABLE IF NOT EXISTS tenants (
   monthly_gross_salary  NUMERIC(10, 2),
 
   -- Household
+  adult_count           SMALLINT,
+  children_count        SMALLINT,
   occupant_count        INTEGER DEFAULT 1,
   is_smoker             BOOLEAN DEFAULT FALSE,
   has_pets              BOOLEAN DEFAULT FALSE,
+  pet_types             TEXT,
+  plays_instrument      BOOLEAN DEFAULT FALSE,
+  instrument_types      TEXT,
+  has_vehicle           BOOLEAN DEFAULT FALSE,
+  vehicle_types         TEXT,
 
   -- Rental situation
   needs_guarantor                  BOOLEAN DEFAULT FALSE,
