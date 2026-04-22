@@ -192,6 +192,36 @@
         </div>
       </fieldset>
 
+      <fieldset class="fieldset" style="margin-top:24px;">
+        <legend>Account</legend>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:600; font-size:.9rem;">Email address</div>
+            <div class="text-sm text-gray" style="margin-top:3px;" id="current-email-display">—</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px; border-top:1px solid var(--gray-200); padding-top:16px;">
+          <div style="font-weight:600; font-size:.9rem; margin-bottom:4px;">Change email address</div>
+          <div class="text-sm text-gray" style="margin-bottom:12px;">A confirmation link will be sent to your new address. Your current email stays active until you confirm.</div>
+          <form onsubmit="changeEmail(event)" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start;">
+            <input type="email" id="new-email-input" placeholder="New email address" required style="flex:1; min-width:200px;">
+            <button type="submit" id="change-email-btn" class="btn btn-outline btn-sm" style="flex-shrink:0;">Send confirmation</button>
+          </form>
+          <div id="change-email-error" style="display:none; color:var(--red); font-size:.875rem; margin-top:8px;"></div>
+          <div id="change-email-success" style="display:none; background:#F0FDF4; border:1px solid #86EFAC; border-radius:var(--radius); padding:10px 14px; font-size:.875rem; color:#15803D; margin-top:8px;"></div>
+        </div>
+
+        <div style="margin-top:16px; border-top:1px solid var(--gray-200); padding-top:16px;">
+          <div style="font-weight:600; font-size:.9rem; margin-bottom:4px;">Change password</div>
+          <div class="text-sm text-gray" style="margin-bottom:12px;">We'll send a password reset link to your current email address.</div>
+          <button class="btn btn-outline btn-sm" onclick="sendPasswordReset(this)">Send reset link</button>
+          <div id="reset-pw-success" style="display:none; background:#F0FDF4; border:1px solid #86EFAC; border-radius:var(--radius); padding:10px 14px; font-size:.875rem; color:#15803D; margin-top:8px;"></div>
+          <div id="reset-pw-error" style="display:none; color:var(--red); font-size:.875rem; margin-top:8px;"></div>
+        </div>
+      </fieldset>
+
       <fieldset class="fieldset danger-zone" style="margin-top:24px;">
         <legend>Danger zone</legend>
         <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap;">
@@ -336,6 +366,7 @@ let _agencyId = null;
   if (!user) return;
   _userId = user.id;
   document.getElementById('nav-name').textContent = user.user_metadata?.company_name || user.email;
+  document.getElementById('current-email-display').textContent = user.email;
   const { data: agency } = await _sb.from('agencies').select('id').eq('user_id', user.id).single();
   if (agency) _agencyId = agency.id;
   loadNotifPrefs();
@@ -518,6 +549,38 @@ async function loadInvoices() {
 }
 
 function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function changeEmail(e) {
+  e.preventDefault();
+  const newEmail = document.getElementById('new-email-input').value.trim();
+  const errEl = document.getElementById('change-email-error');
+  const okEl  = document.getElementById('change-email-success');
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+  const btn = document.getElementById('change-email-btn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const { error } = await _sb.auth.updateUser({ email: newEmail });
+  btn.disabled = false; btn.textContent = 'Send confirmation';
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+  document.getElementById('new-email-input').value = '';
+  okEl.textContent = `A confirmation link has been sent to ${newEmail}. Click the link in that email to confirm the change.`;
+  okEl.style.display = 'block';
+}
+
+async function sendPasswordReset(btn) {
+  const okEl  = document.getElementById('reset-pw-success');
+  const errEl = document.getElementById('reset-pw-error');
+  okEl.style.display  = 'none';
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const { data: { user } } = await _sb.auth.getUser();
+  const redirectTo = window.location.origin + '/auth/reset-password.html';
+  const { error } = await _sb.auth.resetPasswordForEmail(user.email, { redirectTo });
+  btn.disabled = false; btn.textContent = 'Send reset link';
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+  okEl.textContent = `A password reset link has been sent to ${user.email}.`;
+  okEl.style.display = 'block';
+}
 </script>
 </body>
 </html>
