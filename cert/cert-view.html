@@ -376,6 +376,10 @@ async function certSignOut() {
     banner.textContent = '🪪 This is your certificate — manage it from your dashboard';
     navActions.innerHTML = `<span class="text-sm text-gray">${escHtml(viewerName)}</span><a href="../tenant/certificates.html" class="btn btn-outline btn-sm">My certificates</a><button onclick="certSignOut()" class="btn btn-ghost btn-sm">Sign out</button>`;
     document.querySelector('#public-section .card').style.display = 'none';
+    // Compute real validity from current documents
+    const { data: ownDocs } = await sbHelpers.getDocumentsByTenant(cert.tenant_id);
+    const { valid: ownValid, reasons: ownReasons } = computeCertValidity(ownDocs || [], tenant);
+    applyValidityBadge(ownValid && isActive, ownValid && isActive ? [] : (!isActive ? ['Certificate has been deactivated'] : ownReasons));
     return;
   }
 
@@ -442,6 +446,9 @@ async function certSignOut() {
 
     const { data: tenantDocs } = await sbHelpers.getDocumentsByTenant(cert.tenant_id);
     renderDocViewers(tenantDocs || []);
+    // Update validity badge with real document state
+    const { valid: docsValid, reasons: docsReasons } = computeCertValidity(tenantDocs || [], tenant);
+    applyValidityBadge(isActive && docsValid, isActive && docsValid ? [] : (!isActive ? ['Certificate has been deactivated'] : docsReasons));
     return;
   }
 
@@ -474,6 +481,79 @@ async function certSignOut() {
     }
   }
 })();
+
+// ── Validity computation (mirrors tenant-side logic) ──────────
+function computeCertValidity(docs, tenant) {
+  const byType = {};
+  (docs || []).forEach(d => { byType[d.doc_type] = d; });
+  const now = new Date();
+  const reasons = [];
+  function present(type) { const d = byType[type]; return d && d.status !== 'rejected'; }
+
+  if (!present('passport_id')) {
+    reasons.push('Passport / ID missing or rejected');
+  } else {
+    const exp = byType['passport_id']?.ocr_extracted_data?.expiry_date;
+    if (exp && new Date(exp) < now) reasons.push('Passport / ID expired');
+  }
+
+  const nat = tenant?.nationality;
+  if (nat && nat !== 'Swiss') {
+    if (!present('residence_permit')) {
+      reasons.push('Residence permit missing or rejected');
+    } else {
+      const exp = byType['residence_permit']?.ocr_extracted_data?.valid_until;
+      if (exp && new Date(exp) < now) reasons.push('Residence permit expired');
+    }
+  }
+
+  if (!present('betreibungsauszug')) {
+    reasons.push('Betreibungsauszug missing or rejected');
+  } else {
+    const d = byType['betreibungsauszug'];
+    const certDate = d.ocr_extracted_data?.certificate_date;
+    const base = certDate ? new Date(certDate) : new Date(d.created_at);
+    const expiry = new Date(base);
+    expiry.setDate(expiry.getDate() + 90);
+    if (now > expiry) reasons.push('Betreibungsauszug expired (older than 90 days)');
+  }
+
+  const cutoff3mo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+  function slipOk(type) {
+    if (!present(type)) return false;
+    const pp = byType[type]?.ocr_extracted_data?.pay_period;
+    if (!pp) return true;
+    const [y, m] = pp.split('-').map(Number);
+    return new Date(y, m - 1, 1) >= cutoff3mo;
+  }
+
+  if (tenant?.is_employee) {
+    if (!slipOk('salary_slip_1') || !slipOk('salary_slip_2') || !slipOk('salary_slip_3'))
+      reasons.push('Salary slips missing, rejected, or outdated');
+  }
+  if (tenant?.is_self_employed) {
+    if (!present('balance_sheet'))  reasons.push('Balance sheet missing or rejected');
+    if (!present('tax_assessment')) reasons.push('Tax assessment missing or rejected');
+  }
+  if (tenant?.is_unemployed) {
+    if (!slipOk('unemployment_benefit_1') || !slipOk('unemployment_benefit_2') || !slipOk('unemployment_benefit_3'))
+      reasons.push('Unemployment benefit statements missing, rejected, or outdated');
+  }
+  if (tenant?.is_on_welfare) {
+    if (!present('welfare_rent_coverage')) reasons.push('Welfare / rent coverage letter missing or rejected');
+  }
+
+  return { valid: reasons.length === 0, reasons };
+}
+
+function applyValidityBadge(valid, reasons) {
+  const trustBadge = document.getElementById('trust-badge');
+  trustBadge.className = `badge ${valid ? 'badge-green' : 'badge-red'}`;
+  trustBadge.textContent = valid ? '✓ Valid' : '✗ Not valid';
+  if (!valid) trustBadge.title = reasons.join('\n');
+  const factStatus = document.getElementById('fact-status');
+  if (factStatus) factStatus.innerHTML = `<span class="badge ${valid ? 'badge-green' : 'badge-red'}" title="${escHtml(reasons.join('\n'))}">${valid ? '✓ Valid' : '✗ Not valid'}</span>`;
+}
 
 // ── Document rendering ────────────────────────────────────────
 const DOC_META = [
