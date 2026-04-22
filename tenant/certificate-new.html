@@ -139,6 +139,7 @@
         <div class="form-group">
           <label>Desired move-in date <span class="req">*</span></label>
           <input type="date" id="movein" required>
+          <div id="movein-error" style="display:none; color:var(--red); font-size:.875rem; margin-top:4px;"></div>
         </div>
       </fieldset>
 
@@ -640,6 +641,23 @@ async function generateCertificate(e) {
         alert('Please enter the landlord email address.');
         return;
       }
+    }
+  }
+
+  // Validate move-in date is at least tomorrow
+  const moveinVal = document.getElementById('movein').value;
+  const moveinErr = document.getElementById('movein-error');
+  moveinErr.style.display = 'none';
+  if (moveinVal) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const chosen = new Date(moveinVal + 'T00:00:00');
+    if (chosen < tomorrow) {
+      sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+      moveinErr.textContent = 'Move-in date must be tomorrow or later.';
+      moveinErr.style.display = 'block';
+      document.getElementById('movein').focus();
+      return;
     }
   }
 
