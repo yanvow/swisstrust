@@ -88,6 +88,55 @@
 const modeLabels = { directed: 'Directed', open: 'Open', on_request: 'On-Request' };
 const modeColors = { directed: 'var(--charcoal)', open: 'var(--green)', on_request: 'var(--amber)' };
 
+function computeCertValidity(docs, tenant) {
+  const byType = {};
+  (docs || []).forEach(d => { byType[d.doc_type] = d; });
+  const now = new Date();
+  const reasons = [];
+  function present(type) { const d = byType[type]; return d && d.status !== 'rejected'; }
+  if (!present('passport_id')) {
+    reasons.push('Passport / ID missing or rejected');
+  } else {
+    const exp = byType['passport_id']?.ocr_extracted_data?.expiry_date;
+    if (exp && new Date(exp) < now) reasons.push('Passport / ID expired');
+  }
+  const nat = tenant?.nationality;
+  if (nat && nat !== 'Swiss') {
+    if (!present('residence_permit')) reasons.push('Residence permit missing or rejected');
+    else {
+      const exp = byType['residence_permit']?.ocr_extracted_data?.valid_until;
+      if (exp && new Date(exp) < now) reasons.push('Residence permit expired');
+    }
+  }
+  if (!present('betreibungsauszug')) {
+    reasons.push('Betreibungsauszug missing or rejected');
+  } else {
+    const d = byType['betreibungsauszug'];
+    const base = d.ocr_extracted_data?.certificate_date ? new Date(d.ocr_extracted_data.certificate_date) : new Date(d.created_at);
+    const expiry = new Date(base); expiry.setDate(expiry.getDate() + 90);
+    if (now > expiry) reasons.push('Betreibungsauszug expired (older than 90 days)');
+  }
+  const cutoff3mo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+  function slipOk(type) {
+    if (!present(type)) return false;
+    const pp = byType[type]?.ocr_extracted_data?.pay_period;
+    if (!pp) return true;
+    const [y, m] = pp.split('-').map(Number);
+    return new Date(y, m - 1, 1) >= cutoff3mo;
+  }
+  if (tenant?.is_employee && (!slipOk('salary_slip_1') || !slipOk('salary_slip_2') || !slipOk('salary_slip_3')))
+    reasons.push('Salary slips missing, rejected, or outdated');
+  if (tenant?.is_self_employed) {
+    if (!present('balance_sheet'))  reasons.push('Balance sheet missing or rejected');
+    if (!present('tax_assessment')) reasons.push('Tax assessment missing or rejected');
+  }
+  if (tenant?.is_unemployed && (!slipOk('unemployment_benefit_1') || !slipOk('unemployment_benefit_2') || !slipOk('unemployment_benefit_3')))
+    reasons.push('Unemployment benefit statements missing, rejected, or outdated');
+  if (tenant?.is_on_welfare && !present('welfare_rent_coverage'))
+    reasons.push('Welfare / rent coverage letter missing or rejected');
+  return { valid: reasons.length === 0, reasons };
+}
+
 const VIEWER_LABEL = { public: 'Anonymous scan', agency: 'Agency login', owner: 'Owner login', tenant: 'You (owner)' };
 const VIEWER_ICON  = { public: '👁', agency: '🏢', owner: '👤', tenant: '🪪' };
 
@@ -113,6 +162,9 @@ let _tenantName  = '';
   const { data: tenant } = await sbHelpers.getTenantByUserId(user.id);
   if (!tenant) return;
 
+  const { data: currentDocs } = await sbHelpers.getDocumentsByTenant(tenant.id);
+  const _docsForValidity = currentDocs || [];
+
   const { data: certs, error } = await sbHelpers.getCertificatesByTenant(tenant.id);
   const list = document.getElementById('certs-list');
 
@@ -130,8 +182,9 @@ let _tenantName  = '';
   }
 
   list.innerHTML = certs.map(c => {
-    const trustClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[c.trust_score] || 'trust-b';
-    const borderColor = { A: 'var(--green)', B: 'var(--amber)', C: 'var(--red)' }[c.trust_score] || 'var(--gray-200)';
+    const { valid, reasons } = computeCertValidity(_docsForValidity, tenant);
+    const certIsValid = c.is_active !== false && valid;
+    const borderColor = certIsValid ? 'var(--green)' : 'var(--red)';
     const agencyName = c.agencies?.company_name;
     const ownerEmail = c.owner_email;
     const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
@@ -157,8 +210,7 @@ let _tenantName  = '';
             <div class="text-sm text-gray mt-4">${c.rooms ? c.rooms + ' rooms' : ''}${c.floor ? ' · Floor ' + c.floor : ''}${c.total_chf ? ' · CHF ' + Number(c.total_chf).toLocaleString() + '/mo' : ''}${c.move_in_date ? ' · Move-in ' + new Date(c.move_in_date).toLocaleDateString('de-CH') : ''}</div>
           </div>
           <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
-            <span class="badge ${trustClass}">${c.trust_score || '—'}</span>
-            <span class="badge badge-green">Active</span>
+            <span class="badge ${certIsValid ? 'badge-green' : 'badge-red'}" title="${certIsValid ? '' : reasons.join('\n')}">${certIsValid ? '✓ Valid' : '✗ Not valid'}</span>
             <span class="badge" style="background:var(--gray-100); color:${modeColors[mode]}; font-weight:600;">${modeLabels[mode]}</span>
           </div>
         </div>

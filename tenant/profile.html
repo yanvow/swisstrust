@@ -523,16 +523,39 @@
       <fieldset class="fieldset">
         <legend>Rental situation</legend>
 
-        <!-- Guarantor -->
-        <div class="toggle-row">
-          <div>
-            <div style="font-size:.9rem; font-weight:500;">I need a guarantor</div>
-            <div class="text-xs text-gray">A third party will co-sign or provide financial guarantee on your behalf</div>
+        <!-- Rental arrangement -->
+        <div style="font-size:.875rem; color:var(--gray-600); margin-bottom:10px;">Will anyone else be renting with you or providing support?</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Guarantor</div>
+              <div class="text-xs text-gray">A third party will co-sign or provide financial guarantee on your behalf</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="needs_guarantor" onchange="syncRentalSituation()">
+              <span class="toggle-slider"></span>
+            </label>
           </div>
-          <label class="toggle">
-            <input type="checkbox" id="needs_guarantor" onchange="syncRentalSituation()">
-            <span class="toggle-slider"></span>
-          </label>
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Co-tenant</div>
+              <div class="text-xs text-gray">Another person will be named on the lease and share full responsibility</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="needs_co_tenant" onchange="syncRentalSituation()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:.9rem; font-weight:500;">Roommate</div>
+              <div class="text-xs text-gray">Someone will live with you but is not on the lease</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="needs_roommate" onchange="syncRentalSituation()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
         </div>
 
         <!-- Guarantor sections — shown when needs_guarantor is checked -->
@@ -770,6 +793,476 @@
 
         </div>
 
+        <!-- Co-tenant section — shown when needs_co_tenant is checked -->
+        <div id="co-tenant-type-section" style="display:none; margin-top:16px;">
+
+          <!-- Personal information -->
+          <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Co-tenant — Personal information</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full name</label>
+              <input type="text" id="co_tenant_full_name" placeholder="Co-tenant's legal name">
+            </div>
+            <div class="form-group">
+              <label>Date of birth</label>
+              <input type="date" id="co_tenant_date_of_birth">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Full government name <span class="text-xs text-gray" style="font-weight:400;">(as it appears on official documents, if different)</span></label>
+            <input type="text" id="co_tenant_gov_name" placeholder="Exact name as on passport or ID card">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nationality</label>
+              <select id="co_tenant_nationality" onchange="syncCoTenantPermitType()">
+                <option value="">— Select nationality</option>
+                <optgroup label="Switzerland">
+                  <option value="Swiss">Swiss</option>
+                </optgroup>
+                <optgroup label="Europe">
+                  <option value="Albanian">Albanian</option>
+                  <option value="Austrian">Austrian</option>
+                  <option value="Belgian">Belgian</option>
+                  <option value="Bosnian">Bosnian</option>
+                  <option value="Bulgarian">Bulgarian</option>
+                  <option value="Croatian">Croatian</option>
+                  <option value="Czech">Czech</option>
+                  <option value="Danish">Danish</option>
+                  <option value="Dutch">Dutch</option>
+                  <option value="Finnish">Finnish</option>
+                  <option value="French">French</option>
+                  <option value="German">German</option>
+                  <option value="Greek">Greek</option>
+                  <option value="Hungarian">Hungarian</option>
+                  <option value="Irish">Irish</option>
+                  <option value="Italian">Italian</option>
+                  <option value="Kosovan">Kosovan</option>
+                  <option value="Latvian">Latvian</option>
+                  <option value="Lithuanian">Lithuanian</option>
+                  <option value="Luxembourgish">Luxembourgish</option>
+                  <option value="Macedonian">Macedonian</option>
+                  <option value="Moldovan">Moldovan</option>
+                  <option value="Montenegrin">Montenegrin</option>
+                  <option value="Norwegian">Norwegian</option>
+                  <option value="Polish">Polish</option>
+                  <option value="Portuguese">Portuguese</option>
+                  <option value="Romanian">Romanian</option>
+                  <option value="Serbian">Serbian</option>
+                  <option value="Slovak">Slovak</option>
+                  <option value="Slovenian">Slovenian</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="Swedish">Swedish</option>
+                  <option value="Turkish">Turkish</option>
+                  <option value="Ukrainian">Ukrainian</option>
+                  <option value="British">British</option>
+                </optgroup>
+                <optgroup label="Africa">
+                  <option value="Algerian">Algerian</option>
+                  <option value="Angolan">Angolan</option>
+                  <option value="Cameroonian">Cameroonian</option>
+                  <option value="Congolese">Congolese</option>
+                  <option value="Egyptian">Egyptian</option>
+                  <option value="Ethiopian">Ethiopian</option>
+                  <option value="Ghanaian">Ghanaian</option>
+                  <option value="Ivorian">Ivorian</option>
+                  <option value="Kenyan">Kenyan</option>
+                  <option value="Moroccan">Moroccan</option>
+                  <option value="Nigerian">Nigerian</option>
+                  <option value="Senegalese">Senegalese</option>
+                  <option value="South African">South African</option>
+                  <option value="Tanzanian">Tanzanian</option>
+                  <option value="Tunisian">Tunisian</option>
+                  <option value="Ugandan">Ugandan</option>
+                </optgroup>
+                <optgroup label="Americas">
+                  <option value="American">American</option>
+                  <option value="Argentine">Argentine</option>
+                  <option value="Brazilian">Brazilian</option>
+                  <option value="Canadian">Canadian</option>
+                  <option value="Chilean">Chilean</option>
+                  <option value="Colombian">Colombian</option>
+                  <option value="Cuban">Cuban</option>
+                  <option value="Dominican">Dominican</option>
+                  <option value="Ecuadorian">Ecuadorian</option>
+                  <option value="Mexican">Mexican</option>
+                  <option value="Peruvian">Peruvian</option>
+                  <option value="Venezuelan">Venezuelan</option>
+                </optgroup>
+                <optgroup label="Asia &amp; Middle East">
+                  <option value="Afghan">Afghan</option>
+                  <option value="Armenian">Armenian</option>
+                  <option value="Azerbaijani">Azerbaijani</option>
+                  <option value="Bangladeshi">Bangladeshi</option>
+                  <option value="Chinese">Chinese</option>
+                  <option value="Georgian">Georgian</option>
+                  <option value="Indian">Indian</option>
+                  <option value="Indonesian">Indonesian</option>
+                  <option value="Iranian">Iranian</option>
+                  <option value="Iraqi">Iraqi</option>
+                  <option value="Israeli">Israeli</option>
+                  <option value="Japanese">Japanese</option>
+                  <option value="Jordanian">Jordanian</option>
+                  <option value="Kazakh">Kazakh</option>
+                  <option value="Korean">Korean</option>
+                  <option value="Kurdish">Kurdish</option>
+                  <option value="Lebanese">Lebanese</option>
+                  <option value="Malaysian">Malaysian</option>
+                  <option value="Pakistani">Pakistani</option>
+                  <option value="Palestinian">Palestinian</option>
+                  <option value="Philippine">Philippine</option>
+                  <option value="Saudi">Saudi</option>
+                  <option value="Sri Lankan">Sri Lankan</option>
+                  <option value="Syrian">Syrian</option>
+                  <option value="Thai">Thai</option>
+                  <option value="Vietnamese">Vietnamese</option>
+                </optgroup>
+                <optgroup label="Oceania">
+                  <option value="Australian">Australian</option>
+                  <option value="New Zealander">New Zealander</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Permit type</label>
+              <select id="co_tenant_permit_type">
+                <option value="swiss">Swiss citizen</option>
+                <option value="B">B permit</option>
+                <option value="C">C permit</option>
+                <option value="G">G permit</option>
+                <option value="L">L permit</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Current address</label>
+            <input type="text" id="co_tenant_current_address" placeholder="Street, city, postcode, country">
+          </div>
+
+          <!-- Income type -->
+          <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+            <div style="font-size:.9rem; font-weight:600; margin-bottom:4px;">Co-tenant's income type</div>
+            <div class="text-xs text-gray mb-12">Select all that apply — this determines which financial documents the co-tenant will need to provide.</div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+                <input type="checkbox" id="co_tenant_is_employee" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncCoTenantEmployment()">
+                <div>
+                  <div style="font-size:.9rem; font-weight:500;">Employee</div>
+                  <div class="text-xs text-gray">The co-tenant is employed — they will need to provide 3 months of salary slips.</div>
+                </div>
+              </label>
+              <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+                <input type="checkbox" id="co_tenant_is_self_employed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncCoTenantEmployment()">
+                <div>
+                  <div style="font-size:.9rem; font-weight:500;">Self-employed / Independent</div>
+                  <div class="text-xs text-gray">The co-tenant runs their own business — they will provide balance sheets, tax assessments, bank statements, and proof of income.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Co-tenant employment -->
+          <div id="co-tenant-employment-section" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+            <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Co-tenant — Employment</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Employer name</label>
+                <input type="text" id="co_tenant_employer_name" placeholder="Company name">
+              </div>
+              <div class="form-group">
+                <label>Job title</label>
+                <input type="text" id="co_tenant_job_role" placeholder="Position">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Employment start date</label>
+                <input type="date" id="co_tenant_employment_start_date">
+              </div>
+              <div class="form-group">
+                <label>Monthly gross salary (CHF)</label>
+                <input type="number" id="co_tenant_monthly_gross_salary" placeholder="e.g. 8500">
+              </div>
+            </div>
+          </div>
+
+          <!-- Co-tenant self-employment -->
+          <div id="co-tenant-self-employment-section" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+            <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Co-tenant — Self-employment</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Business name</label>
+                <input type="text" id="co_tenant_business_name" placeholder="Company or trading name">
+              </div>
+              <div class="form-group">
+                <label>Type of activity</label>
+                <input type="text" id="co_tenant_business_activity" placeholder="e.g. IT consulting, retail">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Juridical form</label>
+                <select id="co_tenant_juridical_form">
+                  <option value="">— Select form</option>
+                  <option value="sole_proprietorship">Raison individuelle / Einzelunternehmen</option>
+                  <option value="sarl_gmbh">Sàrl / GmbH</option>
+                  <option value="sa_ag">SA / AG</option>
+                  <option value="association">Association / Verein</option>
+                  <option value="foundation">Fondation / Stiftung</option>
+                  <option value="snc">Société en nom collectif / Kollektivgesellschaft</option>
+                  <option value="sc">Société en commandite / Kommanditgesellschaft</option>
+                  <option value="cooperative">Coopérative / Genossenschaft</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Business start date</label>
+                <input type="date" id="co_tenant_business_start_date">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Average annual net income (CHF)</label>
+              <input type="number" id="co_tenant_annual_net_income" placeholder="e.g. 85000">
+              <div class="form-hint">Average over the last 2–3 years if available</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Roommate section — shown when needs_roommate is checked -->
+        <div id="roommate-type-section" style="display:none; margin-top:16px;">
+
+          <!-- Personal information -->
+          <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Roommate — Personal information</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full name</label>
+              <input type="text" id="roommate_full_name" placeholder="Roommate's legal name">
+            </div>
+            <div class="form-group">
+              <label>Date of birth</label>
+              <input type="date" id="roommate_date_of_birth">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Full government name <span class="text-xs text-gray" style="font-weight:400;">(as it appears on official documents, if different)</span></label>
+            <input type="text" id="roommate_gov_name" placeholder="Exact name as on passport or ID card">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nationality</label>
+              <select id="roommate_nationality" onchange="syncRoommatePermitType()">
+                <option value="">— Select nationality</option>
+                <optgroup label="Switzerland">
+                  <option value="Swiss">Swiss</option>
+                </optgroup>
+                <optgroup label="Europe">
+                  <option value="Albanian">Albanian</option>
+                  <option value="Austrian">Austrian</option>
+                  <option value="Belgian">Belgian</option>
+                  <option value="Bosnian">Bosnian</option>
+                  <option value="Bulgarian">Bulgarian</option>
+                  <option value="Croatian">Croatian</option>
+                  <option value="Czech">Czech</option>
+                  <option value="Danish">Danish</option>
+                  <option value="Dutch">Dutch</option>
+                  <option value="Finnish">Finnish</option>
+                  <option value="French">French</option>
+                  <option value="German">German</option>
+                  <option value="Greek">Greek</option>
+                  <option value="Hungarian">Hungarian</option>
+                  <option value="Irish">Irish</option>
+                  <option value="Italian">Italian</option>
+                  <option value="Kosovan">Kosovan</option>
+                  <option value="Latvian">Latvian</option>
+                  <option value="Lithuanian">Lithuanian</option>
+                  <option value="Luxembourgish">Luxembourgish</option>
+                  <option value="Macedonian">Macedonian</option>
+                  <option value="Moldovan">Moldovan</option>
+                  <option value="Montenegrin">Montenegrin</option>
+                  <option value="Norwegian">Norwegian</option>
+                  <option value="Polish">Polish</option>
+                  <option value="Portuguese">Portuguese</option>
+                  <option value="Romanian">Romanian</option>
+                  <option value="Serbian">Serbian</option>
+                  <option value="Slovak">Slovak</option>
+                  <option value="Slovenian">Slovenian</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="Swedish">Swedish</option>
+                  <option value="Turkish">Turkish</option>
+                  <option value="Ukrainian">Ukrainian</option>
+                  <option value="British">British</option>
+                </optgroup>
+                <optgroup label="Africa">
+                  <option value="Algerian">Algerian</option>
+                  <option value="Angolan">Angolan</option>
+                  <option value="Cameroonian">Cameroonian</option>
+                  <option value="Congolese">Congolese</option>
+                  <option value="Egyptian">Egyptian</option>
+                  <option value="Ethiopian">Ethiopian</option>
+                  <option value="Ghanaian">Ghanaian</option>
+                  <option value="Ivorian">Ivorian</option>
+                  <option value="Kenyan">Kenyan</option>
+                  <option value="Moroccan">Moroccan</option>
+                  <option value="Nigerian">Nigerian</option>
+                  <option value="Senegalese">Senegalese</option>
+                  <option value="South African">South African</option>
+                  <option value="Tanzanian">Tanzanian</option>
+                  <option value="Tunisian">Tunisian</option>
+                  <option value="Ugandan">Ugandan</option>
+                </optgroup>
+                <optgroup label="Americas">
+                  <option value="American">American</option>
+                  <option value="Argentine">Argentine</option>
+                  <option value="Brazilian">Brazilian</option>
+                  <option value="Canadian">Canadian</option>
+                  <option value="Chilean">Chilean</option>
+                  <option value="Colombian">Colombian</option>
+                  <option value="Cuban">Cuban</option>
+                  <option value="Dominican">Dominican</option>
+                  <option value="Ecuadorian">Ecuadorian</option>
+                  <option value="Mexican">Mexican</option>
+                  <option value="Peruvian">Peruvian</option>
+                  <option value="Venezuelan">Venezuelan</option>
+                </optgroup>
+                <optgroup label="Asia &amp; Middle East">
+                  <option value="Afghan">Afghan</option>
+                  <option value="Armenian">Armenian</option>
+                  <option value="Azerbaijani">Azerbaijani</option>
+                  <option value="Bangladeshi">Bangladeshi</option>
+                  <option value="Chinese">Chinese</option>
+                  <option value="Georgian">Georgian</option>
+                  <option value="Indian">Indian</option>
+                  <option value="Indonesian">Indonesian</option>
+                  <option value="Iranian">Iranian</option>
+                  <option value="Iraqi">Iraqi</option>
+                  <option value="Israeli">Israeli</option>
+                  <option value="Japanese">Japanese</option>
+                  <option value="Jordanian">Jordanian</option>
+                  <option value="Kazakh">Kazakh</option>
+                  <option value="Korean">Korean</option>
+                  <option value="Kurdish">Kurdish</option>
+                  <option value="Lebanese">Lebanese</option>
+                  <option value="Malaysian">Malaysian</option>
+                  <option value="Pakistani">Pakistani</option>
+                  <option value="Palestinian">Palestinian</option>
+                  <option value="Philippine">Philippine</option>
+                  <option value="Saudi">Saudi</option>
+                  <option value="Sri Lankan">Sri Lankan</option>
+                  <option value="Syrian">Syrian</option>
+                  <option value="Thai">Thai</option>
+                  <option value="Vietnamese">Vietnamese</option>
+                </optgroup>
+                <optgroup label="Oceania">
+                  <option value="Australian">Australian</option>
+                  <option value="New Zealander">New Zealander</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Permit type</label>
+              <select id="roommate_permit_type">
+                <option value="swiss">Swiss citizen</option>
+                <option value="B">B permit</option>
+                <option value="C">C permit</option>
+                <option value="G">G permit</option>
+                <option value="L">L permit</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Current address</label>
+            <input type="text" id="roommate_current_address" placeholder="Street, city, postcode, country">
+          </div>
+
+          <!-- Income type -->
+          <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+            <div style="font-size:.9rem; font-weight:600; margin-bottom:4px;">Roommate's income type</div>
+            <div class="text-xs text-gray mb-12">Select all that apply — this determines which financial documents the roommate will need to provide.</div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+                <input type="checkbox" id="roommate_is_employee" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncRoommateEmployment()">
+                <div>
+                  <div style="font-size:.9rem; font-weight:500;">Employee</div>
+                  <div class="text-xs text-gray">The roommate is employed — they will need to provide 3 months of salary slips.</div>
+                </div>
+              </label>
+              <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+                <input type="checkbox" id="roommate_is_self_employed" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" onchange="syncRoommateEmployment()">
+                <div>
+                  <div style="font-size:.9rem; font-weight:500;">Self-employed / Independent</div>
+                  <div class="text-xs text-gray">The roommate runs their own business — they will provide balance sheets, tax assessments, bank statements, and proof of income.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Roommate employment -->
+          <div id="roommate-employment-section" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+            <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Roommate — Employment</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Employer name</label>
+                <input type="text" id="roommate_employer_name" placeholder="Company name">
+              </div>
+              <div class="form-group">
+                <label>Job title</label>
+                <input type="text" id="roommate_job_role" placeholder="Position">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Employment start date</label>
+                <input type="date" id="roommate_employment_start_date">
+              </div>
+              <div class="form-group">
+                <label>Monthly gross salary (CHF)</label>
+                <input type="number" id="roommate_monthly_gross_salary" placeholder="e.g. 8500">
+              </div>
+            </div>
+          </div>
+
+          <!-- Roommate self-employment -->
+          <div id="roommate-self-employment-section" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
+            <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Roommate — Self-employment</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Business name</label>
+                <input type="text" id="roommate_business_name" placeholder="Company or trading name">
+              </div>
+              <div class="form-group">
+                <label>Type of activity</label>
+                <input type="text" id="roommate_business_activity" placeholder="e.g. IT consulting, retail">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Juridical form</label>
+                <select id="roommate_juridical_form">
+                  <option value="">— Select form</option>
+                  <option value="sole_proprietorship">Raison individuelle / Einzelunternehmen</option>
+                  <option value="sarl_gmbh">Sàrl / GmbH</option>
+                  <option value="sa_ag">SA / AG</option>
+                  <option value="association">Association / Verein</option>
+                  <option value="foundation">Fondation / Stiftung</option>
+                  <option value="snc">Société en nom collectif / Kollektivgesellschaft</option>
+                  <option value="sc">Société en commandite / Kommanditgesellschaft</option>
+                  <option value="cooperative">Coopérative / Genossenschaft</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Business start date</label>
+                <input type="date" id="roommate_business_start_date">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Average annual net income (CHF)</label>
+              <input type="number" id="roommate_annual_net_income" placeholder="e.g. 85000">
+              <div class="form-hint">Average over the last 2–3 years if available</div>
+            </div>
+          </div>
+
+        </div>
+
         <!-- Household liability insurance (all tenants, optional) -->
         <div class="toggle-row" id="household-insurance-row" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200);">
           <div>
@@ -852,7 +1345,9 @@ let _prevNationality = null;  // nationality at load time, to detect changes
     }
     if (data.vehicle_types) document.getElementById('vehicle_types').value = data.vehicle_types;
 
-    if (data.needs_guarantor)            document.getElementById('needs_guarantor').checked = true;
+    if (data.needs_guarantor)   document.getElementById('needs_guarantor').checked = true;
+    if (data.needs_co_tenant)   document.getElementById('needs_co_tenant').checked = true;
+    if (data.needs_roommate)    document.getElementById('needs_roommate').checked = true;
     f('guarantor_full_name',             data.guarantor_full_name);
     f('guarantor_gov_name',              data.guarantor_gov_name);
     f('guarantor_date_of_birth',         data.guarantor_date_of_birth);
@@ -862,6 +1357,44 @@ let _prevNationality = null;  // nationality at load time, to detect changes
     f('guarantor_current_address',       data.guarantor_current_address);
     if (data.guarantor_is_employee)      document.getElementById('guarantor_is_employee').checked = true;
     if (data.guarantor_is_self_employed) document.getElementById('guarantor_is_self_employed').checked = true;
+    // Co-tenant
+    f('co_tenant_full_name',             data.co_tenant_full_name);
+    f('co_tenant_gov_name',              data.co_tenant_gov_name);
+    f('co_tenant_date_of_birth',         data.co_tenant_date_of_birth);
+    f('co_tenant_nationality',           data.co_tenant_nationality);
+    f('co_tenant_permit_type',           data.co_tenant_permit_type || 'swiss');
+    syncCoTenantPermitType();
+    f('co_tenant_current_address',       data.co_tenant_current_address);
+    if (data.co_tenant_is_employee)      document.getElementById('co_tenant_is_employee').checked = true;
+    if (data.co_tenant_is_self_employed) document.getElementById('co_tenant_is_self_employed').checked = true;
+    f('co_tenant_employer_name',         data.co_tenant_employer_name);
+    f('co_tenant_job_role',              data.co_tenant_job_role);
+    f('co_tenant_employment_start_date', data.co_tenant_employment_start_date);
+    f('co_tenant_monthly_gross_salary',  data.co_tenant_monthly_gross_salary);
+    f('co_tenant_business_name',         data.co_tenant_business_name);
+    f('co_tenant_business_activity',     data.co_tenant_business_activity);
+    f('co_tenant_juridical_form',        data.co_tenant_juridical_form);
+    f('co_tenant_business_start_date',   data.co_tenant_business_start_date);
+    f('co_tenant_annual_net_income',     data.co_tenant_annual_net_income);
+    // Roommate
+    f('roommate_full_name',             data.roommate_full_name);
+    f('roommate_gov_name',              data.roommate_gov_name);
+    f('roommate_date_of_birth',         data.roommate_date_of_birth);
+    f('roommate_nationality',           data.roommate_nationality);
+    f('roommate_permit_type',           data.roommate_permit_type || 'swiss');
+    syncRoommatePermitType();
+    f('roommate_current_address',       data.roommate_current_address);
+    if (data.roommate_is_employee)      document.getElementById('roommate_is_employee').checked = true;
+    if (data.roommate_is_self_employed) document.getElementById('roommate_is_self_employed').checked = true;
+    f('roommate_employer_name',         data.roommate_employer_name);
+    f('roommate_job_role',              data.roommate_job_role);
+    f('roommate_employment_start_date', data.roommate_employment_start_date);
+    f('roommate_monthly_gross_salary',  data.roommate_monthly_gross_salary);
+    f('roommate_business_name',         data.roommate_business_name);
+    f('roommate_business_activity',     data.roommate_business_activity);
+    f('roommate_juridical_form',        data.roommate_juridical_form);
+    f('roommate_business_start_date',   data.roommate_business_start_date);
+    f('roommate_annual_net_income',     data.roommate_annual_net_income);
     f('guarantor_employer_name',         data.guarantor_employer_name);
     f('guarantor_job_role',              data.guarantor_job_role);
     f('guarantor_employment_start_date', data.guarantor_employment_start_date);
@@ -900,12 +1433,19 @@ let _prevNationality = null;  // nationality at load time, to detect changes
 
 function syncRentalSituation() {
   const needsGuarantor = document.getElementById('needs_guarantor').checked;
-  document.getElementById('guarantor-type-section').style.display = needsGuarantor ? 'block' : 'none';
+  const needsCoTenant  = document.getElementById('needs_co_tenant').checked;
+  const needsRoommate  = document.getElementById('needs_roommate').checked;
+  document.getElementById('guarantor-type-section').style.display   = needsGuarantor ? 'block' : 'none';
+  document.getElementById('co-tenant-type-section').style.display   = needsCoTenant  ? 'block' : 'none';
+  document.getElementById('roommate-type-section').style.display    = needsRoommate  ? 'block' : 'none';
+  const any = needsGuarantor || needsCoTenant || needsRoommate;
   const insuranceRow = document.getElementById('household-insurance-row');
-  insuranceRow.style.borderTop  = needsGuarantor ? '1px solid var(--gray-200)' : '';
-  insuranceRow.style.paddingTop = needsGuarantor ? '16px' : '';
-  insuranceRow.style.marginTop  = needsGuarantor ? '20px' : '';
+  insuranceRow.style.borderTop  = any ? '1px solid var(--gray-200)' : '';
+  insuranceRow.style.paddingTop = any ? '16px' : '';
+  insuranceRow.style.marginTop  = any ? '20px' : '';
   syncGuarantorEmployment();
+  syncCoTenantEmployment();
+  syncRoommateEmployment();
 }
 
 function syncIncomeType(changed) {
@@ -941,6 +1481,20 @@ function syncGuarantorEmployment() {
   document.getElementById('guarantor-self-employment-section').style.display = isSelfEmployed ? 'block' : 'none';
 }
 
+function syncCoTenantEmployment() {
+  const isEmployee     = document.getElementById('co_tenant_is_employee').checked;
+  const isSelfEmployed = document.getElementById('co_tenant_is_self_employed').checked;
+  document.getElementById('co-tenant-employment-section').style.display      = isEmployee     ? 'block' : 'none';
+  document.getElementById('co-tenant-self-employment-section').style.display = isSelfEmployed ? 'block' : 'none';
+}
+
+function syncRoommateEmployment() {
+  const isEmployee     = document.getElementById('roommate_is_employee').checked;
+  const isSelfEmployed = document.getElementById('roommate_is_self_employed').checked;
+  document.getElementById('roommate-employment-section').style.display      = isEmployee     ? 'block' : 'none';
+  document.getElementById('roommate-self-employment-section').style.display = isSelfEmployed ? 'block' : 'none';
+}
+
 function togglePetTypes() {
   const show = document.getElementById('has_pets').checked;
   document.getElementById('pet_types_row').style.display = show ? 'block' : 'none';
@@ -967,6 +1521,36 @@ function syncOccupantCount() {
 function syncGuarantorPermitType() {
   const nat    = document.getElementById('guarantor_nationality').value;
   const permit = document.getElementById('guarantor_permit_type');
+  const swissOpt = permit.querySelector('option[value="swiss"]');
+  if (nat === 'Swiss') {
+    if (swissOpt) swissOpt.hidden = false;
+    permit.value    = 'swiss';
+    permit.disabled = true;
+  } else {
+    if (swissOpt) swissOpt.hidden = true;
+    permit.disabled = false;
+    if (permit.value === 'swiss') permit.value = '';
+  }
+}
+
+function syncCoTenantPermitType() {
+  const nat    = document.getElementById('co_tenant_nationality').value;
+  const permit = document.getElementById('co_tenant_permit_type');
+  const swissOpt = permit.querySelector('option[value="swiss"]');
+  if (nat === 'Swiss') {
+    if (swissOpt) swissOpt.hidden = false;
+    permit.value    = 'swiss';
+    permit.disabled = true;
+  } else {
+    if (swissOpt) swissOpt.hidden = true;
+    permit.disabled = false;
+    if (permit.value === 'swiss') permit.value = '';
+  }
+}
+
+function syncRoommatePermitType() {
+  const nat    = document.getElementById('roommate_nationality').value;
+  const permit = document.getElementById('roommate_permit_type');
   const swissOpt = permit.querySelector('option[value="swiss"]');
   if (nat === 'Swiss') {
     if (swissOpt) swissOpt.hidden = false;
@@ -1043,6 +1627,8 @@ async function saveProfile(e) {
     has_vehicle:           document.getElementById('has_vehicle').checked,
     vehicle_types:         document.getElementById('has_vehicle').checked ? (document.getElementById('vehicle_types').value.trim() || null) : null,
     needs_guarantor:                  document.getElementById('needs_guarantor').checked,
+    needs_co_tenant:                  document.getElementById('needs_co_tenant').checked,
+    needs_roommate:                   document.getElementById('needs_roommate').checked,
     guarantor_full_name:              document.getElementById('guarantor_full_name').value.trim() || null,
     guarantor_gov_name:               document.getElementById('guarantor_gov_name').value.trim() || null,
     guarantor_date_of_birth:          document.getElementById('guarantor_date_of_birth').value || null,
@@ -1055,6 +1641,42 @@ async function saveProfile(e) {
     guarantor_job_role:               document.getElementById('guarantor_job_role').value.trim() || null,
     guarantor_employment_start_date:  document.getElementById('guarantor_employment_start_date').value || null,
     guarantor_monthly_gross_salary:   parseFloat(document.getElementById('guarantor_monthly_gross_salary').value) || null,
+    // Co-tenant
+    co_tenant_full_name:              document.getElementById('co_tenant_full_name').value.trim() || null,
+    co_tenant_gov_name:               document.getElementById('co_tenant_gov_name').value.trim() || null,
+    co_tenant_date_of_birth:          document.getElementById('co_tenant_date_of_birth').value || null,
+    co_tenant_nationality:            document.getElementById('co_tenant_nationality').value || null,
+    co_tenant_permit_type:            document.getElementById('co_tenant_nationality').value === 'Swiss' ? 'swiss' : (document.getElementById('co_tenant_permit_type').value || null),
+    co_tenant_current_address:        document.getElementById('co_tenant_current_address').value.trim() || null,
+    co_tenant_is_employee:            document.getElementById('co_tenant_is_employee').checked,
+    co_tenant_is_self_employed:       document.getElementById('co_tenant_is_self_employed').checked,
+    co_tenant_employer_name:          document.getElementById('co_tenant_employer_name').value.trim() || null,
+    co_tenant_job_role:               document.getElementById('co_tenant_job_role').value.trim() || null,
+    co_tenant_employment_start_date:  document.getElementById('co_tenant_employment_start_date').value || null,
+    co_tenant_monthly_gross_salary:   parseFloat(document.getElementById('co_tenant_monthly_gross_salary').value) || null,
+    co_tenant_business_name:          document.getElementById('co_tenant_business_name').value.trim() || null,
+    co_tenant_business_activity:      document.getElementById('co_tenant_business_activity').value.trim() || null,
+    co_tenant_juridical_form:         document.getElementById('co_tenant_juridical_form').value || null,
+    co_tenant_business_start_date:    document.getElementById('co_tenant_business_start_date').value || null,
+    co_tenant_annual_net_income:      parseFloat(document.getElementById('co_tenant_annual_net_income').value) || null,
+    // Roommate
+    roommate_full_name:               document.getElementById('roommate_full_name').value.trim() || null,
+    roommate_gov_name:                document.getElementById('roommate_gov_name').value.trim() || null,
+    roommate_date_of_birth:           document.getElementById('roommate_date_of_birth').value || null,
+    roommate_nationality:             document.getElementById('roommate_nationality').value || null,
+    roommate_permit_type:             document.getElementById('roommate_nationality').value === 'Swiss' ? 'swiss' : (document.getElementById('roommate_permit_type').value || null),
+    roommate_current_address:         document.getElementById('roommate_current_address').value.trim() || null,
+    roommate_is_employee:             document.getElementById('roommate_is_employee').checked,
+    roommate_is_self_employed:        document.getElementById('roommate_is_self_employed').checked,
+    roommate_employer_name:           document.getElementById('roommate_employer_name').value.trim() || null,
+    roommate_job_role:                document.getElementById('roommate_job_role').value.trim() || null,
+    roommate_employment_start_date:   document.getElementById('roommate_employment_start_date').value || null,
+    roommate_monthly_gross_salary:    parseFloat(document.getElementById('roommate_monthly_gross_salary').value) || null,
+    roommate_business_name:           document.getElementById('roommate_business_name').value.trim() || null,
+    roommate_business_activity:       document.getElementById('roommate_business_activity').value.trim() || null,
+    roommate_juridical_form:          document.getElementById('roommate_juridical_form').value || null,
+    roommate_business_start_date:     document.getElementById('roommate_business_start_date').value || null,
+    roommate_annual_net_income:       parseFloat(document.getElementById('roommate_annual_net_income').value) || null,
     has_household_liability_insurance: document.getElementById('has_household_liability_insurance').checked,
     rental_deposit_type:   document.getElementById('rental_deposit_type').value || null,
     profile_complete:      true,

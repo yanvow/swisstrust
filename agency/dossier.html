@@ -136,8 +136,6 @@
   await sbHelpers.logAccess(cert.id, user.id, 'agency');
 
   const t = cert.tenants || {};
-  const trustLabels = { A: 'A — Excellent', B: 'B — Good', C: 'C — Review' };
-  const trustClasses = { A: 'trust-a', B: 'trust-b', C: 'trust-c' };
   const permitLabels = { swiss: 'Swiss citizen', B: 'B permit', C: 'C permit', G: 'G permit', L: 'L permit' };
 
   // Header
@@ -150,9 +148,10 @@
   document.getElementById('hdr-cert-code').textContent = cert.cert_code;
   document.getElementById('hdr-issued').textContent = new Date(cert.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
 
+  const certIsActive = cert.is_active !== false;
   const trustBadge = document.getElementById('hdr-trust-badge');
-  trustBadge.textContent = trustLabels[cert.trust_score] || cert.trust_score || '—';
-  trustBadge.className = 'badge ' + (trustClasses[cert.trust_score] || 'trust-b');
+  trustBadge.textContent = certIsActive ? '✓ Valid' : '✗ Not valid';
+  trustBadge.className = 'badge ' + (certIsActive ? 'badge-green' : 'badge-red');
   trustBadge.style.cssText = 'font-size:1rem; padding:7px 18px;';
 
   // Access alert

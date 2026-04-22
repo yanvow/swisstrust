@@ -346,31 +346,75 @@ function setDirectedType(type) {
   document.getElementById('owner_email').required = type === 'owner';
 }
 
-function computeTrustGrade(docs) {
+function computeCertValidity(docs, tenant) {
   const byType = {};
   (docs || []).forEach(d => { byType[d.doc_type] = d; });
-  let score = 100;
-  const b = byType['betreibungsauszug'];
-  if (!b)                            score -= 20;
-  else if (b.status === 'rejected')  score -= 40;
-  else if (b.status !== 'auto_verified') score -= 10;
   const now = new Date();
-  const cutoff = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-  ['salary_slip_1','salary_slip_2','salary_slip_3'].forEach(k => {
-    const s = byType[k];
-    if (!s)                            { score -= 10; return; }
-    if (s.status !== 'auto_verified')  score -= 5;
-    const pp = s.ocr_extracted_data?.pay_period;
-    if (pp) {
-      const [y, m] = pp.split('-').map(Number);
-      if (new Date(y, m - 1, 1) < cutoff) score -= 10; // stale slip
+  const reasons = [];
+
+  function present(type) {
+    const d = byType[type];
+    return d && d.status !== 'rejected';
+  }
+
+  // Passport / ID
+  if (!present('passport_id')) {
+    reasons.push('Passport / ID missing or rejected');
+  } else {
+    const exp = byType['passport_id']?.ocr_extracted_data?.expiry_date;
+    if (exp && new Date(exp) < now) reasons.push('Passport / ID expired');
+  }
+
+  // Residence permit for non-Swiss
+  const nat = tenant?.nationality;
+  if (nat && nat !== 'Swiss') {
+    if (!present('residence_permit')) {
+      reasons.push('Residence permit missing or rejected');
+    } else {
+      const exp = byType['residence_permit']?.ocr_extracted_data?.valid_until;
+      if (exp && new Date(exp) < now) reasons.push('Residence permit expired');
     }
-  });
-  const id = byType['passport_id'];
-  if (!id)                            score -= 15;
-  else if (id.status !== 'auto_verified') score -= 8;
-  const clamped = Math.max(0, score);
-  return { grade: clamped >= 80 ? 'A' : clamped >= 60 ? 'B' : 'C' };
+  }
+
+  // Betreibungsauszug (valid 90 days)
+  if (!present('betreibungsauszug')) {
+    reasons.push('Betreibungsauszug missing or rejected');
+  } else {
+    const d = byType['betreibungsauszug'];
+    const certDate = d.ocr_extracted_data?.certificate_date;
+    const base = certDate ? new Date(certDate) : new Date(d.created_at);
+    const expiry = new Date(base);
+    expiry.setDate(expiry.getDate() + 90);
+    if (now > expiry) reasons.push('Betreibungsauszug expired (older than 90 days)');
+  }
+
+  // Income documents
+  const cutoff3mo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+  function slipOk(type) {
+    if (!present(type)) return false;
+    const pp = byType[type]?.ocr_extracted_data?.pay_period;
+    if (!pp) return true;
+    const [y, m] = pp.split('-').map(Number);
+    return new Date(y, m - 1, 1) >= cutoff3mo;
+  }
+
+  if (tenant?.is_employee) {
+    if (!slipOk('salary_slip_1') || !slipOk('salary_slip_2') || !slipOk('salary_slip_3'))
+      reasons.push('Salary slips missing, rejected, or outdated');
+  }
+  if (tenant?.is_self_employed) {
+    if (!present('balance_sheet'))   reasons.push('Balance sheet missing or rejected');
+    if (!present('tax_assessment'))  reasons.push('Tax assessment missing or rejected');
+  }
+  if (tenant?.is_unemployed) {
+    if (!slipOk('unemployment_benefit_1') || !slipOk('unemployment_benefit_2') || !slipOk('unemployment_benefit_3'))
+      reasons.push('Unemployment benefit statements missing, rejected, or outdated');
+  }
+  if (tenant?.is_on_welfare) {
+    if (!present('welfare_rent_coverage')) reasons.push('Welfare / rent coverage letter missing or rejected');
+  }
+
+  return { valid: reasons.length === 0, reasons };
 }
 
 // Init: auth check + load agencies + load tenant profile
@@ -385,13 +429,16 @@ function computeTrustGrade(docs) {
   _tenant = tenant;
 
   if (tenant) {
-    // Load documents to compute provisional trust score
+    // Load documents to compute provisional validity
     const { data: docs } = await sbHelpers.getDocumentsByTenant(tenant.id);
     _docs = docs || [];
-    const { grade } = computeTrustGrade(_docs);
+    const { valid, reasons } = computeCertValidity(_docs, tenant);
     const badge = document.getElementById('profile-trust-badge');
-    badge.className = `badge trust-${grade.toLowerCase()}`;
-    badge.textContent = `${grade} Score (provisional)`;
+    badge.className = `badge ${valid ? 'badge-green' : 'badge-red'}`;
+    badge.textContent = valid ? '✓ Profile & documents valid' : '✗ Profile not ready';
+    if (!valid) {
+      badge.title = reasons.join('\n');
+    }
 
     document.querySelector('.card.mb-24 .text-sm').innerHTML =
       `Your tenant data is pre-filled: <strong style="color:var(--charcoal);">${tenant.full_name || _user.email}</strong> · CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()}/mo gross · ${tenant.occupant_count || 1} occupant(s) · ${tenant.is_smoker ? 'Smoker' : 'No smoker'} · ${tenant.has_pets ? 'Pets' : 'No pets'}`;
@@ -589,9 +636,14 @@ async function generateCertificate(e) {
   const salary = tenant.monthly_gross_salary || 0;
   const isEligible = salary >= total * 3;
 
-  // Compute trust score from current document statuses
+  // Validate profile and documents before generating
   const { data: latestDocs } = await sbHelpers.getDocumentsByTenant(tenant.id);
-  const { grade: trustScore } = computeTrustGrade(latestDocs || []);
+  const { valid, reasons } = computeCertValidity(latestDocs || [], tenant);
+  if (!valid) {
+    sbHelpers.setLoading(submitBtn, false, 'Generate QR certificate');
+    alert('Cannot generate certificate — the following issues must be resolved first:\n\n• ' + reasons.join('\n• '));
+    return;
+  }
 
   const certCode = sbHelpers.generateCertCode();
   const appUrl   = window.location.origin + window.location.pathname.replace(/\/tenant\/.*/, '');
@@ -615,7 +667,6 @@ async function generateCertificate(e) {
     has_visited:      document.getElementById('visited').checked,
     heard_about:      document.getElementById('heard_via').value || null,
     mode:             currentMode,
-    trust_score:      trustScore,
     is_eligible:      isEligible,
     cert_code:        certCode,
     qr_url:           qrUrl,
