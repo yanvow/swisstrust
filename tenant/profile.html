@@ -532,7 +532,7 @@
               <div class="text-xs text-gray">A third party will co-sign or provide financial guarantee on your behalf</div>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="needs_guarantor" onchange="syncRentalSituation()">
+              <input type="checkbox" id="needs_guarantor" onchange="exclusiveRentalType(this)">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -542,7 +542,7 @@
               <div class="text-xs text-gray">Another person will be named on the lease and share full responsibility</div>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="needs_co_tenant" onchange="syncRentalSituation()">
+              <input type="checkbox" id="needs_co_tenant" onchange="exclusiveRentalType(this)">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -552,7 +552,7 @@
               <div class="text-xs text-gray">Someone will live with you but is not on the lease</div>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="needs_roommate" onchange="syncRentalSituation()">
+              <input type="checkbox" id="needs_roommate" onchange="exclusiveRentalType(this)">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -1430,6 +1430,15 @@ let _prevNationality = null;  // nationality at load time, to detect changes
     syncRentalSituation();
   }
 })();
+
+function exclusiveRentalType(el) {
+  if (el.checked) {
+    ['needs_guarantor', 'needs_co_tenant', 'needs_roommate'].forEach(id => {
+      if (id !== el.id) document.getElementById(id).checked = false;
+    });
+  }
+  syncRentalSituation();
+}
 
 function syncRentalSituation() {
   const needsGuarantor = document.getElementById('needs_guarantor').checked;
