@@ -112,8 +112,8 @@
         <div class="stat-lbl">Certificates</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" id="stat-trust" style="color:var(--amber);">—</div>
-        <div class="stat-lbl">Trust Score (provisional)</div>
+        <div class="stat-num" id="stat-valid" style="color:var(--gray-400);">—</div>
+        <div class="stat-lbl">Profile status</div>
       </div>
     </div>
 
@@ -202,68 +202,54 @@ function getDocTypeMeta(tenant) {
   return types;
 }
 
-// ── Trust score (provisional — same formula as certificate generation) ──
-function computeProvisionalTrust(docsMap, tenant) {
-  let score = 100;
-
-  const b = docsMap['betreibungsauszug'];
-  if (!b)                            score -= 20;
-  else if (b.status === 'rejected')  score -= 40;
-  else if (b.status !== 'auto_verified') score -= 10;
-
-  // Income docs — deduct based on what's expected
-  if (tenant.needs_guarantor) {
-    if (!docsMap['guarantor_id']) score -= 10;
-    if (tenant.guarantor_is_employee) {
-      ['guarantor_salary_slip_1', 'guarantor_salary_slip_2', 'guarantor_salary_slip_3'].forEach(k => {
-        const s = docsMap[k];
-        if (!s)                                score -= 8;
-        else if (s.status !== 'auto_verified') score -= 4;
-      });
-    }
-    if (tenant.guarantor_is_self_employed) {
-      ['guarantor_balance_sheet', 'guarantor_tax_assessment'].forEach(k => {
-        const s = docsMap[k];
-        if (!s)                                score -= 8;
-        else if (s.status !== 'auto_verified') score -= 4;
-      });
-    }
+// ── Certificate validity check (mirrors certificate-new.html) ──
+function computeCertValidity(docs, tenant) {
+  const byType = {};
+  (docs || []).forEach(d => { byType[d.doc_type] = d; });
+  const now = new Date();
+  const reasons = [];
+  function present(type) { const d = byType[type]; return d && d.status !== 'rejected'; }
+  if (!present('passport_id')) {
+    reasons.push('Passport / ID missing or rejected');
   } else {
-    if (tenant.is_employee) {
-      ['salary_slip_1', 'salary_slip_2', 'salary_slip_3'].forEach(k => {
-        const s = docsMap[k];
-        if (!s)                            score -= 10;
-        else if (s.status !== 'auto_verified') score -= 5;
-      });
-    }
-    if (tenant.is_self_employed) {
-      ['balance_sheet', 'tax_assessment', 'avs_affiliation'].forEach(k => {
-        const s = docsMap[k];
-        if (!s)                            score -= 8;
-        else if (s.status !== 'auto_verified') score -= 4;
-      });
-    }
-    if (tenant.is_unemployed) {
-      ['unemployment_benefit_1', 'unemployment_benefit_2', 'unemployment_benefit_3'].forEach(k => {
-        const s = docsMap[k];
-        if (!s)                            score -= 10;
-        else if (s.status !== 'auto_verified') score -= 5;
-      });
-    }
-    if (tenant.is_on_welfare) {
-      const s = docsMap['welfare_rent_coverage'];
-      if (!s)                            score -= 20;
-      else if (s.status !== 'auto_verified') score -= 10;
+    const exp = byType['passport_id']?.ocr_extracted_data?.expiry_date;
+    if (exp && new Date(exp) < now) reasons.push('Passport / ID expired');
+  }
+  const nat = tenant?.nationality;
+  if (nat && nat !== 'Swiss') {
+    if (!present('residence_permit')) reasons.push('Residence permit missing or rejected');
+    else {
+      const exp = byType['residence_permit']?.ocr_extracted_data?.valid_until;
+      if (exp && new Date(exp) < now) reasons.push('Residence permit expired');
     }
   }
-
-  const id = docsMap['passport_id'];
-  if (!id)                            score -= 15;
-  else if (id.status !== 'auto_verified') score -= 8;
-
-  const clamped = Math.max(0, score);
-  const grade   = clamped >= 80 ? 'A' : clamped >= 60 ? 'B' : 'C';
-  return { score: clamped, grade };
+  if (!present('betreibungsauszug')) {
+    reasons.push('Betreibungsauszug missing or rejected');
+  } else {
+    const d = byType['betreibungsauszug'];
+    const base = d.ocr_extracted_data?.certificate_date ? new Date(d.ocr_extracted_data.certificate_date) : new Date(d.created_at);
+    const expiry = new Date(base); expiry.setDate(expiry.getDate() + 90);
+    if (now > expiry) reasons.push('Betreibungsauszug expired (older than 90 days)');
+  }
+  const cutoff3mo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+  function slipOk(type) {
+    if (!present(type)) return false;
+    const pp = byType[type]?.ocr_extracted_data?.pay_period;
+    if (!pp) return true;
+    const [y, m] = pp.split('-').map(Number);
+    return new Date(y, m - 1, 1) >= cutoff3mo;
+  }
+  if (tenant?.is_employee && (!slipOk('salary_slip_1') || !slipOk('salary_slip_2') || !slipOk('salary_slip_3')))
+    reasons.push('Salary slips missing, rejected, or outdated');
+  if (tenant?.is_self_employed) {
+    if (!present('balance_sheet'))  reasons.push('Balance sheet missing or rejected');
+    if (!present('tax_assessment')) reasons.push('Tax assessment missing or rejected');
+  }
+  if (tenant?.is_unemployed && (!slipOk('unemployment_benefit_1') || !slipOk('unemployment_benefit_2') || !slipOk('unemployment_benefit_3')))
+    reasons.push('Unemployment benefit statements missing, rejected, or outdated');
+  if (tenant?.is_on_welfare && !present('welfare_rent_coverage'))
+    reasons.push('Welfare / rent coverage letter missing or rejected');
+  return { valid: reasons.length === 0, reasons };
 }
 
 // ── Status badge helpers ──────────────────────────────────────
@@ -311,7 +297,7 @@ const STATUS_ROW = {
 
   const uploadedCount  = Object.keys(docsMap).length;
   const verifiedCount  = Object.values(docsMap).filter(d => d.status === 'auto_verified').length;
-  const { score, grade } = computeProvisionalTrust(docsMap, tenant);
+  const { valid: profileValid, reasons: validityReasons } = computeCertValidity(docs || [], tenant);
 
   // ── Load certificates ─────────────────────────────────────
   const { data: certs } = await sbHelpers.getCertificatesByTenant(tenant.id);
@@ -321,9 +307,10 @@ const STATUS_ROW = {
   document.getElementById('stat-docs').textContent     = uploadedCount;
   document.getElementById('stat-verified').textContent = verifiedCount;
   document.getElementById('stat-certs').textContent    = certCount;
-  const trustEl = document.getElementById('stat-trust');
-  trustEl.textContent  = grade;
-  trustEl.style.color  = grade === 'A' ? 'var(--green)' : grade === 'B' ? 'var(--amber)' : 'var(--red)';
+  const validEl = document.getElementById('stat-valid');
+  validEl.textContent = profileValid ? '✓ Valid' : '✗ Not ready';
+  validEl.style.color = profileValid ? 'var(--green)' : 'var(--red)';
+  if (!profileValid) validEl.title = validityReasons.join('\n');
 
   // ── Progress card ─────────────────────────────────────────
   const profileComplete   = !!tenant.profile_complete;

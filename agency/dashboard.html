@@ -69,14 +69,6 @@
         <div class="stat-lbl">Total certificates</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" style="color:var(--green);" id="stat-a">—</div>
-        <div class="stat-lbl">Score A (Excellent)</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-num" style="color:var(--amber);" id="stat-b">—</div>
-        <div class="stat-lbl">Score B (Good)</div>
-      </div>
-      <div class="stat-box">
         <div class="stat-num" style="color:var(--green);" id="stat-eligible">—</div>
         <div class="stat-lbl">Income eligible</div>
       </div>
@@ -85,19 +77,8 @@
     <!-- Filter / sort bar -->
     <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
       <select style="width:auto; padding:8px 32px 8px 12px; font-size:.875rem;">
-        <option>All Trust Scores</option>
-        <option>Score A only</option>
-        <option>Score B only</option>
-        <option>Score C only</option>
-      </select>
-      <select style="width:auto; padding:8px 32px 8px 12px; font-size:.875rem;">
-        <option>All properties</option>
-        <option>Rue de Rive</option>
-      </select>
-      <select style="width:auto; padding:8px 32px 8px 12px; font-size:.875rem;">
         <option>Newest first</option>
         <option>Oldest first</option>
-        <option>Score: A → C</option>
       </select>
     </div>
 
@@ -108,7 +89,6 @@
           <tr>
             <th>Tenant</th>
             <th>Property applied for</th>
-            <th>Trust Score</th>
             <th>Eligibility</th>
             <th>Cert. date</th>
             <th></th>
@@ -137,7 +117,6 @@
             <tr>
               <th>Tenant</th>
               <th>Property applied for</th>
-              <th>Trust Score</th>
               <th>Cert. date</th>
               <th></th>
             </tr>
@@ -183,20 +162,17 @@ let _isAdmin   = false;
 
   if (!certs || certs.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" class="text-gray text-sm" style="padding:24px; text-align:center;">No certificates yet. Share your Checks agency profile with tenants so they can direct their certificates to you.</td></tr>';
-    ['stat-total','stat-a','stat-b','stat-eligible'].forEach(id => document.getElementById(id).textContent = '0');
+    ['stat-total','stat-eligible'].forEach(id => document.getElementById(id).textContent = '0');
     return;
   }
 
   if (_isAdmin) {
     document.getElementById('stat-total').textContent = certs.length;
-    document.getElementById('stat-a').textContent = certs.filter(c => c.trust_score === 'A').length;
-    document.getElementById('stat-b').textContent = certs.filter(c => c.trust_score === 'B').length;
     document.getElementById('stat-eligible').textContent = certs.filter(c => c.is_eligible).length;
   }
 
   tbody.innerHTML = certs.map(c => {
     const t = c.tenants || {};
-    const scoreClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[c.trust_score] || 'trust-b';
     const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
     return `
       <tr>
@@ -208,7 +184,6 @@ let _isAdmin   = false;
           <div class="text-sm font-bold">${c.property_address}${c.property_city ? ', ' + c.property_city : ''}</div>
           <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo${c.move_in_date ? ' · Move-in ' + new Date(c.move_in_date).toLocaleDateString('de-CH') : ''}</div>
         </td>
-        <td><span class="badge ${scoreClass}">${c.trust_score || '—'}</span></td>
         <td>${c.is_eligible ? '<span class="badge badge-green">✓ Eligible</span>' : '<span class="badge badge-amber">Review</span>'}</td>
         <td class="text-sm text-gray">${date}</td>
         <td><a href="dossier.html?code=${c.cert_code}" class="btn btn-primary btn-sm">View dossier</a></td>
@@ -233,7 +208,6 @@ let _isAdmin   = false;
     document.getElementById('ghost-badge').textContent = `${ghosts.length} unclaimed`;
     document.getElementById('ghost-tbody').innerHTML = ghosts.map(c => {
       const t = c.tenants || {};
-      const scoreClass = { A: 'trust-a', B: 'trust-b', C: 'trust-c' }[c.trust_score] || 'trust-b';
       const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
       return `
         <tr id="ghost-row-${c.id}">
@@ -245,7 +219,6 @@ let _isAdmin   = false;
             <div class="text-sm font-bold">${c.property_address}${c.property_city ? ', ' + c.property_city : ''}</div>
             <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo</div>
           </td>
-          <td><span class="badge ${scoreClass}">${c.trust_score || '—'}</span></td>
           <td class="text-sm text-gray">${date}</td>
           <td><button class="btn btn-primary btn-sm" onclick="claimGhost('${c.id}', '${c.cert_code}', this)">Claim →</button></td>
         </tr>`;

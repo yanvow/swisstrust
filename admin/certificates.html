@@ -68,12 +68,6 @@
         <option value="open">Open</option>
         <option value="on_request">On-Request</option>
       </select>
-      <select id="filter-score" onchange="filterTable()" style="width:auto;">
-        <option value="all">All scores</option>
-        <option value="A">Score A</option>
-        <option value="B">Score B</option>
-        <option value="C">Score C</option>
-      </select>
       <select id="filter-active" onchange="filterTable()" style="width:auto;">
         <option value="active">Active only</option>
         <option value="all">Active + inactive</option>
@@ -90,7 +84,6 @@
             <th>Property</th>
             <th>Recipient</th>
             <th>Mode</th>
-            <th>Score</th>
             <th>Eligible</th>
             <th>Date</th>
             <th></th>
@@ -115,15 +108,6 @@
     <div id="modal-err" style="display:none;color:var(--red);font-size:.875rem;margin-bottom:12px;"></div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div class="form-group">
-        <label>Trust Score override</label>
-        <select id="f-trust_score">
-          <option value="">— (keep computed)</option>
-          <option value="A">A — Excellent</option>
-          <option value="B">B — Good</option>
-          <option value="C">C — Review</option>
-        </select>
-      </div>
       <div class="form-group">
         <label>Income eligible</label>
         <select id="f-is_eligible">
@@ -166,7 +150,6 @@
 <script>
 const modeLabel = { directed:'Directed', open:'Open', on_request:'On-Request' };
 const modeColor = { directed:'var(--charcoal)', open:'var(--green)', on_request:'var(--amber)' };
-const gradeClass = { A:'trust-a', B:'trust-b', C:'trust-c' };
 
 let _all = [];
 let _editingId = null;
@@ -187,7 +170,6 @@ let _editingId = null;
 function filterTable() {
   const q      = document.getElementById('search').value.toLowerCase();
   const mode   = document.getElementById('filter-mode').value;
-  const score  = document.getElementById('filter-score').value;
   const active = document.getElementById('filter-active').value;
 
   let rows = _all;
@@ -198,7 +180,6 @@ function filterTable() {
     (c.property_address||'').toLowerCase().includes(q)
   );
   if (mode  !== 'all') rows = rows.filter(c => c.mode === mode);
-  if (score !== 'all') rows = rows.filter(c => c.trust_score === score);
   if (active === 'active')   rows = rows.filter(c => c.is_active);
   if (active === 'inactive') rows = rows.filter(c => !c.is_active);
   renderTable(rows);
@@ -221,7 +202,6 @@ function renderTable(rows) {
         <td class="text-sm">${esc(c.property_address||'—')}${c.property_city?', '+esc(c.property_city):''}</td>
         <td class="text-sm text-gray">${esc(recipient)}</td>
         <td><span class="badge" style="background:var(--gray-100);color:${modeColor[c.mode]};font-size:.7rem;font-weight:700;">${modeLabel[c.mode]||c.mode}</span></td>
-        <td>${c.trust_score?`<span class="badge ${gradeClass[c.trust_score]||'trust-b'}" style="font-size:.75rem;">${c.trust_score}</span>`:'—'}</td>
         <td>${c.is_eligible===true?'<span class="badge badge-green" style="font-size:.7rem;">✓ Yes</span>':c.is_eligible===false?'<span class="badge badge-amber" style="font-size:.7rem;">Review</span>':'—'}</td>
         <td class="text-sm text-gray">${date}</td>
         <td style="white-space:nowrap;">
@@ -240,7 +220,6 @@ function openEdit(id) {
   document.getElementById('modal-sub').textContent =
     `${c.tenants?.full_name||'—'} · ${c.property_address||'—'}`;
   document.getElementById('modal-err').style.display = 'none';
-  document.getElementById('f-trust_score').value = c.trust_score || '';
   document.getElementById('f-is_eligible').value = c.is_eligible === true ? 'true' : c.is_eligible === false ? 'false' : '';
   document.getElementById('f-mode').value = c.mode || 'directed';
   document.getElementById('f-is_active').value = c.is_active ? 'true' : 'false';
@@ -281,9 +260,7 @@ async function saveCert() {
     mode:        document.getElementById('f-mode').value,
     is_active:   document.getElementById('f-is_active').value === 'true',
   };
-  const ts = document.getElementById('f-trust_score').value;
   const el = document.getElementById('f-is_eligible').value;
-  if (ts) fields.trust_score = ts;
   if (el !== '') fields.is_eligible = el === 'true';
   const note = document.getElementById('f-admin_note').value.trim();
   if (note) fields.admin_note = note;
