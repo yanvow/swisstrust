@@ -468,6 +468,20 @@ async function setGovName(name) {
   await refreshDocs();
 }
 
+// Normalise a name string into a set of lowercase tokens, handling all formats:
+//   "First Last", "Last, First", "First Middle Last", "Last, First Middle"
+function nameTokens(raw) {
+  return raw.toLowerCase().replace(/[,\.]/g, ' ').split(/\s+/).map(t => t.trim()).filter(Boolean);
+}
+
+// Returns true when every token in the profile name appears in the OCR name token set
+// (order- and format-independent comparison).
+function nameMatchesProfile(ocrRaw, profileRaw) {
+  const ocrSet      = new Set(nameTokens(ocrRaw));
+  const profileToks = nameTokens(profileRaw);
+  return profileToks.length > 0 && profileToks.every(t => ocrSet.has(t));
+}
+
 // Maps ISO 3166 alpha-2/alpha-3 codes AND country names to the profile adjective values.
 // OCR may return codes (CHE, FR) or country names (Switzerland, France) — normalise them all.
 const NATIONALITY_MAP = {
@@ -643,7 +657,7 @@ function renderDocCard(type) {
       if (ocrName) {
         // Compare against gov_name first, fall back to display name
         const nameToMatch = _tenantGovName || _tenantName;
-        const nameMatches = ocrName.includes(nameToMatch) || nameToMatch.includes(ocrName);
+        const nameMatches = nameMatchesProfile(ocrName, nameToMatch);
         if (!nameMatches) {
           if (!_tenantGovName) {
             // No gov_name set — suggest setting it
