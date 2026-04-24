@@ -18,15 +18,30 @@
       <div class="nav__logo-mark">C</div>
       Checks
     </a>
-    <div class="nav__links">
+    <div class="nav__links nav__links--collapsible" id="landing-nav-links">
       <a href="#how-it-works" class="nav__link">How it works</a>
       <a href="#agencies" class="nav__link">For agencies</a>
       <a href="#owners" class="nav__link">For owners</a>
       <a href="auth/login.html" class="nav__link">Sign in</a>
       <a href="auth/tenant-register.html" class="btn btn-primary btn-sm">Create dossier</a>
     </div>
+    <button class="nav__hamburger" id="landing-nav-toggle" aria-label="Toggle menu" aria-expanded="false">☰</button>
   </div>
 </nav>
+<script>
+  document.getElementById('landing-nav-toggle').addEventListener('click', function() {
+    var links = document.getElementById('landing-nav-links');
+    var open = links.classList.toggle('is-open');
+    this.textContent = open ? '✕' : '☰';
+    this.setAttribute('aria-expanded', open);
+  });
+  document.querySelectorAll('#landing-nav-links .nav__link').forEach(function(link) {
+    link.addEventListener('click', function() {
+      document.getElementById('landing-nav-links').classList.remove('is-open');
+      document.getElementById('landing-nav-toggle').textContent = '☰';
+    });
+  });
+</script>
 
 <!-- HERO -->
 <section class="hero">
