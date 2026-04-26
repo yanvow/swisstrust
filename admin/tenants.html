@@ -74,6 +74,7 @@
         <option value="all">All profiles</option>
         <option value="complete">Complete only</option>
         <option value="incomplete">Incomplete only</option>
+        <option value="review_requested">Identity review requests</option>
       </select>
     </div>
 
@@ -281,6 +282,13 @@
 
     <hr class="section-divider">
 
+    <div class="section-heading">Government identity</div>
+    <div id="gov-identity-section">
+      <div class="text-sm text-gray">Loading…</div>
+    </div>
+
+    <hr class="section-divider">
+
     <div class="section-heading" style="color:var(--red);">Danger zone</div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button class="btn btn-outline btn-sm" id="delete-docs-btn" onclick="adminDeleteAllDocs()"
@@ -350,8 +358,9 @@ function filterTable() {
     (t.nationality||'').toLowerCase().includes(q) ||
     (t.employer_name||'').toLowerCase().includes(q)
   );
-  if (filter === 'complete')   rows = rows.filter(t => t.profile_complete);
-  if (filter === 'incomplete') rows = rows.filter(t => !t.profile_complete);
+  if (filter === 'complete')        rows = rows.filter(t => t.profile_complete);
+  if (filter === 'incomplete')     rows = rows.filter(t => !t.profile_complete);
+  if (filter === 'review_requested') rows = rows.filter(t => t.gov_info_review_requested || t.guarantor_gov_info_review_requested);
   renderTable(rows);
 }
 
@@ -364,6 +373,8 @@ function renderTable(rows) {
         <div class="font-bold">${esc(t.full_name||'—')}</div>
         ${t.email ? `<div class="text-xs text-gray">${esc(t.email)}</div>` : ''}
         ${t.is_suspended ? '<span class="badge badge-red" style="font-size:.65rem;">Suspended</span>' : ''}
+        ${(t.gov_info_review_requested || t.guarantor_gov_info_review_requested) ? '<span class="badge badge-amber" style="font-size:.65rem;">🔐 Identity review</span>' : ''}
+        ${(t.is_gov_info_locked || t.guarantor_is_gov_info_locked) ? '<span class="badge badge-green" style="font-size:.65rem;">🔒 Locked</span>' : ''}
       </td>
       <td>${esc(t.nationality||'—')} ${t.permit_type ? `<span class="badge badge-gray" style="font-size:.7rem;">${t.permit_type}</span>` : ''}</td>
       <td class="text-sm">${esc(t.employer_name||'—')}</td>
@@ -405,6 +416,7 @@ function openEdit(id) {
   document.getElementById('modal').classList.add('open');
   loadTenantDocs(id, t.full_name);
   loadTenantPayment(t.user_id);
+  renderGovIdentitySection(t);
   document.getElementById('danger-err').style.display = 'none';
 }
 
@@ -585,6 +597,167 @@ async function loadTenantPayment(userId) {
     return;
   }
   container.innerHTML = html;
+}
+
+// ── Government identity panel ─────────────────────────────
+
+function renderGovIdentitySection(t) {
+  const container = document.getElementById('gov-identity-section');
+  let html = '';
+
+  // Main tenant
+  html += `<div style="margin-bottom:12px;">`;
+  html += `<div class="text-xs text-gray" style="font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Tenant</div>`;
+  if (t.is_gov_info_locked) {
+    html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.875rem;">
+      <span class="badge badge-green">🔒 Identity locked</span>
+      <span>Name: <strong>${esc(t.full_name||'—')}</strong> · DOB: <strong>${esc(t.date_of_birth||'—')}</strong></span>
+    </div>`;
+    if (t.accepted_names && t.accepted_names.length) {
+      html += `<div class="text-xs text-gray" style="margin-bottom:6px;">Accepted alternate names: ${t.accepted_names.map(n => `<strong>${esc(n)}</strong>`).join(', ')}</div>`;
+    }
+    html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+      <button class="btn btn-outline btn-sm" onclick="adminUnlockGovInfo('${t.id}')" style="font-size:.8rem;">Unlock for editing</button>
+      <button class="btn btn-outline btn-sm" onclick="adminAddAcceptedName('${t.id}')" style="font-size:.8rem;">Add accepted name</button>
+    </div>`;
+    if (t.gov_info_review_requested) {
+      html += `<div style="margin-top:10px;padding:10px 12px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--radius);font-size:.875rem;">
+        <div style="font-weight:600;margin-bottom:4px;">⚠️ Review request pending</div>
+        <div>${esc(t.gov_info_review_note||'(no note provided)')}</div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button class="btn btn-sm" onclick="adminApproveGovInfoReview('${t.id}')" style="background:#16A34A;color:#fff;border:none;cursor:pointer;padding:6px 14px;border-radius:6px;font-size:.8rem;">Approve & unlock</button>
+          <button class="btn btn-sm btn-outline" onclick="adminAddAcceptedName('${t.id}')" style="font-size:.8rem;">Add accepted name</button>
+          <button class="btn btn-sm btn-outline" onclick="adminRejectGovInfoReview('${t.id}')" style="font-size:.8rem;color:var(--red);border-color:var(--red);">Reject request</button>
+        </div>
+      </div>`;
+    }
+  } else {
+    html += `<span class="badge badge-gray">Not locked</span>`;
+  }
+  html += `</div>`;
+
+  // Guarantor (if applicable)
+  if (t.needs_guarantor && t.guarantor_full_name) {
+    html += `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-200);">`;
+    html += `<div class="text-xs text-gray" style="font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Guarantor</div>`;
+    if (t.guarantor_is_gov_info_locked) {
+      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.875rem;">
+        <span class="badge badge-green">🔒 Identity locked</span>
+        <span>Name: <strong>${esc(t.guarantor_full_name||'—')}</strong> · DOB: <strong>${esc(t.guarantor_date_of_birth||'—')}</strong></span>
+      </div>`;
+      html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+        <button class="btn btn-outline btn-sm" onclick="adminUnlockGuarantorGovInfo('${t.id}')" style="font-size:.8rem;">Unlock for editing</button>
+      </div>`;
+      if (t.guarantor_gov_info_review_requested) {
+        html += `<div style="margin-top:10px;padding:10px 12px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--radius);font-size:.875rem;">
+          <div style="font-weight:600;margin-bottom:4px;">⚠️ Guarantor review request pending</div>
+          <div>${esc(t.guarantor_gov_info_review_note||'(no note provided)')}</div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+            <button class="btn btn-sm" onclick="adminApproveGuarantorGovInfoReview('${t.id}')" style="background:#16A34A;color:#fff;border:none;cursor:pointer;padding:6px 14px;border-radius:6px;font-size:.8rem;">Approve & unlock</button>
+            <button class="btn btn-sm btn-outline" onclick="adminRejectGuarantorGovInfoReview('${t.id}')" style="font-size:.8rem;color:var(--red);border-color:var(--red);">Reject request</button>
+          </div>
+        </div>`;
+      }
+    } else {
+      html += `<span class="badge badge-gray">Not locked</span>`;
+    }
+    html += `</div>`;
+  }
+
+  container.innerHTML = html || '<div class="text-sm text-gray">No identity data on file.</div>';
+}
+
+async function adminUnlockGovInfo(tenantId) {
+  if (!confirm('Unlock this tenant\'s government identity for editing? They will need to re-lock after making changes.')) return;
+  const { data, error } = await sbHelpers.adminUpdateTenant(tenantId, {
+    is_gov_info_locked: false,
+    gov_info_review_requested: false,
+    gov_info_review_note: null,
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _allTenants.findIndex(x => x.id === tenantId);
+  if (idx !== -1) { _allTenants[idx] = { ..._allTenants[idx], ...data }; filterTable(); }
+  renderGovIdentitySection(_allTenants[idx] || data);
+}
+
+async function adminApproveGovInfoReview(tenantId) {
+  if (!confirm('Approve this review request and unlock the identity fields for editing?')) return;
+  const { data, error } = await sbHelpers.adminUpdateTenant(tenantId, {
+    is_gov_info_locked: false,
+    gov_info_review_requested: false,
+    gov_info_review_note: null,
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _allTenants.findIndex(x => x.id === tenantId);
+  if (idx !== -1) { _allTenants[idx] = { ..._allTenants[idx], ...data }; filterTable(); }
+  renderGovIdentitySection(_allTenants[idx] || data);
+}
+
+async function adminRejectGovInfoReview(tenantId) {
+  if (!confirm('Reject this review request? The identity lock will remain unchanged.')) return;
+  const { data, error } = await sbHelpers.adminUpdateTenant(tenantId, {
+    gov_info_review_requested: false,
+    gov_info_review_note: null,
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _allTenants.findIndex(x => x.id === tenantId);
+  if (idx !== -1) { _allTenants[idx] = { ..._allTenants[idx], ...data }; filterTable(); }
+  renderGovIdentitySection(_allTenants[idx] || data);
+}
+
+async function adminAddAcceptedName(tenantId) {
+  const name = prompt('Enter an alternate accepted name (e.g. maiden name before marriage):\nThis name will be accepted as valid on future documents.');
+  if (!name || !name.trim()) return;
+  const t = _allTenants.find(x => x.id === tenantId);
+  const existing = Array.isArray(t?.accepted_names) ? t.accepted_names : [];
+  const updated = [...new Set([...existing, name.trim()])];
+  const { data, error } = await sbHelpers.adminUpdateTenant(tenantId, {
+    accepted_names: updated,
+    gov_info_review_requested: false,
+    gov_info_review_note: null,
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _allTenants.findIndex(x => x.id === tenantId);
+  if (idx !== -1) { _allTenants[idx] = { ..._allTenants[idx], ...data }; filterTable(); }
+  renderGovIdentitySection(_allTenants[idx] || data);
+}
+
+async function adminUnlockGuarantorGovInfo(tenantId) {
+  if (!confirm('Unlock this guarantor\'s government identity for editing?')) return;
+  const { data, error } = await sbHelpers.adminUpdateTenant(tenantId, {
+    guarantor_is_gov_info_locked: false,
+    guarantor_gov_info_review_requested: false,
+    guarantor_gov_info_review_note: null,
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _allTenants.findIndex(x => x.id === tenantId);
+  if (idx !== -1) { _allTenants[idx] = { ..._allTenants[idx], ...data }; filterTable(); }
+  renderGovIdentitySection(_allTenants[idx] || data);
+}
+
+async function adminApproveGuarantorGovInfoReview(tenantId) {
+  if (!confirm('Approve this guarantor review request and unlock for editing?')) return;
+  const { data, error } = await sbHelpers.adminUpdateTenant(tenantId, {
+    guarantor_is_gov_info_locked: false,
+    guarantor_gov_info_review_requested: false,
+    guarantor_gov_info_review_note: null,
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _allTenants.findIndex(x => x.id === tenantId);
+  if (idx !== -1) { _allTenants[idx] = { ..._allTenants[idx], ...data }; filterTable(); }
+  renderGovIdentitySection(_allTenants[idx] || data);
+}
+
+async function adminRejectGuarantorGovInfoReview(tenantId) {
+  if (!confirm('Reject this guarantor review request?')) return;
+  const { data, error } = await sbHelpers.adminUpdateTenant(tenantId, {
+    guarantor_gov_info_review_requested: false,
+    guarantor_gov_info_review_note: null,
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  const idx = _allTenants.findIndex(x => x.id === tenantId);
+  if (idx !== -1) { _allTenants[idx] = { ..._allTenants[idx], ...data }; filterTable(); }
+  renderGovIdentitySection(_allTenants[idx] || data);
 }
 
 // ── Danger zone ───────────────────────────────────────────

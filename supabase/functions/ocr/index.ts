@@ -28,6 +28,7 @@ Extract the following and return ONLY a valid JSON object:
   "expiry_date": "YYYY-MM-DD",
   "document_type": "passport or id_card"
 }
+CRITICAL for full_name: Copy the COMPLETE legal name exactly as printed on the document — every given name, middle name, and surname, in the exact order shown. Do NOT abbreviate, shorten, omit any name component, or reorder names. If the document shows "MARIE ANNE DUPONT-MARTIN", the value must be "MARIE ANNE DUPONT-MARTIN", not "Marie Dupont" or "M. A. Dupont-Martin". Preserve hyphens, apostrophes, and accents as printed.
 For nationality, always use the English adjective form (e.g. Swiss, French, German), not ISO codes.
 Use null for any field you cannot clearly read. Return ONLY the JSON, no other text.`,
 

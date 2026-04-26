@@ -72,20 +72,28 @@
       <!-- Personal -->
       <fieldset class="fieldset">
         <legend>Personal information</legend>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Display name <span class="req">*</span></label>
-            <input type="text" id="full_name" placeholder="Your name as you'd like it shown" required>
-          </div>
-          <div class="form-group">
-            <label>Date of birth <span class="req">*</span></label>
-            <input type="date" id="date_of_birth" required>
+        <div id="gov-info-lock-banner" style="display:none; background:#FEF3C7; border:1px solid #FCD34D; border-radius:var(--radius); padding:12px 14px; margin-bottom:16px; font-size:.875rem;">
+          <div style="display:flex; align-items:flex-start; gap:8px;">
+            <span>🔒</span>
+            <div style="flex:1;">
+              <strong>Government identity locked</strong> — Your full name and date of birth have been verified against your identity document and are now read-only.
+              <br><span id="gov-info-review-status"></span>
+              <div style="margin-top:8px;">
+                <button type="button" onclick="requestGovInfoReview()" id="review-request-btn" class="btn btn-sm btn-outline">Request a change</button>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="form-group">
-          <label>Full government name</label>
-          <input type="text" id="gov_name" placeholder="Exact name as on your passport or ID card">
-          <div class="form-hint">Must match your identity documents exactly. Leave blank if same as display name.</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full government name <span class="req">*</span> <span id="gov-name-lock-icon" style="display:none; color:var(--amber);">🔒</span></label>
+            <input type="text" id="full_name" placeholder="Exact name as on your passport or ID card" required>
+            <div class="form-hint" id="gov-name-hint">Must match your identity documents exactly.</div>
+          </div>
+          <div class="form-group">
+            <label>Date of birth <span class="req">*</span> <span id="dob-lock-icon" style="display:none; color:var(--amber);">🔒</span></label>
+            <input type="date" id="date_of_birth" required>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -565,19 +573,27 @@
 
           <!-- Personal information -->
           <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Guarantor — Personal information</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Full name</label>
-              <input type="text" id="guarantor_full_name" placeholder="Guarantor's legal name">
-            </div>
-            <div class="form-group">
-              <label>Date of birth</label>
-              <input type="date" id="guarantor_date_of_birth">
+          <div id="guarantor-gov-info-lock-banner" style="display:none; background:#FEF3C7; border:1px solid #FCD34D; border-radius:var(--radius); padding:12px 14px; margin-bottom:16px; font-size:.875rem;">
+            <div style="display:flex; align-items:flex-start; gap:8px;">
+              <span>🔒</span>
+              <div style="flex:1;">
+                <strong>Guarantor identity locked</strong> — The guarantor's name and date of birth have been verified and are now read-only.
+                <br><span id="guarantor-gov-info-review-status"></span>
+                <div style="margin-top:8px;">
+                  <button type="button" onclick="requestGuarantorGovInfoReview()" id="guarantor-review-request-btn" class="btn btn-sm btn-outline">Request a change</button>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="form-group">
-            <label>Full government name <span class="text-xs text-gray" style="font-weight:400;">(as it appears on official documents, if different)</span></label>
-            <input type="text" id="guarantor_gov_name" placeholder="Exact name as on your passport or ID card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full government name <span id="guarantor-gov-name-lock-icon" style="display:none; color:var(--amber);">🔒</span></label>
+              <input type="text" id="guarantor_full_name" placeholder="Guarantor's exact name as on passport or ID">
+            </div>
+            <div class="form-group">
+              <label>Date of birth <span id="guarantor-dob-lock-icon" style="display:none; color:var(--amber);">🔒</span></label>
+              <input type="date" id="guarantor_date_of_birth">
+            </div>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -802,17 +818,13 @@
           <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Co-tenant — Personal information</div>
           <div class="form-row">
             <div class="form-group">
-              <label>Full name</label>
-              <input type="text" id="co_tenant_full_name" placeholder="Co-tenant's legal name">
+              <label>Full government name</label>
+              <input type="text" id="co_tenant_full_name" placeholder="Co-tenant's exact name as on passport or ID">
             </div>
             <div class="form-group">
               <label>Date of birth</label>
               <input type="date" id="co_tenant_date_of_birth">
             </div>
-          </div>
-          <div class="form-group">
-            <label>Full government name <span class="text-xs text-gray" style="font-weight:400;">(as it appears on official documents, if different)</span></label>
-            <input type="text" id="co_tenant_gov_name" placeholder="Exact name as on passport or ID card">
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -1037,17 +1049,13 @@
           <div style="font-size:.9rem; font-weight:600; margin-bottom:12px;">Roommate — Personal information</div>
           <div class="form-row">
             <div class="form-group">
-              <label>Full name</label>
-              <input type="text" id="roommate_full_name" placeholder="Roommate's legal name">
+              <label>Full government name</label>
+              <input type="text" id="roommate_full_name" placeholder="Roommate's exact name as on passport or ID">
             </div>
             <div class="form-group">
               <label>Date of birth</label>
               <input type="date" id="roommate_date_of_birth">
             </div>
-          </div>
-          <div class="form-group">
-            <label>Full government name <span class="text-xs text-gray" style="font-weight:400;">(as it appears on official documents, if different)</span></label>
-            <input type="text" id="roommate_gov_name" placeholder="Exact name as on passport or ID card">
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -1305,6 +1313,8 @@
 let _userId = null;
 let _tenantId = null;
 let _prevNationality = null;  // nationality at load time, to detect changes
+let _isGovInfoLocked = false;
+let _guarantorIsGovInfoLocked = false;
 
 (async () => {
   const user = await sbHelpers.requireAuth('tenant');
@@ -1320,7 +1330,6 @@ let _prevNationality = null;  // nationality at load time, to detect changes
     _prevNationality = data.nationality || null;
     const f = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
     f('full_name', data.full_name);
-    f('gov_name', data.gov_name);
     f('date_of_birth', data.date_of_birth);
     f('nationality', data.nationality);
     f('permit_type', data.permit_type || 'swiss');
@@ -1351,7 +1360,6 @@ let _prevNationality = null;  // nationality at load time, to detect changes
     if (data.needs_co_tenant)   document.getElementById('needs_co_tenant').checked = true;
     if (data.needs_roommate)    document.getElementById('needs_roommate').checked = true;
     f('guarantor_full_name',             data.guarantor_full_name);
-    f('guarantor_gov_name',              data.guarantor_gov_name);
     f('guarantor_date_of_birth',         data.guarantor_date_of_birth);
     f('guarantor_nationality',           data.guarantor_nationality);
     f('guarantor_permit_type',           data.guarantor_permit_type || 'swiss');
@@ -1361,7 +1369,6 @@ let _prevNationality = null;  // nationality at load time, to detect changes
     if (data.guarantor_is_self_employed) document.getElementById('guarantor_is_self_employed').checked = true;
     // Co-tenant
     f('co_tenant_full_name',             data.co_tenant_full_name);
-    f('co_tenant_gov_name',              data.co_tenant_gov_name);
     f('co_tenant_date_of_birth',         data.co_tenant_date_of_birth);
     f('co_tenant_nationality',           data.co_tenant_nationality);
     f('co_tenant_permit_type',           data.co_tenant_permit_type || 'swiss');
@@ -1380,7 +1387,6 @@ let _prevNationality = null;  // nationality at load time, to detect changes
     f('co_tenant_annual_net_income',     data.co_tenant_annual_net_income);
     // Roommate
     f('roommate_full_name',             data.roommate_full_name);
-    f('roommate_gov_name',              data.roommate_gov_name);
     f('roommate_date_of_birth',         data.roommate_date_of_birth);
     f('roommate_nationality',           data.roommate_nationality);
     f('roommate_permit_type',           data.roommate_permit_type || 'swiss');
@@ -1430,8 +1436,87 @@ let _prevNationality = null;  // nationality at load time, to detect changes
     if (data.has_household_liability_insurance)  document.getElementById('has_household_liability_insurance').checked = true;
     f('rental_deposit_type', data.rental_deposit_type);
     syncRentalSituation();
+
+    // Apply gov info lock state
+    _isGovInfoLocked = !!data.is_gov_info_locked;
+    _guarantorIsGovInfoLocked = !!data.guarantor_is_gov_info_locked;
+    applyGovInfoLockState(data);
   }
 })();
+
+function applyGovInfoLockState(data) {
+  // Main tenant lock
+  if (_isGovInfoLocked) {
+    document.getElementById('full_name').readOnly = true;
+    document.getElementById('full_name').style.background = 'var(--gray-100)';
+    document.getElementById('date_of_birth').readOnly = true;
+    document.getElementById('date_of_birth').style.background = 'var(--gray-100)';
+    document.getElementById('gov-name-lock-icon').style.display = 'inline';
+    document.getElementById('dob-lock-icon').style.display = 'inline';
+    document.getElementById('gov-info-lock-banner').style.display = 'block';
+
+    const reviewStatus = document.getElementById('gov-info-review-status');
+    const reviewBtn = document.getElementById('review-request-btn');
+    if (data?.gov_info_review_requested) {
+      reviewStatus.innerHTML = '<span style="color:var(--amber); font-weight:600;">Review request pending — an admin will process your request.</span>';
+      reviewBtn.textContent = 'Review requested';
+      reviewBtn.disabled = true;
+    }
+  }
+
+  // Guarantor lock
+  if (_guarantorIsGovInfoLocked) {
+    document.getElementById('guarantor_full_name').readOnly = true;
+    document.getElementById('guarantor_full_name').style.background = 'var(--gray-100)';
+    document.getElementById('guarantor_date_of_birth').readOnly = true;
+    document.getElementById('guarantor_date_of_birth').style.background = 'var(--gray-100)';
+    document.getElementById('guarantor-gov-name-lock-icon').style.display = 'inline';
+    document.getElementById('guarantor-dob-lock-icon').style.display = 'inline';
+    document.getElementById('guarantor-gov-info-lock-banner').style.display = 'block';
+
+    const reviewStatus = document.getElementById('guarantor-gov-info-review-status');
+    const reviewBtn = document.getElementById('guarantor-review-request-btn');
+    if (data?.guarantor_gov_info_review_requested) {
+      reviewStatus.innerHTML = '<span style="color:var(--amber); font-weight:600;">Review request pending — an admin will process your request.</span>';
+      reviewBtn.textContent = 'Review requested';
+      reviewBtn.disabled = true;
+    }
+  }
+}
+
+async function requestGovInfoReview() {
+  const note = prompt('Please describe the change you need (e.g. name change after marriage, error in document):\n\nYour certificate cannot be generated until an admin reviews and approves the change.');
+  if (!note || !note.trim()) return;
+
+  const btn = document.getElementById('review-request-btn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
+  const { error } = await _sb.from('tenants')
+    .update({ gov_info_review_requested: true, gov_info_review_note: note.trim() })
+    .eq('id', _tenantId);
+
+  if (error) { alert('Failed to submit review request: ' + error.message); btn.disabled = false; btn.textContent = 'Request a change'; return; }
+
+  document.getElementById('gov-info-review-status').innerHTML = '<span style="color:var(--amber); font-weight:600;">Review request pending — an admin will process your request.</span>';
+  btn.textContent = 'Review requested';
+}
+
+async function requestGuarantorGovInfoReview() {
+  const note = prompt('Please describe the change needed for your guarantor\'s information (e.g. name change, error in document):\n\nYour certificate cannot be generated until an admin reviews and approves the change.');
+  if (!note || !note.trim()) return;
+
+  const btn = document.getElementById('guarantor-review-request-btn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
+  const { error } = await _sb.from('tenants')
+    .update({ guarantor_gov_info_review_requested: true, guarantor_gov_info_review_note: note.trim() })
+    .eq('id', _tenantId);
+
+  if (error) { alert('Failed to submit review request: ' + error.message); btn.disabled = false; btn.textContent = 'Request a change'; return; }
+
+  document.getElementById('guarantor-gov-info-review-status').innerHTML = '<span style="color:var(--amber); font-weight:600;">Review request pending — an admin will process your request.</span>';
+  btn.textContent = 'Review requested';
+}
 
 function exclusiveRentalType(el) {
   if (el.checked) {
@@ -1596,9 +1681,11 @@ async function saveProfile(e) {
   sbHelpers.hideError('save-error');
 
   const fields = {
-    full_name:             document.getElementById('full_name').value.trim(),
-    gov_name:              document.getElementById('gov_name').value.trim() || null,
-    date_of_birth:         document.getElementById('date_of_birth').value || null,
+    // Only update locked fields if not locked (server also enforces this via the lock flag)
+    ...(!_isGovInfoLocked ? {
+      full_name:     document.getElementById('full_name').value.trim(),
+      date_of_birth: document.getElementById('date_of_birth').value || null,
+    } : {}),
     nationality:           document.getElementById('nationality').value.trim(),
     permit_type:           document.getElementById('nationality').value === 'Swiss' ? 'swiss' : document.getElementById('permit_type').value,
     current_address:       document.getElementById('current_address').value.trim(),
@@ -1640,9 +1727,8 @@ async function saveProfile(e) {
     needs_guarantor:                  document.getElementById('needs_guarantor').checked,
     needs_co_tenant:                  document.getElementById('needs_co_tenant').checked,
     needs_roommate:                   document.getElementById('needs_roommate').checked,
-    guarantor_full_name:              document.getElementById('guarantor_full_name').value.trim() || null,
-    guarantor_gov_name:               document.getElementById('guarantor_gov_name').value.trim() || null,
-    guarantor_date_of_birth:          document.getElementById('guarantor_date_of_birth').value || null,
+    guarantor_full_name:              _guarantorIsGovInfoLocked ? undefined : (document.getElementById('guarantor_full_name').value.trim() || null),
+    guarantor_date_of_birth:          _guarantorIsGovInfoLocked ? undefined : (document.getElementById('guarantor_date_of_birth').value || null),
     guarantor_nationality:            document.getElementById('guarantor_nationality').value || null,
     guarantor_permit_type:            document.getElementById('guarantor_nationality').value === 'Swiss' ? 'swiss' : (document.getElementById('guarantor_permit_type').value || null),
     guarantor_current_address:        document.getElementById('guarantor_current_address').value.trim() || null,
@@ -1654,7 +1740,6 @@ async function saveProfile(e) {
     guarantor_monthly_gross_salary:   parseFloat(document.getElementById('guarantor_monthly_gross_salary').value) || null,
     // Co-tenant
     co_tenant_full_name:              document.getElementById('co_tenant_full_name').value.trim() || null,
-    co_tenant_gov_name:               document.getElementById('co_tenant_gov_name').value.trim() || null,
     co_tenant_date_of_birth:          document.getElementById('co_tenant_date_of_birth').value || null,
     co_tenant_nationality:            document.getElementById('co_tenant_nationality').value || null,
     co_tenant_permit_type:            document.getElementById('co_tenant_nationality').value === 'Swiss' ? 'swiss' : (document.getElementById('co_tenant_permit_type').value || null),
@@ -1672,7 +1757,6 @@ async function saveProfile(e) {
     co_tenant_annual_net_income:      parseFloat(document.getElementById('co_tenant_annual_net_income').value) || null,
     // Roommate
     roommate_full_name:               document.getElementById('roommate_full_name').value.trim() || null,
-    roommate_gov_name:                document.getElementById('roommate_gov_name').value.trim() || null,
     roommate_date_of_birth:           document.getElementById('roommate_date_of_birth').value || null,
     roommate_nationality:             document.getElementById('roommate_nationality').value || null,
     roommate_permit_type:             document.getElementById('roommate_nationality').value === 'Swiss' ? 'swiss' : (document.getElementById('roommate_permit_type').value || null),

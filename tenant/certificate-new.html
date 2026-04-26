@@ -361,6 +361,22 @@ function computeCertValidity(docs, tenant) {
     return d && d.status !== 'rejected';
   }
 
+  // Government identity lock check
+  if (present('passport_id') && !tenant?.is_gov_info_locked) {
+    if (tenant?.gov_info_review_requested) {
+      reasons.push('Government identity review pending — awaiting admin approval');
+    } else {
+      reasons.push('Government identity not locked — go to Documents to verify and lock your identity');
+    }
+  }
+  if (tenant?.needs_guarantor && present('guarantor_id') && !tenant?.guarantor_is_gov_info_locked) {
+    if (tenant?.guarantor_gov_info_review_requested) {
+      reasons.push('Guarantor identity review pending — awaiting admin approval');
+    } else {
+      reasons.push('Guarantor identity not locked — go to Documents to verify and lock the guarantor\'s identity');
+    }
+  }
+
   // Passport / ID
   if (!present('passport_id')) {
     reasons.push('Passport / ID missing or rejected');
