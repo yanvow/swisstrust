@@ -297,7 +297,7 @@ const STATUS_ROW = {
   const docsMap = {};
   (docs || []).forEach(d => { docsMap[d.doc_type] = d; });
 
-  const uploadedCount  = Object.keys(docsMap).length;
+  const uploadedCount  = tenant.total_doc_uploads ?? Object.keys(docsMap).length;
   const verifiedCount  = Object.values(docsMap).filter(d => d.status === 'auto_verified').length;
   const { valid: profileValid, reasons: validityReasons } = computeCertValidity(docs || [], tenant);
 
