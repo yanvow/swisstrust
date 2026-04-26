@@ -385,12 +385,17 @@ let _isUnemployed    = false;
 let _isOnWelfare     = false;
 let _tenantName        = '';   // lowercase, for comparison
 let _tenantNameRaw     = '';   // original casing, for display
-let _tenantGovName     = '';   // lowercase, for comparison
-let _tenantGovNameRaw  = '';   // original casing, for display
 let _tenantNationality = '';   // original casing (e.g. "French")
 let _tenantPermitType  = '';   // e.g. "B", "C", "swiss"
 let _tenantDob         = null;
 let _tenantMonthlySalary = null;
+let _isGovInfoLocked   = false;
+let _govInfoReviewRequested = false;
+let _acceptedNames     = [];   // admin-added alternate accepted names
+let _guarantorNameRaw  = '';
+let _guarantorDob      = null;
+let _guarantorIsGovInfoLocked = false;
+let _guarantorGovInfoReviewRequested = false;
 let _docsMap         = {};  // key → document row
 
 // ── Init ─────────────────────────────────────────────────────
@@ -413,12 +418,17 @@ let _docsMap         = {};  // key → document row
   _isOnWelfare    = !!tenant.is_on_welfare;
   _tenantNameRaw     = (tenant.full_name || '').trim();
   _tenantName        = _tenantNameRaw.toLowerCase();
-  _tenantGovNameRaw  = (tenant.gov_name || '').trim();
-  _tenantGovName     = _tenantGovNameRaw.toLowerCase();
   _tenantNationality = (tenant.nationality || '').trim();
   _tenantPermitType  = (tenant.permit_type || '').trim().toUpperCase();
   _tenantDob           = tenant.date_of_birth || null;
   _tenantMonthlySalary = tenant.monthly_gross_salary || null;
+  _isGovInfoLocked = !!tenant.is_gov_info_locked;
+  _govInfoReviewRequested = !!tenant.gov_info_review_requested;
+  _acceptedNames   = Array.isArray(tenant.accepted_names) ? tenant.accepted_names : [];
+  _guarantorNameRaw = (tenant.guarantor_full_name || '').trim();
+  _guarantorDob     = tenant.guarantor_date_of_birth || null;
+  _guarantorIsGovInfoLocked = !!tenant.guarantor_is_gov_info_locked;
+  _guarantorGovInfoReviewRequested = !!tenant.guarantor_gov_info_review_requested;
 
   await refreshDocs();
 })();
@@ -462,12 +472,56 @@ function resolveLabel(t) { return typeof t.label === 'function' ? t.label() : t.
 function resolveHint(t)  { return typeof t.hint  === 'function' ? t.hint()  : t.hint;  }
 function tenant_display_name() { return _tenantNameRaw || '(not set)'; }
 
-async function setGovName(name) {
-  const { error } = await _sb.from('tenants').update({ gov_name: name }).eq('id', _tenantId);
-  if (error) { alert('Failed to update government name. Please edit your profile manually.'); return; }
-  _tenantGovNameRaw = name.trim();
-  _tenantGovName    = _tenantGovNameRaw.toLowerCase();
+async function lockGovInfo(ocrName, ocrDob) {
+  const { error } = await _sb.from('tenants')
+    .update({ is_gov_info_locked: true, full_name: ocrName, date_of_birth: ocrDob || _tenantDob })
+    .eq('id', _tenantId);
+  if (error) { alert('Failed to lock identity: ' + error.message); return; }
+  _isGovInfoLocked = true;
+  _tenantNameRaw   = ocrName;
+  _tenantName      = ocrName.toLowerCase();
+  if (ocrDob) _tenantDob = ocrDob;
   await refreshDocs();
+}
+
+async function lockGuarantorGovInfo(ocrName, ocrDob) {
+  const { error } = await _sb.from('tenants')
+    .update({ guarantor_is_gov_info_locked: true, guarantor_full_name: ocrName, guarantor_date_of_birth: ocrDob || _guarantorDob })
+    .eq('id', _tenantId);
+  if (error) { alert('Failed to lock guarantor identity: ' + error.message); return; }
+  _guarantorIsGovInfoLocked = true;
+  _guarantorNameRaw = ocrName;
+  _guarantorDob = ocrDob || _guarantorDob;
+  await refreshDocs();
+}
+
+async function requestGovInfoReview(note) {
+  const { error } = await _sb.from('tenants')
+    .update({ gov_info_review_requested: true, gov_info_review_note: note })
+    .eq('id', _tenantId);
+  if (error) { alert('Failed to submit review request: ' + error.message); return; }
+  _govInfoReviewRequested = true;
+  await refreshDocs();
+}
+
+async function requestGuarantorGovInfoReview(note) {
+  const { error } = await _sb.from('tenants')
+    .update({ guarantor_gov_info_review_requested: true, guarantor_gov_info_review_note: note })
+    .eq('id', _tenantId);
+  if (error) { alert('Failed to submit review request: ' + error.message); return; }
+  _guarantorGovInfoReviewRequested = true;
+  await refreshDocs();
+}
+
+function promptAndRequestReview(isGuarantor) {
+  const note = prompt(
+    (isGuarantor ? 'Guarantor name change' : 'Your name change') + ' — please describe the reason:\n' +
+    '(e.g. name changed after marriage, typo in document)\n\n' +
+    'An admin will review your request. Certificates cannot be generated until the review is approved.'
+  );
+  if (!note || !note.trim()) return;
+  if (isGuarantor) requestGuarantorGovInfoReview(note.trim());
+  else requestGovInfoReview(note.trim());
 }
 
 // Normalise a name string into a set of lowercase tokens, handling all formats:
@@ -651,41 +705,77 @@ function renderDocCard(type) {
 
     const ocrSection = buildOcrSection(doc);
 
-    // Name / DOB mismatch warnings
+    // Name / DOB matching and lock flow
     let mismatchAlerts = '';
-    if (_tenantName && doc.ocr_extracted_data) {
+    const isIdDoc = type.key === 'passport_id' || type.key === 'guarantor_id';
+    const isGuarantorId = type.key === 'guarantor_id';
+    if ((isGuarantorId ? _guarantorNameRaw : _tenantName) && doc.ocr_extracted_data) {
       const rawOcrName = (doc.ocr_extracted_data.full_name || doc.ocr_extracted_data.issued_for || '').trim();
-      const ocrName = rawOcrName.toLowerCase();
-      if (ocrName) {
-        // Compare against gov_name first, fall back to display name
-        const nameToMatch = _tenantGovName || _tenantName;
-        const nameMatches = nameMatchesProfile(ocrName, nameToMatch);
-        if (!nameMatches) {
-          if (!_tenantGovName) {
-            // No gov_name set — suggest setting it
-            mismatchAlerts += `<div class="alert mt-12" style="background:#FFFBEB; border:1px solid #FCD34D; display:flex; gap:8px; padding:12px 14px; border-radius:var(--radius); font-size:.875rem; align-items:flex-start;">
+      const ocrDob = (doc.ocr_extracted_data.date_of_birth || '').trim() || null;
+      const profileNameRaw = isGuarantorId ? _guarantorNameRaw : _tenantNameRaw;
+      const profileDob = isGuarantorId ? _guarantorDob : _tenantDob;
+      const isLocked = isGuarantorId ? _guarantorIsGovInfoLocked : _isGovInfoLocked;
+      const reviewRequested = isGuarantorId ? _guarantorGovInfoReviewRequested : _govInfoReviewRequested;
+      const acceptedNamesList = isGuarantorId ? [] : _acceptedNames;
+
+      if (rawOcrName) {
+        const nameMatchesLocked = nameMatchesProfile(rawOcrName, profileNameRaw) ||
+          acceptedNamesList.some(n => nameMatchesProfile(rawOcrName, n));
+        const dobMatches = !ocrDob || !profileDob || ocrDob === profileDob;
+
+        if (isIdDoc && !isLocked && nameMatchesLocked && dobMatches && rawOcrName) {
+          // Name and DOB match — prompt to lock
+          const ocrNameJson = escHtml(JSON.stringify(rawOcrName));
+          const ocrDobJson  = escHtml(JSON.stringify(ocrDob));
+          mismatchAlerts += `<div class="alert mt-12" style="background:#F0FDF4; border:1px solid #86EFAC; display:flex; gap:8px; padding:12px 14px; border-radius:var(--radius); font-size:.875rem; align-items:flex-start;">
+            <span>✅</span>
+            <div style="flex:1;">
+              <strong>Identity verified</strong> — The name and date of birth on this document match ${isGuarantorId ? 'the guarantor\'s' : 'your'} profile.
+              <br><span class="text-xs text-gray" style="margin-top:2px; display:block;">Locking protects ${isGuarantorId ? 'the guarantor\'s' : 'your'} identity and is required before generating a certificate.</span>
+              <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+                <button onclick="${isGuarantorId ? 'lockGuarantorGovInfo' : 'lockGovInfo'}(${ocrNameJson}, ${ocrDobJson})" class="btn btn-sm" style="background:#16A34A; color:#fff; border:none; cursor:pointer; padding:6px 14px; border-radius:6px; font-size:.8125rem;">🔒 Lock identity</button>
+                <button onclick="promptAndRequestReview(${isGuarantorId})" class="btn btn-sm btn-ghost" style="padding:6px 14px; font-size:.8125rem;">Not my document?</button>
+              </div>
+            </div>
+          </div>`;
+        } else if (isIdDoc && isLocked && !nameMatchesLocked) {
+          // Locked but name doesn't match this document
+          if (reviewRequested) {
+            mismatchAlerts += `<div class="alert mt-12" style="background:#FEF3C7; border:1px solid #FCD34D; display:flex; gap:8px; padding:12px 14px; border-radius:var(--radius); font-size:.875rem;">
+              <span>⏳</span>
+              <div><strong>Review pending</strong> — Document shows "<strong>${escHtml(rawOcrName)}</strong>" but the locked ${isGuarantorId ? 'guarantor ' : ''}name is "<strong>${escHtml(profileNameRaw)}</strong>". An admin is reviewing your request. Certificates cannot be generated until this is resolved.</div>
+            </div>`;
+          } else {
+            mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA; display:flex; gap:8px; padding:12px 14px; border-radius:var(--radius); font-size:.875rem; align-items:flex-start;">
               <span>⚠️</span>
               <div style="flex:1;">
-                <strong>Government name not set</strong> — your document shows "<strong>${escHtml(rawOcrName)}</strong>" but your profile name is "<strong>${escHtml(tenant_display_name())}</strong>".
-                Your profile may be missing your full government name.
-                <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
-                  <button onclick="setGovName(${escHtml(JSON.stringify(rawOcrName))})" class="btn btn-sm" style="background:#1D4ED8; color:#fff; border:none; cursor:pointer; padding:6px 14px; border-radius:6px; font-size:.8125rem;">Use document name</button>
-                  <a href="profile.html" class="btn btn-sm btn-ghost" style="padding:6px 14px; font-size:.8125rem;">Edit profile</a>
+                <strong>Name mismatch</strong> — Document shows "<strong>${escHtml(rawOcrName)}</strong>" but the locked ${isGuarantorId ? 'guarantor ' : ''}name is "<strong>${escHtml(profileNameRaw)}</strong>".
+                <br><span class="text-xs text-gray">If your name changed (e.g. after marriage), request a manual review. Certificates cannot be generated until this is resolved.</span>
+                <div style="margin-top:8px;">
+                  <button onclick="promptAndRequestReview(${isGuarantorId})" class="btn btn-sm" style="background:#DC2626; color:#fff; border:none; cursor:pointer; padding:6px 14px; border-radius:6px; font-size:.8125rem;">Request manual review</button>
                 </div>
               </div>
             </div>`;
-          } else {
-            // gov_name is set but still doesn't match
-            mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
-              <span>⚠️</span><span>Name mismatch — document shows "<strong>${escHtml(rawOcrName)}</strong>" but your government name is "<strong>${escHtml(_tenantGovNameRaw)}</strong>". Please <a href="profile.html" style="color:#1D4ED8; font-weight:600;">update your profile</a> or re-upload the correct document.</span>
-            </div>`;
           }
+        } else if (isIdDoc && !isLocked && !nameMatchesLocked && rawOcrName) {
+          // Not locked, name doesn't match — offer to use document name or edit profile
+          mismatchAlerts += `<div class="alert mt-12" style="background:#FFFBEB; border:1px solid #FCD34D; display:flex; gap:8px; padding:12px 14px; border-radius:var(--radius); font-size:.875rem; align-items:flex-start;">
+            <span>⚠️</span>
+            <div style="flex:1;">
+              <strong>Name mismatch</strong> — Document shows "<strong>${escHtml(rawOcrName)}</strong>" but ${isGuarantorId ? 'the guarantor profile' : 'your profile'} has "<strong>${escHtml(profileNameRaw || '(not set)')}</strong>".
+              <br><span class="text-xs text-gray">Update the profile name to match the document, then lock to generate certificates.</span>
+              <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+                <a href="profile.html" class="btn btn-sm btn-outline" style="padding:6px 14px; font-size:.8125rem;">Edit profile</a>
+              </div>
+            </div>
+          </div>`;
         }
-      }
-      if (_tenantDob && doc.ocr_extracted_data.date_of_birth && doc.ocr_extracted_data.date_of_birth !== _tenantDob) {
-        mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
-          <span>⚠️</span><span>Date of birth mismatch — document shows <strong>${escHtml(doc.ocr_extracted_data.date_of_birth)}</strong> but your profile has <strong>${escHtml(_tenantDob)}</strong>. Please <a href="profile.html" style="color:#1D4ED8; font-weight:600;">update your profile</a> or re-upload the correct document.</span>
-        </div>`;
+
+        if (isIdDoc && isLocked && ocrDob && profileDob && ocrDob !== profileDob && nameMatchesLocked) {
+          mismatchAlerts += `<div class="alert alert-error mt-12" style="background:#FEF2F2; border:1px solid #FECACA;">
+            <span>⚠️</span><span>Date of birth mismatch — document shows <strong>${escHtml(ocrDob)}</strong> but the locked date of birth is <strong>${escHtml(profileDob)}</strong>. Request a manual review to resolve this.</span>
+          </div>`;
+        }
       }
 
       // Expiry date check (passport_id → expiry_date, residence_permit → valid_until)
