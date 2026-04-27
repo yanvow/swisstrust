@@ -14,7 +14,6 @@
     .tier-banner { padding: 10px 24px; font-size: .8rem; font-weight: 600; text-align: center; letter-spacing: .03em; }
     .tier-banner--public    { background: var(--gray-200); color: var(--gray-600); }
     .tier-banner--agency    { background: #DCFCE7; color: #15803D; border-bottom: 1px solid #86EFAC; }
-    .tier-banner--open      { background: #EFF6FF; color: #1D4ED8; border-bottom: 1px solid #BFDBFE; }
     .tier-banner--onrequest { background: #FFF7ED; color: #C2410C; border-bottom: 1px solid #FED7AA; }
   </style>
   <script src="../lib/i18n.js"></script>
@@ -157,8 +156,12 @@
         <div style="font-size:1.5rem;">🔔</div>
         <div style="flex:1;">
           <div class="font-bold mb-4">On-Request certificate</div>
-          <div class="text-sm text-gray mb-16">The tenant controls who accesses this dossier. Sign in as a verified régie or private landlord to request full access.</div>
-          <a id="onrequest-signin-btn" href="#" class="btn btn-primary btn-sm">Sign in to request access</a>
+          <div class="text-sm text-gray mb-16">The tenant controls who accesses this dossier. Sign in or create an account as a verified régie or private landlord to request full access.</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a id="onrequest-signin-btn" href="#" class="btn btn-primary btn-sm">Sign in to request access</a>
+            <a id="onrequest-owner-reg-btn" href="#" class="btn btn-outline btn-sm">Create owner account</a>
+            <a id="onrequest-agency-reg-btn" href="#" class="btn btn-outline btn-sm">Create agency account</a>
+          </div>
         </div>
       </div>
     </div>
@@ -247,8 +250,6 @@ async function certSignOut() {
     if (agency.company_name)   directedLabel = `Directed to: ${agency.company_name}`;
     else if (cert.owner_email) directedLabel = `Directed to: private landlord`;
     else                       directedLabel = 'Directed certificate';
-  } else if (mode === 'open') {
-    directedLabel = 'Open certificate';
   } else {
     directedLabel = 'On-Request certificate';
   }
@@ -280,8 +281,6 @@ async function certSignOut() {
     lockNote = `🔒 <strong>Full dossier</strong> — ID copy, salary slips, debt enforcement register extract and exact income details are visible only to <strong>${agency.company_name}</strong>.`;
   } else if (mode === 'directed' && cert.owner_email) {
     lockNote = `🔒 <strong>Full dossier</strong> — visible only to the authorised private landlord.`;
-  } else if (mode === 'open') {
-    lockNote = `🔒 <strong>Full dossier</strong> — visible to any verified régie or landlord signed in to Checks.`;
   } else {
     lockNote = `🔒 <strong>Full dossier</strong> — visible once the tenant approves an access request.`;
   }
@@ -309,10 +308,7 @@ async function certSignOut() {
       viewerType  = isOwnTenant ? 'own_tenant' : 'tenant';
 
     } else if (role === 'agency') {
-      if (mode === 'open') {
-        canSeeFull = true;
-        viewerType = 'agency';
-      } else if (mode === 'directed' && agency.user_id === session.user.id) {
+      if (mode === 'directed' && agency.user_id === session.user.id) {
         canSeeFull = true;
         viewerType = 'agency';
       } else if (mode === 'on_request') {
@@ -322,10 +318,7 @@ async function certSignOut() {
       }
 
     } else if (role === 'owner') {
-      if (mode === 'open') {
-        canSeeFull = true;
-        viewerType = 'owner';
-      } else if (mode === 'directed' && cert.owner_email &&
+      if (mode === 'directed' && cert.owner_email &&
                  cert.owner_email.toLowerCase() === session.user.email.toLowerCase()) {
         canSeeFull = true;
         viewerType = 'owner';
@@ -393,6 +386,9 @@ async function certSignOut() {
     onrequestSection.style.display = 'block';
     navActions.innerHTML = navSignedIn;
     document.getElementById('onrequest-signin-btn').href = signInUrl;
+    const returnParam = encodeURIComponent(window.location.href);
+    document.getElementById('onrequest-owner-reg-btn').href  = `../auth/owner-register.html?return=${returnParam}`;
+    document.getElementById('onrequest-agency-reg-btn').href = `../auth/agency-register.html?return=${returnParam}`;
 
     const hide = id => document.getElementById(id).style.display = 'none';
     const show = id => document.getElementById(id).style.display = 'block';
@@ -418,10 +414,8 @@ async function certSignOut() {
 
   // ── UC2/UC7/UC8/UC11/UC13/UC16: Full dossier access ─────────
   if (canSeeFull) {
-    const modeLabel = mode === 'open'       ? '🌐 Open'
-                    : mode === 'on_request' ? '✅ On-Request (approved)'
-                    : '🔓 Directed';
-    banner.className   = mode === 'open' ? 'tier-banner tier-banner--open' : 'tier-banner tier-banner--agency';
+    const modeLabel = mode === 'on_request' ? '✅ On-Request (approved)' : '🔓 Directed';
+    banner.className   = 'tier-banner tier-banner--agency';
     banner.textContent = `${modeLabel} — ${viewerName} — Full dossier access`;
     agencySection.style.display = 'block';
     navActions.innerHTML = navWithDash;
@@ -464,16 +458,13 @@ async function certSignOut() {
   navActions.innerHTML = navSignedIn;
   banner.className = 'tier-banner tier-banner--public';
 
-  if (mode === 'open') {
-    // UC10/UC12
-    banner.innerHTML = `🌐 Open certificate — <a href="${signInUrl}" style="color:#1D4ED8;font-weight:600;">Sign in as a verified régie or landlord</a> to access the full dossier`;
-  } else if (mode === 'directed') {
+  if (mode === 'directed') {
     if (session && (role === 'agency' || role === 'owner')) {
-      // UC3/UC8/UC9: logged in but wrong entity
+      // logged in but wrong entity
       const recipientDesc = agency.company_name || (cert.owner_email ? 'a private landlord' : 'the authorised recipient');
       banner.textContent = `🔒 This certificate is directed to ${recipientDesc} — you do not have access`;
     } else {
-      // UC1/UC6: anon (or tenant)
+      // anon (or tenant)
       const recipientDesc = agency.company_name
         ? `Sign in as ${agency.company_name}`
         : `Sign in as the authorised landlord`;

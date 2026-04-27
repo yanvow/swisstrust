@@ -129,10 +129,9 @@
   const { data: cert, error } = await sbHelpers.getCertificateByCode(certCode);
   if (error || !cert) { showError(); return; }
 
-  // Agency access check: must be directed to this agency, or Open mode
+  // Agency access check: must be directed to this agency
   const isDirected = cert.agencies && cert.agencies.user_id === user.id;
-  const isOpen     = cert.mode === 'open';
-  if (!isDirected && !isOpen) { showError(); return; }
+  if (!isDirected) { showError(); return; }
 
   // Log this access
   await sbHelpers.logAccess(cert.id, user.id, 'agency');

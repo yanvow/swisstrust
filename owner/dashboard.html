@@ -122,19 +122,11 @@
           <div class="card-title">Access modes</div>
           <div class="card-subtitle">The dashboard is designed around Checks’s certificate model.</div>
         </div>
-        <div class="doc-row doc-row--done">
-          <div class="doc-row__icon">🌐</div>
-          <div class="doc-row__info">
-            <div class="doc-row__name">Open certificate</div>
-            <div class="doc-row__desc">You can see the full dossier as a signed-in owner.</div>
-          </div>
-          <span class="badge badge-green">Full access</span>
-        </div>
         <div class="doc-row doc-row--pending">
           <div class="doc-row__icon">🔔</div>
           <div class="doc-row__info">
-            <div class="doc-row__name">On-request certificate</div>
-            <div class="doc-row__desc">You can open the public summary. Full access depends on tenant approval.</div>
+            <div class="doc-row__name">On-Request certificate</div>
+            <div class="doc-row__desc">You can view the public summary and request full access. The tenant approves or denies your request.</div>
           </div>
           <span class="badge badge-amber">Approval needed</span>
         </div>
@@ -237,8 +229,7 @@ function renderHistory(history) {
   }
 
   const modeLabel = {
-    open: '<span class="badge badge-green">Open</span>',
-    on_request: '<span class="badge badge-amber">On-request</span>',
+    on_request: '<span class="badge badge-amber">On-Request</span>',
     directed: '<span class="badge badge-gray">Directed</span>',
   };
 
