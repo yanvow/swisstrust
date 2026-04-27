@@ -208,7 +208,6 @@ const VIEWER_ICON = { public:'👁', agency:'🏢', owner:'👤', tenant:'🪪' 
         </div>`).join('');
 
   // Recent certs
-  const gradeClass = {A:'trust-a',B:'trust-b',C:'trust-c'};
   document.getElementById('recent-certs').innerHTML = activity.recentCerts.length === 0
     ? '<div class="text-sm text-gray">None yet.</div>'
     : activity.recentCerts.map(c => `
@@ -218,7 +217,7 @@ const VIEWER_ICON = { public:'👁', agency:'🏢', owner:'👤', tenant:'🪪' 
             <div style="font-weight:600; font-size:.8125rem;">${esc(c.tenants?.full_name || '—')}</div>
             <div class="text-xs text-gray">${esc(c.property_address || '—')} · ${esc(c.agencies?.company_name || c.cert_code)}</div>
           </div>
-          <span class="badge ${gradeClass[c.trust_score]||'trust-b'}" style="font-size:.7rem;">${c.trust_score||'—'}</span>
+          <span class="badge ${c.is_active !== false ? 'badge-green' : 'badge-red'}" style="font-size:.7rem;">${c.is_active !== false ? '✓ Valid' : '✗ Not valid'}</span>
         </div>`).join('');
 
   // Recent logs

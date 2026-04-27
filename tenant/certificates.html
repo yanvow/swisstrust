@@ -186,6 +186,7 @@ let _tenantName  = '';
   list.innerHTML = certs.map(c => {
     const { valid, reasons } = computeCertValidity(_docsForValidity, tenant);
     const certIsValid = c.is_active !== false && valid;
+    c._valid = certIsValid;
     const borderColor = certIsValid ? 'var(--green)' : 'var(--red)';
     const agencyName = c.agencies?.company_name;
     const ownerEmail = c.owner_email;
@@ -298,8 +299,7 @@ function printCert(certCode) {
   const mode = c.mode || 'directed';
   const agencyName  = c.agencies?.company_name || null;
   const ownerEmail  = c.owner_email || null;
-  const trustGrade  = c.trust_score || '—';
-  const trustColor  = { A: '#16a34a', B: '#d97706', C: '#dc2626' }[trustGrade] || '#374151';
+  const certIsValid = c._valid !== false;
   const eligible    = c.is_eligible;
   const date        = new Date(c.created_at).toLocaleDateString('en-CH', { day: '2-digit', month: 'long', year: 'numeric' });
   const property    = [c.property_address, c.property_city].filter(Boolean).join(', ');
@@ -342,7 +342,7 @@ function printCert(certCode) {
     .meta-box { }
     .meta-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; margin-bottom: 3px; }
     .meta-val { font-size: .9375rem; font-weight: 600; }
-    .trust-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-weight: 700; font-size: 1rem; color: white; background: ${trustColor}; }
+    .status-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-weight: 700; font-size: .875rem; color: white; background: ${certIsValid ? '#16a34a' : '#dc2626'}; }
     .elig-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-weight: 600; font-size: .875rem; background: ${eligible ? '#f0fdf4' : '#fffbeb'}; color: ${eligible ? '#15803d' : '#b45309'}; border: 1px solid ${eligible ? '#86efac' : '#fcd34d'}; }
     .recipient { font-size: .875rem; color: #374151; margin-bottom: 16px; }
     .footer { border-top: 1px solid #e5e7eb; padding-top: 16px; font-size: .75rem; color: #9ca3af; display: flex; justify-content: space-between; }
@@ -383,8 +383,8 @@ function printCert(certCode) {
       </div>
       <div class="meta-row">
         <div class="meta-box">
-          <div class="meta-label">Trust Score</div>
-          <div><span class="trust-badge">${trustGrade}</span></div>
+          <div class="meta-label">Certificate status</div>
+          <div><span class="status-badge">${certIsValid ? '✓ Valid' : '✗ Not valid'}</span></div>
         </div>
         <div class="meta-box">
           <div class="meta-label">Income eligibility</div>

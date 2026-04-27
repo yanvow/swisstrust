@@ -6,7 +6,6 @@
 -- Enums (drop first so the script is safe to re-run)
 DROP TYPE IF EXISTS heard_about_property CASCADE;
 DROP TYPE IF EXISTS certificate_mode     CASCADE;
-DROP TYPE IF EXISTS trust_score_grade    CASCADE;
 DROP TYPE IF EXISTS document_status      CASCADE;
 DROP TYPE IF EXISTS document_type        CASCADE;
 DROP TYPE IF EXISTS permit_type          CASCADE;
@@ -50,7 +49,6 @@ CREATE TYPE document_status AS ENUM (
   'flagged',
   'rejected'
 );
-CREATE TYPE trust_score_grade AS ENUM ('A', 'B', 'C');
 CREATE TYPE certificate_mode AS ENUM ('directed', 'open', 'on_request');
 CREATE TYPE heard_about_property AS ENUM (
   'former_tenant',
@@ -281,8 +279,7 @@ CREATE TABLE IF NOT EXISTS certificates (
   has_visited       BOOLEAN DEFAULT FALSE,
   heard_about       heard_about_property,
 
-  -- Trust & verification (computed at generation time — immutable)
-  trust_score       trust_score_grade,
+  -- Verification (computed at generation time — immutable)
   is_eligible       BOOLEAN,
 
   -- Certificate identity
