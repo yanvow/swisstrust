@@ -284,7 +284,7 @@ async function certSignOut() {
       // Check if this tenant owns the certificate
       const { data: myTenant } = await sbHelpers.getTenantByUserId(session.user.id);
       isOwnTenant = !!(myTenant && myTenant.id === cert.tenant_id);
-      viewerType  = isOwnTenant ? 'own_tenant' : 'tenant';
+      viewerType  = 'tenant';
 
     } else if (role === 'agency') {
       if (mode === 'directed' && agency.user_id === session.user.id) {
