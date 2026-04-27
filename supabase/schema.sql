@@ -49,7 +49,7 @@ CREATE TYPE document_status AS ENUM (
   'flagged',
   'rejected'
 );
-CREATE TYPE certificate_mode AS ENUM ('directed', 'open', 'on_request');
+CREATE TYPE certificate_mode AS ENUM ('directed', 'on_request');
 CREATE TYPE heard_about_property AS ENUM (
   'former_tenant',
   'relocation_agency',
@@ -287,7 +287,7 @@ CREATE TABLE IF NOT EXISTS certificates (
   qr_data_url       TEXT,                  -- base64 PNG (small, stored in DB)
   qr_url            TEXT,                  -- full URL encoded in QR
 
-  -- Certificate sharing mode (from strategy: Directed / Open / On-Request)
+  -- Certificate sharing mode: Directed (pre-authorised recipient) or On-Request (tenant approves each request)
   mode              certificate_mode DEFAULT 'directed',
   -- For directed mode: either agency_id OR owner_email is set
   owner_email       TEXT,            -- directed to private landlord by email
@@ -500,7 +500,7 @@ CREATE TRIGGER on_auth_user_created
 
 -- ============================================================
 -- MIGRATION: make agency_id nullable
--- Required for Open and On-Request certificate modes.
+-- Required for On-Request certificate mode.
 -- Run this if you already ran the original schema.
 -- ============================================================
 ALTER TABLE certificates ALTER COLUMN agency_id DROP NOT NULL;

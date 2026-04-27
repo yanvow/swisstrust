@@ -67,7 +67,6 @@
       <select id="filter-mode" onchange="filterTable()" style="width:auto;">
         <option value="all">All modes</option>
         <option value="directed">Directed</option>
-        <option value="open">Open</option>
         <option value="on_request">On-Request</option>
       </select>
       <select id="filter-active" onchange="filterTable()" style="width:auto;">
@@ -122,7 +121,6 @@
         <label>Mode</label>
         <select id="f-mode">
           <option value="directed">Directed</option>
-          <option value="open">Open</option>
           <option value="on_request">On-Request</option>
         </select>
       </div>
@@ -150,8 +148,8 @@
 </div>
 
 <script>
-const modeLabel = { directed:'Directed', open:'Open', on_request:'On-Request' };
-const modeColor = { directed:'var(--charcoal)', open:'var(--green)', on_request:'var(--amber)' };
+const modeLabel = { directed:'Directed', on_request:'On-Request' };
+const modeColor = { directed:'var(--charcoal)', on_request:'var(--amber)' };
 
 let _all = [];
 let _editingId = null;

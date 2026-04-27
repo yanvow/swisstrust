@@ -82,22 +82,14 @@
       <fieldset class="fieldset">
         <legend>Sharing mode</legend>
         <p class="text-sm text-gray mb-16">Choose who can access your full dossier when they scan the QR code.</p>
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;" id="mode-grid">
+        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;" id="mode-grid">
 
           <label class="mode-card mode-card--selected" id="card-directed" onclick="selectMode('directed')">
             <input type="radio" name="cert_mode" value="directed" checked style="display:none;">
             <div class="mode-card__icon">🎯</div>
             <div class="mode-card__title">Directed</div>
-            <div class="mode-card__desc">Full dossier visible only to the one agency you pre-authorise.</div>
+            <div class="mode-card__desc">Full dossier visible only to the one agency or landlord you pre-authorise.</div>
             <div class="mode-card__badge" style="color:var(--charcoal);">Most private</div>
-          </label>
-
-          <label class="mode-card" id="card-open" onclick="selectMode('open')">
-            <input type="radio" name="cert_mode" value="open" style="display:none;">
-            <div class="mode-card__icon">🌐</div>
-            <div class="mode-card__title">Open</div>
-            <div class="mode-card__desc">Any verified régie or private landlord on Checks can view the full dossier.</div>
-            <div class="mode-card__badge" style="color:var(--green);">Fastest</div>
           </label>
 
           <label class="mode-card" id="card-on-request" onclick="selectMode('on_request')">
@@ -105,7 +97,7 @@
             <div class="mode-card__icon">🔔</div>
             <div class="mode-card__title">On-Request</div>
             <div class="mode-card__desc">Professionals see your public summary and request access. You approve or deny each one.</div>
-            <div class="mode-card__badge" style="color:var(--red);">Max control</div>
+            <div class="mode-card__badge" style="color:var(--amber);">You stay in control</div>
           </label>
         </div>
       </fieldset>
@@ -227,7 +219,7 @@
             <div style="font-weight:600; font-size:.875rem; margin-bottom:6px;">Agency not on Checks yet?</div>
             <div class="text-sm text-gray mb-12">You can still apply — choose one of these options:</div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-              <button type="button" class="btn btn-outline btn-sm" onclick="switchToOpen()">Switch to Open mode</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="switchToOnRequest()">Switch to On-Request mode</button>
               <button type="button" class="btn btn-ghost btn-sm" id="invite-btn" onclick="copyInvite(this)">📋 Copy invite link</button>
               <button type="button" class="btn btn-ghost btn-sm" onclick="toggleGhostForm()">📨 Direct by name anyway</button>
             </div>
@@ -250,11 +242,6 @@
           <div class="form-hint">The landlord must sign in with this exact email to access your full dossier.</div>
         </div>
       </fieldset>
-
-      <!-- Open mode notice -->
-      <div class="card mb-24" id="open-notice" style="display:none; background:#F0FDF4; border:1px solid #86EFAC;">
-        <div class="text-sm" style="color:#15803D;">🌐 <strong>Open certificate</strong> — any verified régie or private landlord signed in to Checks can access your full dossier when they scan this QR code. All accesses are logged.</div>
-      </div>
 
       <!-- On-Request mode notice -->
       <div class="card mb-24" id="onrequest-notice" style="display:none; background:#FFF7ED; border:1px solid #FED7AA;">
@@ -557,10 +544,8 @@ function scheduleCloseDrop() {
   }, 150);
 }
 
-function switchToOpen() {
-  selectMode('open');
-  document.getElementById('card-open').classList.add('mode-card--selected');
-  document.getElementById('card-directed').classList.remove('mode-card--selected');
+function switchToOnRequest() {
+  selectMode('on_request');
 }
 
 function toggleGhostForm() {
@@ -590,17 +575,15 @@ function copyInvite(btn) {
 
 function selectMode(mode) {
   currentMode = mode;
-  ['directed','open','on_request'].forEach(m => {
+  ['directed','on_request'].forEach(m => {
     const card = document.getElementById('card-' + m.replace('_','-'));
     if (card) card.classList.toggle('mode-card--selected', m === mode);
   });
 
   const agencyFieldset = document.getElementById('agency-fieldset');
-  const openNotice = document.getElementById('open-notice');
   const onrequestNotice = document.getElementById('onrequest-notice');
 
   agencyFieldset.style.display = mode === 'directed' ? '' : 'none';
-  openNotice.style.display = mode === 'open' ? '' : 'none';
   onrequestNotice.style.display = mode === 'on_request' ? '' : 'none';
 }
 
@@ -751,7 +734,6 @@ async function generateCertificate(e) {
   const modeDescs = {
     directed_agency: 'Directed certificate — only the selected agency can access your full dossier.',
     directed_owner:  `Directed certificate — only the landlord at ${ownerEmail} can access your full dossier.`,
-    open:            'Open certificate — any verified régie or landlord on Checks can access your full dossier.',
     on_request:      'On-Request certificate — professionals see your public summary and must request access. Check your dashboard to approve.',
   };
   const descKey = currentMode === 'directed' ? `directed_${directedType}` : currentMode;
