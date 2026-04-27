@@ -109,36 +109,15 @@
     <!-- Extracted data -->
     <div class="card mb-24">
       <div class="card-header">
-        <div class="card-title">Verified employment & income</div>
+        <div class="card-title">Verified employment &amp; income</div>
       </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-        <div>
-          <div class="text-xs text-gray mb-2">Employer</div>
-          <div class="font-bold">Pictet & Cie SA</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-2">Job title</div>
-          <div class="font-bold">Financial Analyst</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-2">Monthly gross salary</div>
-          <div class="font-bold" style="color:var(--green);">CHF 8,500</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-2">Employed since</div>
-          <div class="font-bold">01.03.2021 (4+ years)</div>
-        </div>
-        <div>
-          <div class="text-xs text-gray mb-2">Eligibility check</div>
-          <div class="font-bold" style="color:var(--green);">✓ CHF 8,500 ≥ 3× CHF 2,400</div>
-        </div>
-      </div>
+      <div id="employment-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;"></div>
     </div>
 
-    <!-- Lettre de motivation -->
+    <!-- Cover letter -->
     <div id="motivation-card" class="card mb-24" style="display:none;">
       <div class="card-header">
-        <div class="card-title">✉️ Lettre de motivation</div>
+        <div class="card-title">✉️ Cover letter</div>
       </div>
       <p id="motivation-text" class="text-sm" style="white-space:pre-wrap; line-height:1.6;"></p>
     </div>
@@ -423,7 +402,7 @@ async function certSignOut() {
     if (metaEl) metaEl.textContent = `Visible to: ${viewerName} · Access logged ${new Date().toLocaleDateString('en-CH', {day:'2-digit',month:'short',year:'numeric'})}`;
 
 
-    const empGrid = document.querySelector('#agency-section .card[class*="mb-24"] > div');
+    const empGrid = document.getElementById('employment-grid');
     if (empGrid) {
       empGrid.innerHTML = `
         <div><div class="text-xs text-gray mb-2">Employer</div><div class="font-bold">${escHtml(tenant.employer_name || '—')}</div></div>
