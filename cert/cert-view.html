@@ -401,6 +401,9 @@ async function certSignOut() {
     const metaEl = document.getElementById('agency-access-meta');
     if (metaEl) metaEl.textContent = `Visible to: ${viewerName} · Access logged ${new Date().toLocaleDateString('en-CH', {day:'2-digit',month:'short',year:'numeric'})}`;
 
+    // Hide the public lock note — the viewer already has full access
+    const lockNoteCard = document.querySelector('#public-section .card');
+    if (lockNoteCard) lockNoteCard.style.display = 'none';
 
     const empGrid = document.getElementById('employment-grid');
     if (empGrid) {
@@ -418,7 +421,7 @@ async function certSignOut() {
     }
 
     const { data: tenantDocs } = await sbHelpers.getDocumentsByTenant(cert.tenant_id);
-    renderDocViewers(tenantDocs || []);
+    renderDocViewers(tenantDocs || [], tenant);
     // Update validity badge with real document state
     const { valid: docsValid, reasons: docsReasons } = computeCertValidity(tenantDocs || [], tenant);
     applyValidityBadge(isActive && docsValid, isActive && docsValid ? [] : (!isActive ? ['Certificate has been deactivated'] : docsReasons));
@@ -546,11 +549,14 @@ const STATUS_LABEL_CV = {
   auto_verified: 'Auto-verified', flagged: 'Flagged', rejected: 'Rejected',
 };
 
-function renderDocViewers(docs) {
+function renderDocViewers(docs, tenant) {
   const byType = {};
   docs.forEach(d => { byType[d.doc_type] = d; });
+  const isSwiss = !tenant?.nationality || tenant.nationality === 'Swiss';
   const container = document.getElementById('doc-viewers');
   container.innerHTML = DOC_META.map(t => {
+    // Swiss tenants don't need a residence permit
+    if (t.key === 'residence_permit' && isSwiss) return '';
     const doc = byType[t.key];
     if (!doc) {
       return `
