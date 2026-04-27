@@ -495,13 +495,13 @@ async function loadUsage() {
   const now        = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  const [certRes, docRes] = await Promise.all([
+  const [certRes, tenantRes] = await Promise.all([
     _sb.from('certificates').select('id', { count: 'exact', head: true }).eq('tenant_id', _tenantId).gte('created_at', monthStart),
-    _sb.from('documents').select('id', { count: 'exact', head: true }).eq('tenant_id', _tenantId),
+    _sb.from('tenants').select('total_doc_uploads').eq('id', _tenantId).single(),
   ]);
 
   const certCount = certRes.count ?? 0;
-  const docCount  = docRes.count  ?? 0;
+  const docCount  = tenantRes.data?.total_doc_uploads ?? 0;
 
   document.getElementById('usage-monthly-list').innerHTML =
     usageBar('Certificates issued', certCount, 3, 'Monthly allowance resets on the 1st of each month. Upgrade for unlimited.');

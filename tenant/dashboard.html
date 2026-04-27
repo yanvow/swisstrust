@@ -89,7 +89,7 @@
           <div class="card-title">Dossier completion</div>
           <div class="card-subtitle">Complete your profile to generate certificates</div>
         </div>
-        <div class="badge trust-b" id="progress-badge">Loading…</div>
+        <div class="badge badge-gray" id="progress-badge">Loading…</div>
       </div>
       <div class="progress-bar">
         <div class="progress-bar__fill" id="progress-fill" style="width:0%;"></div>
@@ -297,7 +297,7 @@ const STATUS_ROW = {
   const docsMap = {};
   (docs || []).forEach(d => { docsMap[d.doc_type] = d; });
 
-  const uploadedCount  = Object.keys(docsMap).length;
+  const uploadedCount  = tenant.total_doc_uploads ?? Object.keys(docsMap).length;
   const verifiedCount  = Object.values(docsMap).filter(d => d.status === 'auto_verified').length;
   const { valid: profileValid, reasons: validityReasons } = computeCertValidity(docs || [], tenant);
 

@@ -177,10 +177,6 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .badge-gray   { background: var(--gray-200); color: var(--gray-600); }
 .badge-blue   { background: #DBEAFE; color: #1E40AF; }
 
-/* Trust Score badges */
-.trust-a { background: #DCFCE7; color: #15803D; font-size: 1rem; padding: 6px 16px; }
-.trust-b { background: #FEF3C7; color: #92400E; font-size: 1rem; padding: 6px 16px; }
-.trust-c { background: #FEE2E2; color: #B91C1C; font-size: 1rem; padding: 6px 16px; }
 
 /* Verification badge */
 .verified-badge {
