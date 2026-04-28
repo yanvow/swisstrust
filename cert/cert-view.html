@@ -589,28 +589,43 @@ function renderDocViewers(docs, tenant) {
         <div class="doc-viewer__body">
           <div class="text-xs text-gray mb-8">${escHtml(doc.file_name || doc.storage_path.split('/').pop())}</div>
           ${ocrRows ? `<div class="doc-viewer__extracted">${ocrRows}</div>` : ''}
-          <button class="btn btn-outline btn-sm mt-8" onclick="downloadDoc('${escHtml(doc.storage_path)}', this)">Download (expires in 60s)</button>
+          <button class="btn btn-outline btn-sm mt-8" onclick="downloadDoc('${escHtml(doc.storage_path)}', '${escHtml(doc.file_name || doc.storage_path.split('/').pop())}', this)">Download</button>
           <div id="dl-err-${t.key}" style="display:none; color:var(--red); font-size:.75rem; margin-top:4px;"></div>
         </div>
       </div>`;
   }).join('');
 }
 
-async function downloadDoc(storagePath, btn) {
+async function downloadDoc(storagePath, fileName, btn) {
   btn.disabled = true;
-  btn.textContent = 'Generating link…';
+  btn.textContent = 'Downloading…';
   const { url, error } = await sbHelpers.getDocumentSignedUrl(storagePath);
   if (error || !url) {
     btn.disabled = false;
-    btn.textContent = 'Download (expires in 60s)';
+    btn.textContent = 'Download';
     const key = storagePath.split('/')[1];
     const errEl = document.getElementById(`dl-err-${key}`);
     if (errEl) { errEl.textContent = 'Could not generate download link.'; errEl.style.display = 'block'; }
     return;
   }
-  window.open(url, '_blank');
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName || storagePath.split('/').pop();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    const key = storagePath.split('/')[1];
+    const errEl = document.getElementById(`dl-err-${key}`);
+    if (errEl) { errEl.textContent = 'Download failed.'; errEl.style.display = 'block'; }
+  }
   btn.disabled = false;
-  btn.textContent = 'Download (expires in 60s)';
+  btn.textContent = 'Download';
 }
 
 function escHtml(s) {
