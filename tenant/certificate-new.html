@@ -143,11 +143,11 @@
         <div class="form-row-3">
           <div class="form-group">
             <label>Rent (loyer) <span class="req">*</span></label>
-            <input type="number" id="rent" placeholder="2200" oninput="calcTotal()" required>
+            <input type="number" id="rent" placeholder="2200" min="0" oninput="calcTotal()" required>
           </div>
           <div class="form-group">
             <label>Charges <span class="req">*</span></label>
-            <input type="number" id="charges" placeholder="200" oninput="calcTotal()">
+            <input type="number" id="charges" placeholder="200" min="0" oninput="calcTotal()">
           </div>
           <div class="form-group">
             <label>Total</label>
@@ -588,8 +588,12 @@ function selectMode(mode) {
 }
 
 function calcTotal() {
-  const rent = parseFloat(document.getElementById('rent').value) || 0;
-  const charges = parseFloat(document.getElementById('charges').value) || 0;
+  const rentRaw = parseFloat(document.getElementById('rent').value);
+  const chargesRaw = parseFloat(document.getElementById('charges').value);
+  if (rentRaw < 0) { document.getElementById('rent').value = 0; }
+  if (chargesRaw < 0) { document.getElementById('charges').value = 0; }
+  const rent = Math.max(0, rentRaw || 0);
+  const charges = Math.max(0, chargesRaw || 0);
   const total = rent + charges;
   document.getElementById('total').value = total || '';
 

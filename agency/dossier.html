@@ -84,6 +84,15 @@
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;" id="employment-grid">—</div>
       </div>
 
+      <!-- Documents -->
+      <div class="card mb-24">
+        <div class="card-header">
+          <div class="card-title">Verified documents</div>
+          <div class="card-subtitle">Click Download to get a time-limited signed link</div>
+        </div>
+        <div id="doc-viewers"><div class="text-sm text-gray">Loading documents…</div></div>
+      </div>
+
       <!-- Access log -->
       <div class="card card--flat mb-24" style="background:var(--gray-100); border:none; padding:16px;">
         <div class="card-title text-sm mb-8">Access log for this certificate</div>
@@ -129,9 +138,16 @@
   const { data: cert, error } = await sbHelpers.getCertificateByCode(certCode);
   if (error || !cert) { showError(); return; }
 
-  // Agency access check: must be directed to this agency
+  // Agency access check: directed to this agency, OR on-request with approved access
   const isDirected = cert.agencies && cert.agencies.user_id === user.id;
-  if (!isDirected) { showError(); return; }
+  if (!isDirected) {
+    if (cert.mode === 'on_request') {
+      const { data: req } = await sbHelpers.getAccessRequestStatus(cert.id, user.id);
+      if (!req || req.status !== 'approved') { showError(); return; }
+    } else {
+      showError(); return;
+    }
+  }
 
   // Log this access
   await sbHelpers.logAccess(cert.id, user.id, 'agency');
@@ -213,6 +229,10 @@
       <div class="font-bold">${startDate}</div>
     </div>`;
 
+  // Documents
+  const { data: tenantDocs } = await sbHelpers.getDocumentsByTenant(cert.tenant_id);
+  renderDocViewers(tenantDocs || [], t);
+
   // Access log
   const { data: logs } = await sbHelpers.getAccessLogsByCertificate(cert.id);
   const tbody = document.getElementById('access-log-tbody');
@@ -234,6 +254,105 @@
 function showError() {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('error-panel').style.display = '';
+}
+
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const DOC_META = [
+  { key: 'passport_id',       label: 'Passport / Swiss ID',        icon: '🪪' },
+  { key: 'residence_permit',  label: 'Residence permit',            icon: '📋' },
+  { key: 'salary_slip_1',     label: 'Salary slip — month 1',       icon: '💰' },
+  { key: 'salary_slip_2',     label: 'Salary slip — month 2',       icon: '💰' },
+  { key: 'salary_slip_3',     label: 'Salary slip — month 3',       icon: '💰' },
+  { key: 'betreibungsauszug', label: 'Extract from the debt enforcement register', icon: '⚖️' },
+];
+const STATUS_BADGE = {
+  pending:       'badge badge-amber',
+  processing:    'badge badge-blue',
+  auto_verified: 'badge badge-green',
+  flagged:       'badge badge-amber',
+  rejected:      'badge badge-red',
+};
+const STATUS_LABEL = {
+  pending: 'Pending review', processing: 'Processing…',
+  auto_verified: 'Auto-verified', flagged: 'Flagged', rejected: 'Rejected',
+};
+
+function renderDocViewers(docs, tenant) {
+  const byType = {};
+  docs.forEach(d => { byType[d.doc_type] = d; });
+  const isSwiss = !tenant?.nationality || tenant.nationality === 'Swiss';
+  const container = document.getElementById('doc-viewers');
+  container.innerHTML = DOC_META.map(meta => {
+    if (meta.key === 'residence_permit' && isSwiss) return '';
+    const doc = byType[meta.key];
+    if (!doc) {
+      return `
+        <div class="doc-viewer">
+          <div class="doc-viewer__head">
+            <div class="doc-viewer__name">${meta.icon} ${escHtml(meta.label)}</div>
+            <span class="badge badge-gray">Not uploaded</span>
+          </div>
+          <div class="doc-viewer__body">
+            <p class="text-sm text-gray">The tenant has not uploaded this document.</p>
+          </div>
+        </div>`;
+    }
+    const confPct = doc.confidence_score != null ? Math.round(doc.confidence_score * 100) : null;
+    const badgeText = confPct != null
+      ? `${STATUS_LABEL[doc.status] || doc.status} · ${confPct}%`
+      : STATUS_LABEL[doc.status] || doc.status;
+    const ocrRows = doc.ocr_extracted_data
+      ? Object.entries(doc.ocr_extracted_data)
+          .filter(([,v]) => v != null && v !== '')
+          .map(([k,v]) => `<div class="doc-viewer__field"><span class="doc-viewer__field-k">${escHtml(k.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase()))}</span><span class="doc-viewer__field-v">${escHtml(String(v))}</span></div>`)
+          .join('')
+      : '';
+    return `
+      <div class="doc-viewer">
+        <div class="doc-viewer__head">
+          <div class="doc-viewer__name">${meta.icon} ${escHtml(meta.label)}</div>
+          <span class="${STATUS_BADGE[doc.status] || 'badge badge-gray'}">${escHtml(badgeText)}</span>
+        </div>
+        <div class="doc-viewer__body">
+          <div class="text-xs text-gray mb-8">${escHtml(doc.file_name || doc.storage_path.split('/').pop())}</div>
+          ${ocrRows ? `<div class="doc-viewer__extracted">${ocrRows}</div>` : ''}
+          <button class="btn btn-outline btn-sm mt-8" onclick="downloadDoc('${escHtml(doc.storage_path)}', '${escHtml(doc.file_name || doc.storage_path.split('/').pop())}', this)">Download</button>
+          <div id="dl-err-${meta.key}" style="display:none; color:var(--red); font-size:.75rem; margin-top:4px;"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function downloadDoc(storagePath, fileName, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Downloading…';
+  const { url, error } = await sbHelpers.getDocumentSignedUrl(storagePath);
+  if (error || !url) {
+    btn.disabled = false;
+    btn.textContent = 'Download';
+    const key = storagePath.split('/')[1];
+    const errEl = document.getElementById(`dl-err-${key}`);
+    if (errEl) { errEl.textContent = 'Could not generate download link.'; errEl.style.display = 'block'; }
+    return;
+  }
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName || storagePath.split('/').pop();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    btn.disabled = false;
+    btn.textContent = 'Download';
+  }
 }
 
 function formatHeard(val) {

@@ -97,34 +97,14 @@
   </div>
 
   <!-- Agency tier — shown/hidden by JS -->
-  <div id="agency-section" class="cert-view__agency-section" style="display:none;">
-    <div class="cert-view__agency-header">
-      <div style="width:36px; height:36px; background:var(--green); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;">🔓</div>
+  <div id="agency-section" style="display:none;">
+    <div class="card mb-24" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
       <div>
         <div class="font-bold">Full dossier — Agency access</div>
         <div class="text-xs text-gray" id="agency-access-meta"></div>
       </div>
+      <a id="dossier-link" href="#" class="btn btn-primary">View full dossier →</a>
     </div>
-
-    <!-- Extracted data -->
-    <div class="card mb-24">
-      <div class="card-header">
-        <div class="card-title">Verified employment &amp; income</div>
-      </div>
-      <div id="employment-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;"></div>
-    </div>
-
-    <!-- Cover letter -->
-    <div id="motivation-card" class="card mb-24" style="display:none;">
-      <div class="card-header">
-        <div class="card-title">✉️ Cover letter</div>
-      </div>
-      <p id="motivation-text" class="text-sm" style="white-space:pre-wrap; line-height:1.6;"></p>
-    </div>
-
-    <!-- Documents -->
-    <h3 class="mb-16" style="font-size:.9rem; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-400);">Verified documents</h3>
-    <div id="doc-viewers"><div class="text-sm text-gray">Loading documents…</div></div>
   </div>
 
   <!-- On-Request: access request panel (shown instead of agency section for on_request mode) -->
@@ -398,31 +378,14 @@ async function certSignOut() {
     banner.textContent = `${modeLabel} — ${viewerName} — Full dossier access`;
     agencySection.style.display = 'block';
     navActions.innerHTML = navWithDash;
-    const metaEl = document.getElementById('agency-access-meta');
-    if (metaEl) metaEl.textContent = `Visible to: ${viewerName} · Access logged ${new Date().toLocaleDateString('en-CH', {day:'2-digit',month:'short',year:'numeric'})}`;
+    document.getElementById('agency-access-meta').textContent =
+      `Visible to: ${viewerName} · Access logged ${new Date().toLocaleDateString('en-CH', {day:'2-digit',month:'short',year:'numeric'})}`;
+    document.getElementById('dossier-link').href = `../agency/dossier.html?code=${encodeURIComponent(cert.cert_code)}`;
 
-    // Hide the public lock note — the viewer already has full access
     const lockNoteCard = document.querySelector('#public-section .card');
     if (lockNoteCard) lockNoteCard.style.display = 'none';
 
-    const empGrid = document.getElementById('employment-grid');
-    if (empGrid) {
-      empGrid.innerHTML = `
-        <div><div class="text-xs text-gray mb-2">Employer</div><div class="font-bold">${escHtml(tenant.employer_name || '—')}</div></div>
-        <div><div class="text-xs text-gray mb-2">Job title</div><div class="font-bold">${escHtml(tenant.job_role || '—')}</div></div>
-        <div><div class="text-xs text-gray mb-2">Monthly gross salary</div><div class="font-bold" style="color:var(--green);">CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()}</div></div>
-        <div><div class="text-xs text-gray mb-2">Employed since</div><div class="font-bold">${tenant.employment_start_date ? new Date(tenant.employment_start_date).toLocaleDateString('de-CH') : '—'}</div></div>
-        <div><div class="text-xs text-gray mb-2">Eligibility check</div><div class="font-bold" style="color:${cert.is_eligible ? 'var(--green)' : 'var(--red)'};">${cert.is_eligible ? '✓' : '✗'} CHF ${(tenant.monthly_gross_salary || 0).toLocaleString()} ${cert.is_eligible ? '≥' : '<'} 3× CHF ${(cert.total_chf || 0).toLocaleString()}</div></div>`;
-    }
-
-    if (cert.motivation_letter) {
-      document.getElementById('motivation-text').textContent = cert.motivation_letter;
-      document.getElementById('motivation-card').style.display = 'block';
-    }
-
     const { data: tenantDocs } = await sbHelpers.getDocumentsByTenant(cert.tenant_id);
-    renderDocViewers(tenantDocs || [], tenant);
-    // Update validity badge with real document state
     const { valid: docsValid, reasons: docsReasons } = computeCertValidity(tenantDocs || [], tenant);
     applyValidityBadge(isActive && docsValid, isActive && docsValid ? [] : (!isActive ? ['Certificate has been deactivated'] : docsReasons));
     return;
@@ -526,106 +489,6 @@ function applyValidityBadge(valid, reasons) {
   if (!valid) trustBadge.title = reasons.join('\n');
   const factStatus = document.getElementById('fact-status');
   if (factStatus) factStatus.innerHTML = `<span class="badge ${valid ? 'badge-green' : 'badge-red'}" title="${escHtml(reasons.join('\n'))}">${valid ? '✓ Valid' : '✗ Not valid'}</span>`;
-}
-
-// ── Document rendering ────────────────────────────────────────
-const DOC_META = [
-  { key: 'passport_id',       label: 'Passport / Swiss ID',        icon: '🪪' },
-  { key: 'residence_permit',  label: 'Residence permit',            icon: '📋' },
-  { key: 'salary_slip_1',     label: 'Salary slip — month 1',       icon: '💰' },
-  { key: 'salary_slip_2',     label: 'Salary slip — month 2',       icon: '💰' },
-  { key: 'salary_slip_3',     label: 'Salary slip — month 3',       icon: '💰' },
-  { key: 'betreibungsauszug', label: 'Extract from the debt enforcement register', icon: '⚖️' },
-];
-const STATUS_BADGE_CV = {
-  pending:       'badge badge-amber',
-  processing:    'badge badge-blue',
-  auto_verified: 'badge badge-green',
-  flagged:       'badge badge-amber',
-  rejected:      'badge badge-red',
-};
-const STATUS_LABEL_CV = {
-  pending: 'Pending review', processing: 'Processing…',
-  auto_verified: 'Auto-verified', flagged: 'Flagged', rejected: 'Rejected',
-};
-
-function renderDocViewers(docs, tenant) {
-  const byType = {};
-  docs.forEach(d => { byType[d.doc_type] = d; });
-  const isSwiss = !tenant?.nationality || tenant.nationality === 'Swiss';
-  const container = document.getElementById('doc-viewers');
-  container.innerHTML = DOC_META.map(t => {
-    // Swiss tenants don't need a residence permit
-    if (t.key === 'residence_permit' && isSwiss) return '';
-    const doc = byType[t.key];
-    if (!doc) {
-      return `
-        <div class="doc-viewer">
-          <div class="doc-viewer__head">
-            <div class="doc-viewer__name">${t.icon} ${escHtml(t.label)}</div>
-            <span class="badge badge-gray">Not uploaded</span>
-          </div>
-          <div class="doc-viewer__body">
-            <p class="text-sm text-gray">The tenant has not uploaded this document.</p>
-          </div>
-        </div>`;
-    }
-    const confPct = doc.confidence_score != null ? Math.round(doc.confidence_score * 100) : null;
-    const badgeText = confPct != null
-      ? `${STATUS_LABEL_CV[doc.status] || doc.status} · ${confPct}%`
-      : STATUS_LABEL_CV[doc.status] || doc.status;
-    const ocrRows = doc.ocr_extracted_data
-      ? Object.entries(doc.ocr_extracted_data)
-          .filter(([,v]) => v != null && v !== '')
-          .map(([k,v]) => `<div class="doc-viewer__field"><span class="doc-viewer__field-k">${escHtml(k.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase()))}</span><span class="doc-viewer__field-v">${escHtml(String(v))}</span></div>`)
-          .join('')
-      : '';
-    return `
-      <div class="doc-viewer">
-        <div class="doc-viewer__head">
-          <div class="doc-viewer__name">${t.icon} ${escHtml(t.label)}</div>
-          <span class="${STATUS_BADGE_CV[doc.status] || 'badge badge-gray'}">${escHtml(badgeText)}</span>
-        </div>
-        <div class="doc-viewer__body">
-          <div class="text-xs text-gray mb-8">${escHtml(doc.file_name || doc.storage_path.split('/').pop())}</div>
-          ${ocrRows ? `<div class="doc-viewer__extracted">${ocrRows}</div>` : ''}
-          <button class="btn btn-outline btn-sm mt-8" onclick="downloadDoc('${escHtml(doc.storage_path)}', '${escHtml(doc.file_name || doc.storage_path.split('/').pop())}', this)">Download</button>
-          <div id="dl-err-${t.key}" style="display:none; color:var(--red); font-size:.75rem; margin-top:4px;"></div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-async function downloadDoc(storagePath, fileName, btn) {
-  btn.disabled = true;
-  btn.textContent = 'Downloading…';
-  const { url, error } = await sbHelpers.getDocumentSignedUrl(storagePath);
-  if (error || !url) {
-    btn.disabled = false;
-    btn.textContent = 'Download';
-    const key = storagePath.split('/')[1];
-    const errEl = document.getElementById(`dl-err-${key}`);
-    if (errEl) { errEl.textContent = 'Could not generate download link.'; errEl.style.display = 'block'; }
-    return;
-  }
-  try {
-    const resp = await fetch(url);
-    const blob = await resp.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = fileName || storagePath.split('/').pop();
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
-  } catch {
-    const key = storagePath.split('/')[1];
-    const errEl = document.getElementById(`dl-err-${key}`);
-    if (errEl) { errEl.textContent = 'Download failed.'; errEl.style.display = 'block'; }
-  }
-  btn.disabled = false;
-  btn.textContent = 'Download';
 }
 
 function escHtml(s) {
