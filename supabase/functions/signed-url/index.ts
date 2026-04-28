@@ -42,26 +42,39 @@ Deno.serve(async (req) => {
       hasAccess = !!data
 
     } else if (role === 'agency') {
-      const { data: directedCert } = await svc
-        .from('certificates')
+      const { data: agencyRow } = await svc
+        .from('agencies')
         .select('id')
-        .eq('tenant_id', tenantId)
-        .eq('mode', 'directed')
-        .in('agency_id', svc.from('agencies').select('id').eq('user_id', user.id))
+        .eq('user_id', user.id)
         .maybeSingle()
-      if (directedCert) {
-        hasAccess = true
-      } else {
-        // on_request with approved access
-        const { data: approved } = await svc
-          .from('access_requests')
+
+      if (agencyRow) {
+        const { data: directedCert } = await svc
+          .from('certificates')
           .select('id')
-          .eq('requester_user_id', user.id)
-          .eq('status', 'approved')
-          .in('certificate_id',
-            svc.from('certificates').select('id').eq('tenant_id', tenantId))
+          .eq('tenant_id', tenantId)
+          .eq('agency_id', agencyRow.id)
           .maybeSingle()
-        hasAccess = !!approved
+        if (directedCert) {
+          hasAccess = true
+        } else {
+          // on_request with approved access — fetch cert IDs first, then check requests
+          const { data: tenantCerts } = await svc
+            .from('certificates')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .eq('mode', 'on_request')
+          if (tenantCerts && tenantCerts.length > 0) {
+            const { data: approved } = await svc
+              .from('access_requests')
+              .select('id')
+              .eq('requester_user_id', user.id)
+              .eq('status', 'approved')
+              .in('certificate_id', tenantCerts.map((c: any) => c.id))
+              .maybeSingle()
+            hasAccess = !!approved
+          }
+        }
       }
 
     } else if (role === 'owner') {
