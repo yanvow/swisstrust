@@ -78,9 +78,9 @@
 
     <!-- Filter / sort bar -->
     <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
-      <select style="width:auto; padding:8px 32px 8px 12px; font-size:.875rem;">
-        <option>Newest first</option>
-        <option>Oldest first</option>
+      <select id="sort-select" onchange="renderCerts()" style="width:auto; padding:8px 32px 8px 12px; font-size:.875rem;">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
       </select>
     </div>
 
@@ -133,6 +133,7 @@
 <script>
 let _agencyId  = null;
 let _isAdmin   = false;
+let _allCerts  = [];
 
 (async () => {
   const user = await sbHelpers.requireAuth(['agency', 'agent']);
@@ -163,38 +164,14 @@ let _isAdmin   = false;
     sbHelpers.getCertificatesByAgency(agency.id),
     sbHelpers.getApprovedOnRequestCertsByAgency(user.id),
   ]);
-  const certs = [...(directedCerts || []), ...(onRequestCerts || [])];
-  const tbody = document.getElementById('cert-tbody');
+  _allCerts = [...(directedCerts || []), ...(onRequestCerts || [])];
 
-  if (certs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-gray text-sm" style="padding:24px; text-align:center;">No certificates yet. Share your Checks agency profile with tenants so they can direct their certificates to you.</td></tr>';
-    ['stat-total','stat-eligible'].forEach(id => document.getElementById(id).textContent = '0');
-  } else {
-    if (_isAdmin) {
-      document.getElementById('stat-total').textContent = certs.length;
-      document.getElementById('stat-eligible').textContent = certs.filter(c => c.is_eligible).length;
-    }
-
-    tbody.innerHTML = certs.map(c => {
-      const t = c.tenants || {};
-      const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
-      const modeBadge = c._on_request ? ' <span class="badge badge-gray" style="font-size:.65rem;vertical-align:middle;">On Request</span>' : '';
-      return `
-        <tr>
-          <td>
-            <div class="font-bold">${t.full_name || '—'}${modeBadge}</div>
-            <div class="text-xs text-gray">${t.occupant_count || 1} occupant(s) · ${t.is_smoker ? 'Smoker' : 'No smoker'} · ${t.has_pets ? 'Pets' : 'No pets'}</div>
-          </td>
-          <td>
-            <div class="text-sm font-bold">${c.property_address}${c.property_city ? ', ' + c.property_city : ''}</div>
-            <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo${c.move_in_date ? ' · Move-in ' + new Date(c.move_in_date).toLocaleDateString('de-CH') : ''}</div>
-          </td>
-          <td>${c.is_eligible ? '<span class="badge badge-green">✓ Eligible</span>' : '<span class="badge badge-amber">Review</span>'}</td>
-          <td class="text-sm text-gray">${date}</td>
-          <td><a href="dossier.html?code=${c.cert_code}" class="btn btn-primary btn-sm">View dossier</a></td>
-        </tr>`;
-    }).join('');
+  if (_isAdmin) {
+    document.getElementById('stat-total').textContent = _allCerts.length;
+    document.getElementById('stat-eligible').textContent = _allCerts.filter(c => c.is_eligible).length;
   }
+
+  renderCerts();
 
   // Show aha-moment banner on first visit (per agency, stored in localStorage)
   const ahaKey = `st_aha_seen_${agency.id}`;
@@ -231,6 +208,39 @@ let _isAdmin   = false;
     }).join('');
   }
 })();
+
+function renderCerts() {
+  const tbody = document.getElementById('cert-tbody');
+  if (!_allCerts.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-gray text-sm" style="padding:24px; text-align:center;">No certificates yet. Share your Checks agency profile with tenants so they can direct their certificates to you.</td></tr>';
+    return;
+  }
+  const sortMode = document.getElementById('sort-select')?.value || 'newest';
+  const sorted = [..._allCerts].sort((a, b) => {
+    const ta = new Date(a.created_at).getTime();
+    const tb = new Date(b.created_at).getTime();
+    return sortMode === 'oldest' ? ta - tb : tb - ta;
+  });
+  tbody.innerHTML = sorted.map(c => {
+    const t = c.tenants || {};
+    const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+    const modeBadge = c._on_request ? ' <span class="badge badge-gray" style="font-size:.65rem;vertical-align:middle;">On Request</span>' : '';
+    return `
+      <tr>
+        <td>
+          <div class="font-bold">${t.full_name || '—'}${modeBadge}</div>
+          <div class="text-xs text-gray">${t.occupant_count || 1} occupant(s) · ${t.is_smoker ? 'Smoker' : 'No smoker'} · ${t.has_pets ? 'Pets' : 'No pets'}</div>
+        </td>
+        <td>
+          <div class="text-sm font-bold">${c.property_address}${c.property_city ? ', ' + c.property_city : ''}</div>
+          <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo${c.move_in_date ? ' · Move-in ' + new Date(c.move_in_date).toLocaleDateString('de-CH') : ''}</div>
+        </td>
+        <td>${c.is_eligible ? '<span class="badge badge-green">✓ Eligible</span>' : '<span class="badge badge-amber">Review</span>'}</td>
+        <td class="text-sm text-gray">${date}</td>
+        <td><a href="dossier.html?code=${c.cert_code}" class="btn btn-primary btn-sm">View dossier</a></td>
+      </tr>`;
+  }).join('');
+}
 
 async function claimGhost(certId, certCode, btn) {
   btn.disabled = true;
