@@ -380,7 +380,9 @@ async function certSignOut() {
     navActions.innerHTML = navWithDash;
     document.getElementById('agency-access-meta').textContent =
       `Visible to: ${viewerName} · Access logged ${new Date().toLocaleDateString('en-CH', {day:'2-digit',month:'short',year:'numeric'})}`;
-    document.getElementById('dossier-link').href = `../agency/dossier.html?code=${encodeURIComponent(cert.cert_code)}`;
+    document.getElementById('dossier-link').href = role === 'owner'
+      ? `../owner/dossier.html?code=${encodeURIComponent(cert.cert_code)}`
+      : `../agency/dossier.html?code=${encodeURIComponent(cert.cert_code)}`;
 
     const lockNoteCard = document.querySelector('#public-section .card');
     if (lockNoteCard) lockNoteCard.style.display = 'none';

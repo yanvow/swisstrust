@@ -78,14 +78,33 @@ Deno.serve(async (req) => {
       }
 
     } else if (role === 'owner') {
-      const { data } = await svc
+      const { data: directedCert } = await svc
         .from('certificates')
         .select('id')
         .eq('tenant_id', tenantId)
         .eq('owner_email', user.email)
         .eq('mode', 'directed')
         .maybeSingle()
-      hasAccess = !!data
+      if (directedCert) {
+        hasAccess = true
+      } else {
+        // on_request with approved access
+        const { data: tenantCerts } = await svc
+          .from('certificates')
+          .select('id')
+          .eq('tenant_id', tenantId)
+          .eq('mode', 'on_request')
+        if (tenantCerts && tenantCerts.length > 0) {
+          const { data: approved } = await svc
+            .from('access_requests')
+            .select('id')
+            .eq('requester_user_id', user.id)
+            .eq('status', 'approved')
+            .in('certificate_id', tenantCerts.map((c: any) => c.id))
+            .maybeSingle()
+          hasAccess = !!approved
+        }
+      }
     }
 
     if (!hasAccess) return json({ error: 'Access denied' }, 403)
