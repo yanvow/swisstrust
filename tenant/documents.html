@@ -34,6 +34,18 @@
     .upload-zone__hint { font-size: .75rem; color: var(--gray-400); }
     .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--gray-200); border-top-color: var(--charcoal); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .preview-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:300; align-items:center; justify-content:center; padding:24px; }
+    .preview-overlay.open { display:flex; }
+    .preview-box { background:#fff; border-radius:var(--radius); width:100%; max-width:920px; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.3); max-height:90vh; }
+    .preview-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--gray-200); flex-shrink:0; gap:12px; }
+    .preview-title { font-weight:600; font-size:.9375rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+    .preview-close { background:none; border:none; cursor:pointer; font-size:1.1rem; color:var(--gray-400); padding:4px 10px; border-radius:4px; line-height:1; flex-shrink:0; }
+    .preview-close:hover { background:var(--gray-100); color:var(--charcoal); }
+    .preview-body { flex:1; overflow:auto; min-height:0; background:var(--gray-100); }
+    .preview-body iframe { width:100%; height:75vh; min-height:400px; border:none; display:block; }
+    .preview-body img { max-width:100%; max-height:75vh; display:block; margin:auto; padding:16px; box-sizing:border-box; }
+    .preview-loading { display:flex; align-items:center; justify-content:center; height:300px; font-size:.875rem; color:var(--gray-400); }
+    .preview-err { display:flex; align-items:center; justify-content:center; height:200px; font-size:.875rem; color:var(--red); }
   </style>
 </head>
 <body>
@@ -866,6 +878,7 @@ function renderDocCard(type) {
       ${expiryAlert}
       ${doc.rejection_reason ? `<div class="alert alert-error mt-12"><span>⚠️</span><span>${escHtml(doc.rejection_reason)}</span></div>` : ''}
       <div class="upload-btn-row">
+        <button class="btn btn-outline btn-sm" onclick="previewDoc('${escHtml(doc.storage_path)}','${escHtml(doc.file_name || doc.storage_path.split('/').pop())}','${escHtml(doc.mime_type || '')}',this)">Preview</button>
         <button class="btn btn-outline btn-sm" onclick="startUpload('${type.key}', this)">Replace</button>
         <button class="btn btn-outline btn-sm" onclick="deleteDoc('${type.key}')" style="color:var(--red);border-color:var(--red);">Delete</button>
         <div id="err-${type.key}" class="text-xs" style="color:var(--red); display:none;"></div>
@@ -1034,6 +1047,57 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+let _previewBlobUrl = null;
+
+async function previewDoc(storagePath, fileName, mimeType, btn) {
+  const modal = document.getElementById('preview-modal');
+  const body  = document.getElementById('preview-body');
+  document.getElementById('preview-title').textContent = fileName;
+  body.innerHTML = '<div class="preview-loading">Loading preview…</div>';
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const { url, error } = await sbHelpers.getDocumentSignedUrl(storagePath);
+  if (error || !url) {
+    body.innerHTML = '<div class="preview-err">Could not load preview.</div>';
+    return;
+  }
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    if (_previewBlobUrl) URL.revokeObjectURL(_previewBlobUrl);
+    _previewBlobUrl = URL.createObjectURL(blob);
+    const type = mimeType || blob.type || '';
+    if (type.startsWith('image/')) {
+      body.innerHTML = `<img src="${_previewBlobUrl}" alt="${escHtml(fileName)}">`;
+    } else {
+      body.innerHTML = `<iframe src="${_previewBlobUrl}" title="${escHtml(fileName)}"></iframe>`;
+    }
+  } catch {
+    body.innerHTML = '<div class="preview-err">Could not load preview.</div>';
+  }
+}
+
+function closePreview() {
+  document.getElementById('preview-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('preview-body').innerHTML = '';
+  if (_previewBlobUrl) { URL.revokeObjectURL(_previewBlobUrl); _previewBlobUrl = null; }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
 </script>
+
+<!-- Document preview modal -->
+<div class="preview-overlay" id="preview-modal" onclick="if(event.target===this)closePreview()">
+  <div class="preview-box" onclick="event.stopPropagation()">
+    <div class="preview-header">
+      <span class="preview-title" id="preview-title"></span>
+      <button class="preview-close" onclick="closePreview()" aria-label="Close preview">✕</button>
+    </div>
+    <div class="preview-body" id="preview-body"></div>
+  </div>
+</div>
 </body>
 </html>
