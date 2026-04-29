@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Full Dossier — Owner View — Checks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../lib/supabase.js"></script>
+  <script src="../lib/i18n.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container flex-between w-full">
+    <button class="nav__hamburger" id="sidebar-toggle" aria-label="Open menu" aria-expanded="false">☰</button>
+    <a href="../index.html" class="nav__logo">
+      <div class="nav__logo-mark">C</div>
+      Checks
+    </a>
+    <div class="nav__links">
+      <a href="dashboard.html" class="nav__link">← Back to dashboard</a>
+      <span class="text-sm text-gray" id="nav-owner"></span>
+      <button onclick="sbHelpers.signOut()" class="btn btn-ghost btn-sm">Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">Private owner</div>
+      <a href="dashboard.html" class="sidebar__link">
+        <span class="sidebar__icon">⊞</span> Dashboard
+      </a>
+      <a href="dashboard.html#verify-card" class="sidebar__link">
+        <span class="sidebar__icon">✓</span> Verify certificate
+      </a>
+      <a href="dashboard.html#recent-section" class="sidebar__link">
+        <span class="sidebar__icon">◷</span> Recent activity
+      </a>
+    </div>
+    <div class="sidebar__section">
+      <div class="sidebar__label">Account</div>
+      <a href="settings.html" class="sidebar__link"><span class="sidebar__icon">⚙</span> Settings</a>
+    </div>
+  </aside>
+
+  <main class="main-content" style="max-width:860px;">
+    <div id="loading" class="text-gray text-sm" style="padding:48px 0; text-align:center;">Loading dossier…</div>
+    <div id="content" style="display:none;">
+
+      <!-- Header -->
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:32px; flex-wrap:wrap; gap:16px;">
+        <div>
+          <div class="text-xs text-gray mb-4" style="letter-spacing:.05em; text-transform:uppercase; font-weight:600;">Full dossier — Owner access</div>
+          <div style="font-size:1.75rem; font-weight:700; margin-bottom:4px;" id="hdr-name">—</div>
+          <div class="text-sm text-gray" id="hdr-property">—</div>
+          <div class="text-xs text-gray mt-4">Certificate: <span class="font-mono font-bold" id="hdr-cert-code">—</span> · Issued <span id="hdr-issued">—</span></div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+          <div class="verified-badge">
+            <svg viewBox="0 0 20 20" fill="currentColor" style="width:18px;height:18px;"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+            Identity Verified
+          </div>
+          <span id="hdr-trust-badge" class="badge badge-gray" style="font-size:1rem; padding:7px 18px;">—</span>
+        </div>
+      </div>
+
+      <!-- Access alert -->
+      <div class="alert alert-success mb-24">
+        <span>✓</span>
+        <span id="access-alert">This access has been logged.</span>
+      </div>
+
+      <!-- Summary facts -->
+      <div class="card mb-24">
+        <div class="card-header">
+          <div class="card-title">Verified summary</div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;" id="summary-grid">—</div>
+      </div>
+
+      <!-- Employment -->
+      <div class="card mb-24">
+        <div class="card-header">
+          <div class="card-title">Employment &amp; income</div>
+          <div class="card-subtitle">From tenant profile</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;" id="employment-grid">—</div>
+      </div>
+
+      <!-- Documents -->
+      <div class="card mb-24">
+        <div class="card-header">
+          <div class="card-title">Verified documents</div>
+          <div class="card-subtitle">Click Download to get a time-limited signed link</div>
+        </div>
+        <div id="doc-viewers"><div class="text-sm text-gray">Loading documents…</div></div>
+      </div>
+
+      <!-- Access log -->
+      <div class="card card--flat mb-24" style="background:var(--gray-100); border:none; padding:16px;">
+        <div class="card-title text-sm mb-8">Access log for this certificate</div>
+        <table style="font-size:.8125rem;">
+          <thead>
+            <tr>
+              <th>Date / time</th>
+              <th>Viewer type</th>
+            </tr>
+          </thead>
+          <tbody id="access-log-tbody">
+            <tr><td colspan="2" class="text-gray">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-8">
+        <a href="dashboard.html" class="btn btn-outline">← Back to dashboard</a>
+      </div>
+    </div>
+
+    <div id="error-panel" style="display:none; padding:48px 0; text-align:center;">
+      <div class="text-gray">Certificate not found or access denied.</div>
+      <a href="dashboard.html" class="btn btn-outline btn-sm mt-16">← Back to dashboard</a>
+    </div>
+  </main>
+</div>
+
+<script>
+(async () => {
+  const user = await sbHelpers.requireAuth('owner');
+  if (!user) return;
+
+  const ownerName = user.user_metadata?.full_name || user.email;
+  document.getElementById('nav-owner').textContent = ownerName;
+
+  const params = new URLSearchParams(window.location.search);
+  const certCode = params.get('code');
+  if (!certCode) { showError(); return; }
+
+  const { data: cert, error } = await sbHelpers.getCertificateByCode(certCode);
+  if (error || !cert) { showError(); return; }
+
+  // Owner access check: directed to this owner's email, OR on-request with approved access
+  const isDirected = cert.mode === 'directed' && cert.owner_email &&
+    cert.owner_email.toLowerCase() === user.email.toLowerCase();
+  if (!isDirected) {
+    if (cert.mode === 'on_request') {
+      const { data: req } = await sbHelpers.getAccessRequestStatus(cert.id, user.id);
+      if (!req || req.status !== 'approved') { showError(); return; }
+    } else {
+      showError(); return;
+    }
+  }
+
+  // Log this access
+  await sbHelpers.logAccess(cert.id, user.id, 'owner');
+
+  const t = cert.tenants || {};
+  const permitLabels = { swiss: 'Swiss citizen', B: 'B permit', C: 'C permit', G: 'G permit', L: 'L permit' };
+
+  // Header
+  document.getElementById('hdr-name').textContent = t.full_name || '—';
+  document.getElementById('hdr-property').textContent =
+    `${cert.property_address || ''}${cert.property_city ? ', ' + cert.property_city : ''}` +
+    `${cert.rooms ? ' · ' + cert.rooms + ' rooms' : ''}` +
+    `${cert.total_chf ? ' · CHF ' + Number(cert.total_chf).toLocaleString() + '/mo' : ''}` +
+    `${cert.move_in_date ? ' · Move-in ' + new Date(cert.move_in_date).toLocaleDateString('de-CH') : ''}`;
+  document.getElementById('hdr-cert-code').textContent = cert.cert_code;
+  document.getElementById('hdr-issued').textContent = new Date(cert.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+
+  const certIsActive = cert.is_active !== false;
+  const trustBadge = document.getElementById('hdr-trust-badge');
+  trustBadge.textContent = certIsActive ? '✓ Valid' : '✗ Not valid';
+  trustBadge.className = 'badge ' + (certIsActive ? 'badge-green' : 'badge-red');
+  trustBadge.style.cssText = 'font-size:1rem; padding:7px 18px;';
+
+  // Access alert
+  document.getElementById('access-alert').textContent =
+    `This access has been logged — ${new Date().toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })} by ${ownerName}. Document download links expire after 60 seconds.`;
+
+  // Summary grid
+  const totalRent = cert.total_chf || cert.rent_chf || 0;
+  const salary    = t.monthly_gross_salary || 0;
+  const eligible  = cert.is_eligible;
+  document.getElementById('summary-grid').innerHTML = `
+    <div>
+      <div class="text-xs text-gray mb-2">Eligibility</div>
+      <div class="font-bold" style="color:${eligible ? 'var(--green)' : 'var(--amber)'};">${eligible ? '✓ Income qualifies' : '⚠ Review income'}</div>
+      <div class="text-xs text-gray">CHF ${salary.toLocaleString()} ${eligible ? '≥' : '<'} 3× CHF ${Number(totalRent).toLocaleString()}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-2">Occupants</div>
+      <div class="font-bold">${t.occupant_count || 1}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-2">Smoker / Pets</div>
+      <div class="font-bold">${t.is_smoker ? 'Smoker' : 'No'} / ${t.has_pets ? 'Has pets' : 'No'}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-2">Nationality / Permit</div>
+      <div class="font-bold">${permitLabels[t.permit_type] || t.permit_type || '—'}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-2">Visited property</div>
+      <div class="font-bold">${cert.has_visited ? 'Yes' : 'No'}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-2">Heard about via</div>
+      <div class="font-bold">${formatHeard(cert.heard_about)}</div>
+    </div>`;
+
+  // Employment grid
+  const startDate = t.employment_start_date
+    ? new Date(t.employment_start_date).toLocaleDateString('de-CH')
+    : '—';
+  document.getElementById('employment-grid').innerHTML = `
+    <div>
+      <div class="text-xs text-gray mb-1">Employer</div>
+      <div class="font-bold">${t.employer_name || '—'}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-1">Job title</div>
+      <div class="font-bold">${t.job_role || '—'}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-1">Monthly gross salary</div>
+      <div class="font-bold" style="font-size:1.25rem; color:var(--green);">CHF ${salary.toLocaleString()}</div>
+    </div>
+    <div>
+      <div class="text-xs text-gray mb-1">Employed since</div>
+      <div class="font-bold">${startDate}</div>
+    </div>`;
+
+  // Documents
+  const { data: tenantDocs } = await sbHelpers.getDocumentsByTenant(cert.tenant_id);
+  renderDocViewers(tenantDocs || [], t);
+
+  // Access log
+  const { data: logs } = await sbHelpers.getAccessLogsByCertificate(cert.id);
+  const tbody = document.getElementById('access-log-tbody');
+  if (!logs || logs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" class="text-gray text-sm">No access logs yet.</td></tr>';
+  } else {
+    tbody.innerHTML = logs.map(l => {
+      const when = new Date(l.accessed_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      const typeLabel = { agency: 'Agency', public: 'Public', tenant: 'Tenant', owner: 'Owner' }[l.viewer_type] || l.viewer_type;
+      const typeBadge = { agency: 'badge-blue', public: 'badge-gray', tenant: 'badge-green', owner: 'badge-amber' }[l.viewer_type] || 'badge-gray';
+      return `<tr><td>${when}</td><td><span class="badge ${typeBadge}" style="font-size:.7rem;">${typeLabel}</span></td></tr>`;
+    }).join('');
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = '';
+})();
+
+function showError() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error-panel').style.display = '';
+}
+
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const DOC_META = [
+  { key: 'passport_id',       label: 'Passport / Swiss ID',        icon: '🪪' },
+  { key: 'residence_permit',  label: 'Residence permit',            icon: '📋' },
+  { key: 'salary_slip_1',     label: 'Salary slip — month 1',       icon: '💰' },
+  { key: 'salary_slip_2',     label: 'Salary slip — month 2',       icon: '💰' },
+  { key: 'salary_slip_3',     label: 'Salary slip — month 3',       icon: '💰' },
+  { key: 'betreibungsauszug', label: 'Extract from the debt enforcement register', icon: '⚖️' },
+];
+const STATUS_BADGE = {
+  pending:       'badge badge-amber',
+  processing:    'badge badge-blue',
+  auto_verified: 'badge badge-green',
+  flagged:       'badge badge-amber',
+  rejected:      'badge badge-red',
+};
+const STATUS_LABEL = {
+  pending: 'Pending review', processing: 'Processing…',
+  auto_verified: 'Auto-verified', flagged: 'Flagged', rejected: 'Rejected',
+};
+
+function renderDocViewers(docs, tenant) {
+  const byType = {};
+  docs.forEach(d => { byType[d.doc_type] = d; });
+  const isSwiss = !tenant?.nationality || tenant.nationality === 'Swiss';
+  const container = document.getElementById('doc-viewers');
+  container.innerHTML = DOC_META.map(meta => {
+    if (meta.key === 'residence_permit' && isSwiss) return '';
+    const doc = byType[meta.key];
+    if (!doc) {
+      return `
+        <div class="doc-viewer">
+          <div class="doc-viewer__head">
+            <div class="doc-viewer__name">${meta.icon} ${escHtml(meta.label)}</div>
+            <span class="badge badge-gray">Not uploaded</span>
+          </div>
+          <div class="doc-viewer__body">
+            <p class="text-sm text-gray">The tenant has not uploaded this document.</p>
+          </div>
+        </div>`;
+    }
+    const confPct = doc.confidence_score != null ? Math.round(doc.confidence_score * 100) : null;
+    const badgeText = confPct != null
+      ? `${STATUS_LABEL[doc.status] || doc.status} · ${confPct}%`
+      : STATUS_LABEL[doc.status] || doc.status;
+    const ocrRows = doc.ocr_extracted_data
+      ? Object.entries(doc.ocr_extracted_data)
+          .filter(([,v]) => v != null && v !== '')
+          .map(([k,v]) => `<div class="doc-viewer__field"><span class="doc-viewer__field-k">${escHtml(k.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase()))}</span><span class="doc-viewer__field-v">${escHtml(String(v))}</span></div>`)
+          .join('')
+      : '';
+    return `
+      <div class="doc-viewer">
+        <div class="doc-viewer__head">
+          <div class="doc-viewer__name">${meta.icon} ${escHtml(meta.label)}</div>
+          <span class="${STATUS_BADGE[doc.status] || 'badge badge-gray'}">${escHtml(badgeText)}</span>
+        </div>
+        <div class="doc-viewer__body">
+          <div class="text-xs text-gray mb-8">${escHtml(doc.file_name || doc.storage_path.split('/').pop())}</div>
+          ${ocrRows ? `<div class="doc-viewer__extracted">${ocrRows}</div>` : ''}
+          <button class="btn btn-outline btn-sm mt-8" onclick="downloadDoc('${escHtml(doc.storage_path)}', '${escHtml(doc.file_name || doc.storage_path.split('/').pop())}', this)">Download</button>
+          <div id="dl-err-${meta.key}" style="display:none; color:var(--red); font-size:.75rem; margin-top:4px;"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function downloadDoc(storagePath, fileName, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Downloading…';
+  const { url, error } = await sbHelpers.getDocumentSignedUrl(storagePath);
+  if (error || !url) {
+    btn.disabled = false;
+    btn.textContent = 'Download';
+    const key = storagePath.split('/')[1];
+    const errEl = document.getElementById(`dl-err-${key}`);
+    if (errEl) { errEl.textContent = 'Could not generate download link.'; errEl.style.display = 'block'; }
+    return;
+  }
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName || storagePath.split('/').pop();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    btn.disabled = false;
+    btn.textContent = 'Download';
+  }
+}
+
+function formatHeard(val) {
+  const map = { former_tenant: 'Former tenant', relocation_agency: 'Relocation agency', website: 'Agency website', immobilier_ch: 'immobilier.ch', other: 'Other' };
+  return map[val] || val || '—';
+}
+</script>
+</body>
+</html>
