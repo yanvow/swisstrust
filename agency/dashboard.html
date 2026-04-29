@@ -9,6 +9,54 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="../lib/supabase.js"></script>
   <script src="../lib/i18n.js"></script>
+  <style>
+    .tab-bar { display:flex; gap:0; border-bottom:2px solid var(--gray-200); margin-bottom:28px; overflow-x:auto; }
+    .tab-btn { padding:10px 22px; border:none; background:none; font-size:.9rem; font-weight:600; color:var(--gray-400); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:color .15s,border-color .15s; white-space:nowrap; flex-shrink:0; }
+    .tab-btn.active { color:var(--charcoal); border-bottom-color:var(--charcoal); }
+    .tab-btn:hover:not(.active) { color:var(--charcoal); }
+
+    .invite-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+    @media (max-width:720px) { .invite-grid { grid-template-columns:1fr; } }
+
+    .filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:20px; }
+    .filter-bar select, .filter-bar input[type="text"] { width:auto; padding:8px 12px; font-size:.875rem; }
+    .filter-bar label { display:flex; align-items:center; gap:6px; font-size:.875rem; cursor:pointer; white-space:nowrap; }
+
+    .addr-group { border:1px solid var(--gray-200); border-radius:var(--radius); margin-bottom:12px; overflow:hidden; }
+    .addr-group-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--gray-100); cursor:pointer; gap:12px; user-select:none; }
+    .addr-group-header:hover { background:var(--gray-200); }
+    .addr-group-title { font-weight:600; font-size:.9375rem; }
+    .addr-group-meta { font-size:.8125rem; color:var(--gray-400); margin-top:2px; }
+    .addr-group-toggle { color:var(--gray-400); font-size:.875rem; flex-shrink:0; }
+    .addr-group-body { display:none; }
+    .addr-group-body.open { display:block; }
+    .addr-group-body table { margin:0; border-radius:0; }
+    .addr-group-body table td, .addr-group-body table th { padding:12px 16px; }
+
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; align-items:center; justify-content:center; padding:16px; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:white; border-radius:var(--radius); width:100%; max-width:520px; padding:32px; box-shadow:var(--shadow-lg); max-height:90vh; overflow-y:auto; }
+    .modal-title { font-size:1.1rem; font-weight:700; margin-bottom:4px; }
+    .modal-subtitle { font-size:.875rem; color:var(--gray-400); margin-bottom:24px; }
+
+    .kpi-grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }
+    @media (max-width:900px) { .kpi-grid-4 { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:500px) { .kpi-grid-4 { grid-template-columns:1fr 1fr; } }
+
+    .kpi-two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+    @media (max-width:680px) { .kpi-two-col { grid-template-columns:1fr; } }
+
+    .mini-stat-row { display:flex; gap:12px; margin-bottom:20px; }
+    .mini-stat { flex:1; background:var(--gray-100); border-radius:8px; padding:14px 16px; }
+    .mini-stat-num { font-size:1.5rem; font-weight:700; }
+    .mini-stat-lbl { font-size:.75rem; color:var(--gray-400); margin-top:2px; }
+
+    .dist-bar { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+    .dist-bar-label { font-size:.8125rem; width:80px; flex-shrink:0; color:var(--gray-500); }
+    .dist-bar-track { flex:1; background:var(--gray-200); border-radius:9999px; height:8px; overflow:hidden; }
+    .dist-bar-fill { height:100%; border-radius:9999px; background:var(--charcoal); transition:width .4s; }
+    .dist-bar-count { font-size:.8125rem; font-weight:600; width:24px; text-align:right; flex-shrink:0; }
+  </style>
 </head>
 <body>
 
@@ -28,14 +76,13 @@
 
 <div class="sidebar-overlay" id="sidebar-overlay"></div>
 <div class="app-shell">
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar__section">
       <div class="sidebar__label">Agency</div>
       <a href="dashboard.html" class="sidebar__link sidebar__link--active">
         <span class="sidebar__icon">⊞</span> Certificate inbox
       </a>
-      <a href="profile.html" class="sidebar__link">
+      <a href="profile.html" class="sidebar__link" id="sidebar-profile-link">
         <span class="sidebar__icon">◎</span> Agency profile
       </a>
     </div>
@@ -51,9 +98,8 @@
     </div>
   </aside>
 
-  <!-- MAIN -->
   <main class="main-content">
-    <div class="page-title">Certificate inbox</div>
+    <div class="page-title">Dashboard</div>
     <div class="page-subtitle" id="page-subtitle">Loading…</div>
 
     <!-- First-login aha moment banner -->
@@ -64,76 +110,205 @@
       <div style="font-size:.8125rem; opacity:.6;">Tenants directed their dossier to your agency before you even signed up. Click "View dossier" on any row to see their full verified documents.</div>
     </div>
 
-    <!-- Stats — main account only -->
-    <div class="stat-grid mb-32" id="kpi-grid">
-      <div class="stat-box">
-        <div class="stat-num" id="stat-total">—</div>
-        <div class="stat-lbl">Total certificates</div>
+    <!-- Tab bar -->
+    <div class="tab-bar" id="tab-bar">
+      <button class="tab-btn admin-only" id="tab-btn-team" onclick="switchTab('team')">Team</button>
+      <button class="tab-btn" id="tab-btn-certs" onclick="switchTab('certs')">Certificates</button>
+      <button class="tab-btn admin-only" id="tab-btn-kpi" onclick="switchTab('kpi')">KPIs</button>
+    </div>
+
+    <!-- ═══ TAB: TEAM ═══ -->
+    <div id="tab-team" style="display:none;">
+      <div class="invite-grid">
+        <!-- Invite by email -->
+        <div class="card">
+          <div class="card-title mb-4">Invite by email</div>
+          <div class="card-subtitle mb-16">Sends an invite email — the agent sets their own password.</div>
+          <form onsubmit="handleInviteAgent(event)">
+            <div class="form-group mb-12">
+              <label for="invite-email">Agent email</label>
+              <input type="email" id="invite-email" placeholder="agent@agency.ch" required>
+            </div>
+            <button type="submit" id="invite-btn" class="btn btn-primary" style="width:100%;">Send invite</button>
+          </form>
+          <div id="invite-error" style="display:none; color:var(--red); font-size:.875rem; margin-top:10px;"></div>
+          <div id="invite-success" style="display:none; color:var(--green); font-size:.875rem; margin-top:10px; font-weight:500;">✓ Invite sent</div>
+        </div>
+
+        <!-- Create with credentials -->
+        <div class="card">
+          <div class="card-title mb-4">Create agent</div>
+          <div class="card-subtitle mb-16">Creates the account immediately. The agent will be prompted to change their password on first login.</div>
+          <form onsubmit="handleCreateAgent(event)">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+              <div class="form-group mb-0">
+                <label for="create-first-name">First name</label>
+                <input type="text" id="create-first-name" placeholder="Jean" required>
+              </div>
+              <div class="form-group mb-0">
+                <label for="create-last-name">Last name</label>
+                <input type="text" id="create-last-name" placeholder="Dupont" required>
+              </div>
+            </div>
+            <div class="form-group mb-10">
+              <label for="create-email">Email</label>
+              <input type="email" id="create-email" placeholder="jean.dupont@agency.ch" required>
+            </div>
+            <div class="form-group mb-12">
+              <label for="create-password">Temporary password</label>
+              <input type="password" id="create-password" placeholder="Min. 8 characters" required>
+            </div>
+            <button type="submit" id="create-btn" class="btn btn-primary" style="width:100%;">Create agent</button>
+          </form>
+          <div id="create-error" style="display:none; color:var(--red); font-size:.875rem; margin-top:10px;"></div>
+          <div id="create-success" style="display:none; color:var(--green); font-size:.875rem; margin-top:10px; font-weight:500;">✓ Agent created</div>
+        </div>
       </div>
-      <div class="stat-box">
-        <div class="stat-num" style="color:var(--green);" id="stat-eligible">—</div>
-        <div class="stat-lbl">Income eligible</div>
-      </div>
-    </div>
 
-    <!-- Filter / sort bar -->
-    <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
-      <select id="sort-select" onchange="renderCerts()" style="width:auto; padding:8px 32px 8px 12px; font-size:.875rem;">
-        <option value="newest">Newest first</option>
-        <option value="oldest">Oldest first</option>
-      </select>
-    </div>
-
-    <!-- Certificate rows -->
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Tenant</th>
-            <th>Property applied for</th>
-            <th>Eligibility</th>
-            <th>Cert. date</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="cert-tbody">
-          <tr><td colspan="6" class="text-gray text-sm" style="padding:24px; text-align:center;">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="card mt-24 card--flat" style="background:var(--gray-100); border:none; padding:14px 16px;">
-      <div class="text-sm text-gray">💡 <strong>Tip:</strong> Click "View dossier" to see the full verified documents for each applicant. All accesses are logged.</div>
-    </div>
-
-    <!-- Ghost deliveries: tenants who directed to this agency before it joined -->
-    <div id="ghost-section" style="display:none; margin-top:32px;">
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-        <div class="page-title" style="font-size:1.1rem; margin:0;">Pending deliveries</div>
-        <span id="ghost-badge" class="badge badge-amber" style="font-size:.7rem;"></span>
-      </div>
-      <div class="text-sm text-gray mb-16">These tenants directed their certificate to your agency before you joined Checks. Claim them to add them to your inbox.</div>
+      <!-- Agents table -->
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Tenant</th>
-              <th>Property applied for</th>
-              <th>Cert. date</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Joined</th>
               <th></th>
             </tr>
           </thead>
-          <tbody id="ghost-tbody"></tbody>
+          <tbody id="agents-tbody">
+            <tr><td colspan="5" class="text-gray text-sm" style="padding:24px; text-align:center;">Loading…</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
+
+    <!-- ═══ TAB: CERTIFICATES ═══ -->
+    <div id="tab-certs" style="display:none;">
+      <!-- Stats — admin only -->
+      <div class="stat-grid mb-24 admin-only" id="kpi-grid">
+        <div class="stat-box">
+          <div class="stat-num" id="stat-total">—</div>
+          <div class="stat-lbl">Total certificates</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" style="color:var(--green);" id="stat-eligible">—</div>
+          <div class="stat-lbl">Income eligible</div>
+        </div>
+      </div>
+
+      <!-- Filter / sort bar -->
+      <div class="filter-bar">
+        <input type="text" id="search-input" placeholder="Search tenant or address…" oninput="renderCerts()" style="min-width:180px; flex:1; max-width:300px;">
+        <select id="sort-select" onchange="renderCerts()">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+        <select id="filter-salary" onchange="renderCerts()">
+          <option value="">Any salary</option>
+          <option value="3000">CHF 3,000+/mo</option>
+          <option value="5000">CHF 5,000+/mo</option>
+          <option value="8000">CHF 8,000+/mo</option>
+          <option value="10000">CHF 10,000+/mo</option>
+        </select>
+        <select id="filter-occupants" onchange="renderCerts()">
+          <option value="">Any occupants</option>
+          <option value="1">1 occupant</option>
+          <option value="2">2 occupants</option>
+          <option value="3">3+ occupants</option>
+        </select>
+        <label><input type="checkbox" id="filter-eligible" onchange="renderCerts()"> Eligible only</label>
+        <select id="group-mode" onchange="renderCerts()">
+          <option value="address">Group by address</option>
+          <option value="flat">All certificates</option>
+        </select>
+      </div>
+
+      <div id="certs-container"></div>
+
+      <!-- Ghost deliveries -->
+      <div id="ghost-section" style="display:none; margin-top:32px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <div class="page-title" style="font-size:1.1rem; margin:0;">Pending deliveries</div>
+          <span id="ghost-badge" class="badge badge-amber" style="font-size:.7rem;"></span>
+        </div>
+        <div class="text-sm text-gray mb-16">These tenants directed their certificate to your agency before you joined Checks. Claim them to add them to your inbox.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Tenant</th><th>Property applied for</th><th>Cert. date</th><th></th></tr>
+            </thead>
+            <tbody id="ghost-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card mt-24 card--flat" style="background:var(--gray-100); border:none; padding:14px 16px;">
+        <div class="text-sm text-gray">💡 <strong>Tip:</strong> Click "View dossier" to see the full verified documents for each applicant. All accesses are logged.</div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: KPIs ═══ -->
+    <div id="tab-kpi" style="display:none;">
+      <div class="kpi-grid-4" id="kpi-summary">
+        <div class="stat-box"><div class="stat-num">—</div><div class="stat-lbl">Loading…</div></div>
+      </div>
+
+      <div class="kpi-two-col">
+        <div class="card">
+          <div class="card-title mb-16">Salary distribution</div>
+          <div id="kpi-salary-dist"><div class="text-sm text-gray">Loading…</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title mb-16">Occupants</div>
+          <div id="kpi-occupant-dist"><div class="text-sm text-gray">Loading…</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title mb-16">Team activity</div>
+        <div class="table-wrap" style="margin:0;">
+          <table>
+            <thead>
+              <tr><th>Agent</th><th>Status</th><th>Joined</th><th>Dossiers viewed</th></tr>
+            </thead>
+            <tbody id="kpi-agents-tbody">
+              <tr><td colspan="4" class="text-gray text-sm" style="padding:20px; text-align:center;">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </main>
+</div>
+
+<!-- Agent KPI modal -->
+<div class="modal-overlay" id="agent-kpi-modal" onclick="if(event.target===this)closeAgentKpi()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title" id="akpi-name">Agent</div>
+    <div class="modal-subtitle" id="akpi-email"></div>
+    <div class="mini-stat-row">
+      <div class="mini-stat">
+        <div class="mini-stat-num" id="akpi-views">—</div>
+        <div class="mini-stat-lbl">Dossiers viewed</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-num" id="akpi-last" style="font-size:1rem;">—</div>
+        <div class="mini-stat-lbl">Last active</div>
+      </div>
+    </div>
+    <div id="akpi-recent" style="margin-bottom:24px;"></div>
+    <button class="btn btn-outline" style="width:100%;" onclick="closeAgentKpi()">Close</button>
+  </div>
 </div>
 
 <script>
 let _agencyId  = null;
 let _isAdmin   = false;
 let _allCerts  = [];
+let _allAgents = [];
+let _kpiRendered = false;
 
 (async () => {
   const user = await sbHelpers.requireAuth(['agency', 'agent']);
@@ -141,24 +316,21 @@ let _allCerts  = [];
 
   _isAdmin = user.user_metadata?.role === 'agency';
 
-  // Hide KPIs and profile link for agents
   if (!_isAdmin) {
-    document.getElementById('kpi-grid').style.display = 'none';
-    const profileLink = document.querySelector('a[href="profile.html"]');
-    if (profileLink) profileLink.closest('.sidebar__link').style.display = 'none';
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+    const profileLink = document.getElementById('sidebar-profile-link');
+    if (profileLink) profileLink.style.display = 'none';
   }
 
-  const { data: agency, error: agencyErr } = await sbHelpers.resolveAgency(user);
-  if (agencyErr || !agency) {
+  const { data: agency } = await sbHelpers.resolveAgency(user);
+  if (!agency) {
     document.getElementById('page-subtitle').textContent = 'Agency not found.';
     return;
   }
   _agencyId = agency.id;
 
-  document.getElementById('nav-agency').textContent = agency.company_name
-    + (_isAdmin ? '' : ' (agent)');
-  document.getElementById('page-subtitle').textContent =
-    `Tenants who directed their certificate to ${agency.company_name}, or granted access on request.`;
+  document.getElementById('nav-agency').textContent = agency.company_name + (_isAdmin ? '' : ' (agent)');
+  document.getElementById('page-subtitle').textContent = agency.company_name + (_isAdmin ? ' · Admin' : ' · Agent');
 
   const [{ data: directedCerts }, { data: onRequestCerts }] = await Promise.all([
     sbHelpers.getCertificatesByAgency(agency.id),
@@ -171,9 +343,7 @@ let _allCerts  = [];
     document.getElementById('stat-eligible').textContent = _allCerts.filter(c => c.is_eligible).length;
   }
 
-  renderCerts();
-
-  // Show aha-moment banner on first visit (per agency, stored in localStorage)
+  // Aha banner on first visit
   const ahaKey = `st_aha_seen_${agency.id}`;
   if (!localStorage.getItem(ahaKey) && (directedCerts || []).length > 0) {
     const n = directedCerts.length;
@@ -184,7 +354,7 @@ let _allCerts  = [];
     document.getElementById('aha-banner').style.display = 'block';
   }
 
-  // Load ghost certs (directed by agency name, agency not yet registered at the time)
+  // Ghost certs
   const { data: ghosts } = await sbHelpers.getGhostCertsByAgency();
   if (ghosts && ghosts.length > 0) {
     document.getElementById('ghost-section').style.display = 'block';
@@ -192,73 +362,443 @@ let _allCerts  = [];
     document.getElementById('ghost-tbody').innerHTML = ghosts.map(c => {
       const t = c.tenants || {};
       const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
-      return `
-        <tr id="ghost-row-${c.id}">
-          <td>
-            <div class="font-bold">${t.full_name || '—'}</div>
-            <div class="text-xs text-gray">${t.occupant_count || 1} occupant(s) · ${t.is_smoker ? 'Smoker' : 'No smoker'} · ${t.has_pets ? 'Pets' : 'No pets'}</div>
-          </td>
-          <td>
-            <div class="text-sm font-bold">${c.property_address}${c.property_city ? ', ' + c.property_city : ''}</div>
-            <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo</div>
-          </td>
-          <td class="text-sm text-gray">${date}</td>
-          <td><button class="btn btn-primary btn-sm" onclick="claimGhost('${c.id}', '${c.cert_code}', this)">Claim →</button></td>
-        </tr>`;
+      return `<tr id="ghost-row-${c.id}">
+        <td>
+          <div class="font-bold">${escHtml(t.full_name || '—')}</div>
+          <div class="text-xs text-gray">${t.occupant_count || 1} occupant(s) · ${t.is_smoker ? 'Smoker' : 'No smoker'} · ${t.has_pets ? 'Pets' : 'No pets'}</div>
+        </td>
+        <td>
+          <div class="text-sm font-bold">${escHtml(c.property_address || '—')}${c.property_city ? ', ' + escHtml(c.property_city) : ''}</div>
+          <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo</div>
+        </td>
+        <td class="text-sm text-gray">${date}</td>
+        <td><button class="btn btn-primary btn-sm" onclick="claimGhost('${c.id}', this)">Claim →</button></td>
+      </tr>`;
     }).join('');
   }
+
+  // Load team and render certs
+  if (_isAdmin) {
+    await loadAgents();
+    switchTab('team');
+  } else {
+    switchTab('certs');
+  }
+
+  renderCerts();
 })();
 
-function renderCerts() {
-  const tbody = document.getElementById('cert-tbody');
-  if (!_allCerts.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-gray text-sm" style="padding:24px; text-align:center;">No certificates yet. Share your Checks agency profile with tenants so they can direct their certificates to you.</td></tr>';
-    return;
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(tab) {
+  ['team', 'certs', 'kpi'].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = (t === tab) ? 'block' : 'none';
+    const btn = document.getElementById(`tab-btn-${t}`);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  if (tab === 'kpi' && !_kpiRendered) {
+    _kpiRendered = true;
+    renderKpis();
   }
-  const sortMode = document.getElementById('sort-select')?.value || 'newest';
-  const sorted = [..._allCerts].sort((a, b) => {
+}
+
+// ── Certificates rendering ────────────────────────────────────
+function getFilteredCerts() {
+  const search    = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const minSalary = parseInt(document.getElementById('filter-salary')?.value) || 0;
+  const occFilter = document.getElementById('filter-occupants')?.value || '';
+  const eligOnly  = document.getElementById('filter-eligible')?.checked || false;
+  const sortMode  = document.getElementById('sort-select')?.value || 'newest';
+
+  const filtered = _allCerts.filter(c => {
+    const t = c.tenants || {};
+    if (search) {
+      const hay = ((t.full_name || '') + ' ' + (c.property_address || '') + ' ' + (c.property_city || '')).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (minSalary && (t.monthly_gross_salary || 0) < minSalary) return false;
+    if (eligOnly && !c.is_eligible) return false;
+    if (occFilter === '1' && (t.occupant_count || 1) !== 1) return false;
+    if (occFilter === '2' && (t.occupant_count || 1) !== 2) return false;
+    if (occFilter === '3' && (t.occupant_count || 1) < 3) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
     const ta = new Date(a.created_at).getTime();
     const tb = new Date(b.created_at).getTime();
     return sortMode === 'oldest' ? ta - tb : tb - ta;
   });
-  tbody.innerHTML = sorted.map(c => {
-    const t = c.tenants || {};
-    const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
-    const modeBadge = c._on_request ? ' <span class="badge badge-gray" style="font-size:.65rem;vertical-align:middle;">On Request</span>' : '';
-    return `
-      <tr>
-        <td>
-          <div class="font-bold">${t.full_name || '—'}${modeBadge}</div>
-          <div class="text-xs text-gray">${t.occupant_count || 1} occupant(s) · ${t.is_smoker ? 'Smoker' : 'No smoker'} · ${t.has_pets ? 'Pets' : 'No pets'}</div>
-        </td>
-        <td>
-          <div class="text-sm font-bold">${c.property_address}${c.property_city ? ', ' + c.property_city : ''}</div>
-          <div class="text-xs text-gray">${c.rooms ? c.rooms + ' rooms' : ''} · CHF ${(c.total_chf || c.rent_chf || 0).toLocaleString()}/mo${c.move_in_date ? ' · Move-in ' + new Date(c.move_in_date).toLocaleDateString('de-CH') : ''}</div>
-        </td>
-        <td>${c.is_eligible ? '<span class="badge badge-green">✓ Eligible</span>' : '<span class="badge badge-amber">Review</span>'}</td>
-        <td class="text-sm text-gray">${date}</td>
-        <td><a href="dossier.html?code=${c.cert_code}" class="btn btn-primary btn-sm">View dossier</a></td>
-      </tr>`;
+  return filtered;
+}
+
+function certRowHtml(c) {
+  const t = c.tenants || {};
+  const date = new Date(c.created_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+  const modeBadge = c._on_request ? ' <span class="badge badge-gray" style="font-size:.65rem;vertical-align:middle;">On Request</span>' : '';
+  const salary = t.monthly_gross_salary ? `CHF ${Number(t.monthly_gross_salary).toLocaleString()}/mo` : '—';
+  return `<tr>
+    <td>
+      <div class="font-bold">${escHtml(t.full_name || '—')}${modeBadge}</div>
+      <div class="text-xs text-gray">${t.occupant_count || 1} occ. · ${salary} · ${t.is_smoker ? 'Smoker' : 'Non-smoker'} · ${t.has_pets ? 'Pets' : 'No pets'}</div>
+    </td>
+    <td>${c.is_eligible ? '<span class="badge badge-green">✓ Eligible</span>' : '<span class="badge badge-amber">Review</span>'}</td>
+    <td class="text-sm text-gray">${date}</td>
+    <td><a href="dossier.html?code=${escHtml(c.cert_code)}" class="btn btn-primary btn-sm">View dossier</a></td>
+  </tr>`;
+}
+
+function renderCerts() {
+  const filtered  = getFilteredCerts();
+  const container = document.getElementById('certs-container');
+  const groupMode = document.getElementById('group-mode')?.value || 'address';
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="card" style="text-align:center; padding:32px; color:var(--gray-400);">No certificates match your filters.</div>';
+    return;
+  }
+  container.innerHTML = groupMode === 'address' ? renderGrouped(filtered) : renderFlat(filtered);
+}
+
+function renderFlat(certs) {
+  return `<div class="table-wrap">
+    <table>
+      <thead><tr><th>Tenant</th><th>Eligibility</th><th>Cert. date</th><th></th></tr></thead>
+      <tbody>${certs.map(certRowHtml).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderGrouped(certs) {
+  const map = new Map();
+  for (const c of certs) {
+    const key = (c.property_address || '').trim().toLowerCase() || '__unknown__';
+    if (!map.has(key)) {
+      map.set(key, { address: c.property_address || 'Unknown address', city: c.property_city || '', certs: [] });
+    }
+    map.get(key).certs.push(c);
+  }
+  const groups = [...map.values()];
+  groups.sort((a, b) => new Date(b.certs[0].created_at).getTime() - new Date(a.certs[0].created_at).getTime());
+
+  return groups.map((g, i) => {
+    const eligible  = g.certs.filter(c => c.is_eligible).length;
+    const cityPart  = g.city ? `, ${escHtml(g.city)}` : '';
+    const plural    = g.certs.length !== 1 ? 's' : '';
+    return `<div class="addr-group">
+      <div class="addr-group-header" onclick="toggleGroup(${i})">
+        <div>
+          <div class="addr-group-title">${escHtml(g.address)}${cityPart}</div>
+          <div class="addr-group-meta">${g.certs.length} certificate${plural} · ${eligible} eligible</div>
+        </div>
+        <span class="addr-group-toggle" id="grp-toggle-${i}">▼</span>
+      </div>
+      <div class="addr-group-body" id="grp-body-${i}">
+        <table>
+          <thead><tr><th>Tenant</th><th>Eligibility</th><th>Cert. date</th><th></th></tr></thead>
+          <tbody>${g.certs.map(certRowHtml).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
   }).join('');
 }
 
-async function claimGhost(certId, certCode, btn) {
-  btn.disabled = true;
+function toggleGroup(i) {
+  const body   = document.getElementById(`grp-body-${i}`);
+  const toggle = document.getElementById(`grp-toggle-${i}`);
+  const open   = body.classList.toggle('open');
+  toggle.textContent = open ? '▲' : '▼';
+}
+
+// ── Team (agents) ─────────────────────────────────────────────
+async function loadAgents() {
+  const { data } = await sbHelpers.getAgencyAgentsDetailed(_agencyId);
+  _allAgents = data || [];
+  renderAgents();
+}
+
+function renderAgents() {
+  const tbody = document.getElementById('agents-tbody');
+  if (!_allAgents.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-gray text-sm" style="padding:20px; text-align:center;">No agents yet. Invite your first team member above.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = _allAgents.map(a => {
+    const name = [a.first_name, a.last_name].filter(Boolean).join(' ') || '—';
+    const joined = a.accepted_at
+      ? new Date(a.accepted_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' })
+      : '—';
+    const statusBadge = a.status === 'active'
+      ? '<span class="badge badge-green">Active</span>'
+      : a.status === 'suspended'
+      ? '<span class="badge badge-amber">Suspended</span>'
+      : '<span class="badge badge-gray">Pending</span>';
+    const isSuspended = a.status === 'suspended';
+    const suspendStyle = isSuspended ? '' : 'color:var(--amber);border-color:var(--amber);';
+    const suspendLabel = isSuspended ? 'Reactivate' : 'Suspend';
+    return `<tr>
+      <td><div class="font-bold">${escHtml(name)}</div></td>
+      <td class="text-sm">${escHtml(a.email)}</td>
+      <td>${statusBadge}</td>
+      <td class="text-sm text-gray">${joined}</td>
+      <td>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" style="${suspendStyle}" onclick="toggleSuspend('${a.id}', ${isSuspended}, this)">${suspendLabel}</button>
+          <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red);" onclick="deleteAgent('${a.id}', this)">Delete</button>
+          <button class="btn btn-outline btn-sm" onclick="showAgentKpi('${a.id}')">KPI</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function handleInviteAgent(e) {
+  e.preventDefault();
+  const btn   = document.getElementById('invite-btn');
+  const email = document.getElementById('invite-email').value.trim().toLowerCase();
+  sbHelpers.setLoading(btn, true, 'Send invite');
+  document.getElementById('invite-error').style.display  = 'none';
+  document.getElementById('invite-success').style.display = 'none';
+
+  const { error } = await sbHelpers.inviteAgent(_agencyId, email);
+  sbHelpers.setLoading(btn, false, 'Send invite');
+
+  if (error) {
+    document.getElementById('invite-error').textContent  = error.message || 'Could not send invite.';
+    document.getElementById('invite-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('invite-email').value           = '';
+  document.getElementById('invite-success').style.display = 'block';
+  setTimeout(() => { document.getElementById('invite-success').style.display = 'none'; }, 4000);
+  await loadAgents();
+}
+
+async function handleCreateAgent(e) {
+  e.preventDefault();
+  const btn       = document.getElementById('create-btn');
+  const firstName = document.getElementById('create-first-name').value.trim();
+  const lastName  = document.getElementById('create-last-name').value.trim();
+  const email     = document.getElementById('create-email').value.trim().toLowerCase();
+  const password  = document.getElementById('create-password').value;
+
+  const pwErr = sbHelpers.validatePassword(password);
+  if (pwErr) {
+    document.getElementById('create-error').textContent  = pwErr;
+    document.getElementById('create-error').style.display = 'block';
+    return;
+  }
+
+  sbHelpers.setLoading(btn, true, 'Create agent');
+  document.getElementById('create-error').style.display  = 'none';
+  document.getElementById('create-success').style.display = 'none';
+
+  const { error } = await sbHelpers.createAgentWithPassword(_agencyId, firstName, lastName, email, password);
+  sbHelpers.setLoading(btn, false, 'Create agent');
+
+  if (error) {
+    document.getElementById('create-error').textContent  = error.message || 'Could not create agent.';
+    document.getElementById('create-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('create-first-name').value     = '';
+  document.getElementById('create-last-name').value      = '';
+  document.getElementById('create-email').value          = '';
+  document.getElementById('create-password').value       = '';
+  document.getElementById('create-success').style.display = 'block';
+  setTimeout(() => { document.getElementById('create-success').style.display = 'none'; }, 4000);
+  await loadAgents();
+}
+
+async function toggleSuspend(agentId, currentlySuspended, btn) {
+  btn.disabled    = true;
+  btn.textContent = 'Saving…';
+  const newState  = !currentlySuspended;
+  const { error } = await sbHelpers.adminSuspendAgent(agentId, newState);
+  if (error) {
+    btn.disabled    = false;
+    btn.textContent = currentlySuspended ? 'Reactivate' : 'Suspend';
+    alert('Could not update agent: ' + error.message);
+    return;
+  }
+  await loadAgents();
+}
+
+async function deleteAgent(agentId, btn) {
+  if (!confirm('Delete this agent? They will lose access immediately.')) return;
+  btn.disabled    = true;
+  btn.textContent = 'Deleting…';
+  const { error } = await sbHelpers.adminDeleteAgent(agentId);
+  if (error) {
+    btn.disabled    = false;
+    btn.textContent = 'Delete';
+    alert('Could not delete agent: ' + error.message);
+    return;
+  }
+  await loadAgents();
+}
+
+// ── Agent KPI modal ───────────────────────────────────────────
+async function showAgentKpi(agentId) {
+  const agent = _allAgents.find(a => a.id === agentId);
+  if (!agent) return;
+
+  const modal = document.getElementById('agent-kpi-modal');
+  const name  = [agent.first_name, agent.last_name].filter(Boolean).join(' ') || agent.email;
+  document.getElementById('akpi-name').textContent  = name;
+  document.getElementById('akpi-email').textContent = agent.email;
+  document.getElementById('akpi-views').textContent = '…';
+  document.getElementById('akpi-last').textContent  = '…';
+  document.getElementById('akpi-recent').innerHTML  = '';
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  if (!agent.user_id) {
+    document.getElementById('akpi-views').textContent = '—';
+    document.getElementById('akpi-last').textContent  = 'Never logged in';
+    return;
+  }
+
+  const { totalViews, lastActive, recentLogs } = await sbHelpers.getAgentActivityStats(agent.user_id);
+  document.getElementById('akpi-views').textContent = totalViews;
+  document.getElementById('akpi-last').textContent  = lastActive
+    ? new Date(lastActive).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' })
+    : 'No activity';
+
+  if (recentLogs.length) {
+    document.getElementById('akpi-recent').innerHTML = `
+      <div style="font-size:.875rem; font-weight:600; margin-bottom:8px;">Recent activity</div>
+      <div style="display:flex; flex-direction:column; gap:0;">
+        ${recentLogs.map(l => {
+          const cert = l.certificates || {};
+          const addr = cert.property_address ? escHtml(cert.property_address) : 'Unknown address';
+          const dt   = new Date(l.accessed_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' });
+          return `<div style="display:flex; justify-content:space-between; font-size:.8125rem; padding:8px 0; border-bottom:1px solid var(--gray-100);">
+            <span>${addr}</span>
+            <span class="text-gray">${dt}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+}
+
+function closeAgentKpi() {
+  document.getElementById('agent-kpi-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAgentKpi(); });
+
+// ── KPI tab ───────────────────────────────────────────────────
+async function renderKpis() {
+  const certs = _allCerts;
+  const total    = certs.length;
+  const eligible = certs.filter(c => c.is_eligible).length;
+  const pct      = total ? Math.round(100 * eligible / total) : 0;
+  const salaries = certs.map(c => c.tenants?.monthly_gross_salary).filter(Boolean);
+  const avgSalary = salaries.length
+    ? Math.round(salaries.reduce((a, b) => a + b, 0) / salaries.length)
+    : null;
+  const addresses = new Set(certs.map(c => (c.property_address || '').trim().toLowerCase()).filter(Boolean));
+
+  document.getElementById('kpi-summary').innerHTML = [
+    { num: total,   lbl: 'Total certificates' },
+    { num: `${eligible} (${pct}%)`, lbl: 'Income eligible', color: 'var(--green)' },
+    { num: avgSalary ? `CHF ${Number(avgSalary).toLocaleString()}` : '—', lbl: 'Avg monthly salary' },
+    { num: addresses.size, lbl: 'Unique addresses' },
+  ].map(s => `<div class="stat-box">
+    <div class="stat-num"${s.color ? ` style="color:${s.color};"` : ''}>${s.num}</div>
+    <div class="stat-lbl">${s.lbl}</div>
+  </div>`).join('');
+
+  // Salary distribution
+  const salaryBuckets = [
+    { label: '< 3k',   fn: s => s < 3000 },
+    { label: '3–5k',   fn: s => s >= 3000 && s < 5000 },
+    { label: '5–8k',   fn: s => s >= 5000 && s < 8000 },
+    { label: '8–10k',  fn: s => s >= 8000 && s < 10000 },
+    { label: '10k+',   fn: s => s >= 10000 },
+  ];
+  const maxS = Math.max(1, ...salaryBuckets.map(b => certs.filter(c => b.fn(c.tenants?.monthly_gross_salary || 0)).length));
+  document.getElementById('kpi-salary-dist').innerHTML = salaryBuckets.map(b => {
+    const count = certs.filter(c => b.fn(c.tenants?.monthly_gross_salary || 0)).length;
+    return `<div class="dist-bar">
+      <div class="dist-bar-label">${b.label}</div>
+      <div class="dist-bar-track"><div class="dist-bar-fill" style="width:${Math.round(100*count/maxS)}%;"></div></div>
+      <div class="dist-bar-count">${count}</div>
+    </div>`;
+  }).join('');
+
+  // Occupant distribution
+  const occBuckets = [
+    { label: '1 occ.',  fn: n => n === 1 },
+    { label: '2 occ.',  fn: n => n === 2 },
+    { label: '3 occ.',  fn: n => n === 3 },
+    { label: '4+ occ.', fn: n => n >= 4  },
+  ];
+  const maxO = Math.max(1, ...occBuckets.map(b => certs.filter(c => b.fn(c.tenants?.occupant_count || 1)).length));
+  document.getElementById('kpi-occupant-dist').innerHTML = occBuckets.map(b => {
+    const count = certs.filter(c => b.fn(c.tenants?.occupant_count || 1)).length;
+    return `<div class="dist-bar">
+      <div class="dist-bar-label">${b.label}</div>
+      <div class="dist-bar-track"><div class="dist-bar-fill" style="width:${Math.round(100*count/maxO)}%;"></div></div>
+      <div class="dist-bar-count">${count}</div>
+    </div>`;
+  }).join('');
+
+  // Agent activity
+  if (!_allAgents.length) {
+    document.getElementById('kpi-agents-tbody').innerHTML =
+      '<tr><td colspan="4" class="text-gray text-sm" style="padding:20px; text-align:center;">No agents yet.</td></tr>';
+    return;
+  }
+  const rows = await Promise.all(_allAgents.map(async a => {
+    const { totalViews } = a.user_id
+      ? await sbHelpers.getAgentActivityStats(a.user_id)
+      : { totalViews: 0 };
+    return { ...a, totalViews };
+  }));
+  rows.sort((a, b) => b.totalViews - a.totalViews);
+
+  document.getElementById('kpi-agents-tbody').innerHTML = rows.map(a => {
+    const name = [a.first_name, a.last_name].filter(Boolean).join(' ') || a.email;
+    const joined = a.accepted_at
+      ? new Date(a.accepted_at).toLocaleDateString('en-CH', { day:'2-digit', month:'short', year:'numeric' })
+      : '—';
+    const badge = a.status === 'active'
+      ? '<span class="badge badge-green">Active</span>'
+      : a.status === 'suspended'
+      ? '<span class="badge badge-amber">Suspended</span>'
+      : '<span class="badge badge-gray">Pending</span>';
+    return `<tr>
+      <td><div class="font-bold">${escHtml(name)}</div><div class="text-xs text-gray">${escHtml(a.email)}</div></td>
+      <td>${badge}</td>
+      <td class="text-sm text-gray">${joined}</td>
+      <td class="text-sm font-bold">${a.totalViews}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Ghost certs ───────────────────────────────────────────────
+async function claimGhost(certId, btn) {
+  btn.disabled    = true;
   btn.textContent = 'Claiming…';
   const { error } = await sbHelpers.claimGhostCert(certId, _agencyId);
   if (error) {
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = 'Claim →';
     alert('Could not claim: ' + error.message);
     return;
   }
-  // Move row to main table by reloading the page
   window.location.reload();
 }
 
 function dismissAha() {
   document.getElementById('aha-banner').style.display = 'none';
   if (_agencyId) localStorage.setItem(`st_aha_seen_${_agencyId}`, '1');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 </script>
 </body>
