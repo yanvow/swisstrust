@@ -9,6 +9,21 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="../lib/supabase.js"></script>
   <script src="../lib/i18n.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    .preview-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:300; align-items:center; justify-content:center; padding:24px; }
+    .preview-overlay.open { display:flex; }
+    .preview-box { background:#fff; border-radius:var(--radius); width:100%; max-width:920px; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.3); max-height:90vh; }
+    .preview-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--gray-200); flex-shrink:0; gap:12px; }
+    .preview-title { font-weight:600; font-size:.9375rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+    .preview-close { background:none; border:none; cursor:pointer; font-size:1.1rem; color:var(--gray-400); padding:4px 10px; border-radius:4px; line-height:1; flex-shrink:0; }
+    .preview-close:hover { background:var(--gray-100); color:var(--charcoal); }
+    .preview-body { flex:1; overflow:auto; min-height:0; background:var(--gray-100); }
+    .preview-body iframe { width:100%; height:75vh; min-height:400px; border:none; display:block; }
+    .preview-body img { max-width:100%; max-height:75vh; display:block; margin:auto; padding:16px; box-sizing:border-box; }
+    .preview-loading { display:flex; align-items:center; justify-content:center; height:300px; font-size:.875rem; color:var(--gray-400); }
+    .preview-err { display:flex; align-items:center; justify-content:center; height:200px; font-size:.875rem; color:var(--red); }
+  </style>
 </head>
 <body>
 
@@ -97,9 +112,12 @@
 
       <!-- Documents -->
       <div class="card mb-24">
-        <div class="card-header">
-          <div class="card-title">Verified documents</div>
-          <div class="card-subtitle">Click Download to get a time-limited signed link</div>
+        <div class="card-header" style="justify-content:space-between; flex-wrap:wrap; gap:12px; align-items:flex-start;">
+          <div>
+            <div class="card-title">Verified documents</div>
+            <div class="card-subtitle">Preview or download individual files · or save all at once as a ZIP</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-download-zip" onclick="downloadAllZip()" style="flex-shrink:0;">⬇ Download all as ZIP</button>
         </div>
         <div id="doc-viewers"><div class="text-sm text-gray">Loading documents…</div></div>
       </div>
@@ -291,7 +309,10 @@ const STATUS_LABEL = {
   auto_verified: 'Auto-verified', flagged: 'Flagged', rejected: 'Rejected',
 };
 
+let _allTenantDocs = [];
+
 function renderDocViewers(docs, tenant) {
+  _allTenantDocs = docs;
   const byType = {};
   docs.forEach(d => { byType[d.doc_type] = d; });
   const isSwiss = !tenant?.nationality || tenant.nationality === 'Swiss';
@@ -330,7 +351,10 @@ function renderDocViewers(docs, tenant) {
         <div class="doc-viewer__body">
           <div class="text-xs text-gray mb-8">${escHtml(doc.file_name || doc.storage_path.split('/').pop())}</div>
           ${ocrRows ? `<div class="doc-viewer__extracted">${ocrRows}</div>` : ''}
-          <button class="btn btn-outline btn-sm mt-8" onclick="downloadDoc('${escHtml(doc.storage_path)}', '${escHtml(doc.file_name || doc.storage_path.split('/').pop())}', this)">Download</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center;">
+            <button class="btn btn-outline btn-sm" onclick="previewDoc('${escHtml(doc.storage_path)}','${escHtml(doc.file_name || doc.storage_path.split('/').pop())}','${escHtml(doc.mime_type || '')}',this)">Preview</button>
+            <button class="btn btn-outline btn-sm" onclick="downloadDoc('${escHtml(doc.storage_path)}','${escHtml(doc.file_name || doc.storage_path.split('/').pop())}',this)">Download</button>
+          </div>
           <div id="dl-err-${meta.key}" style="display:none; color:var(--red); font-size:.75rem; margin-top:4px;"></div>
         </div>
       </div>`;
@@ -366,10 +390,91 @@ async function downloadDoc(storagePath, fileName, btn) {
   }
 }
 
+let _previewBlobUrl = null;
+
+async function previewDoc(storagePath, fileName, mimeType, btn) {
+  const modal = document.getElementById('preview-modal');
+  const body  = document.getElementById('preview-body');
+  document.getElementById('preview-title').textContent = fileName;
+  body.innerHTML = '<div class="preview-loading">Loading preview…</div>';
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const { url, error } = await sbHelpers.getDocumentSignedUrl(storagePath);
+  if (error || !url) {
+    body.innerHTML = '<div class="preview-err">Could not load preview.</div>';
+    return;
+  }
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    if (_previewBlobUrl) URL.revokeObjectURL(_previewBlobUrl);
+    _previewBlobUrl = URL.createObjectURL(blob);
+    const type = mimeType || blob.type || '';
+    if (type.startsWith('image/')) {
+      body.innerHTML = `<img src="${_previewBlobUrl}" alt="${escHtml(fileName)}">`;
+    } else {
+      body.innerHTML = `<iframe src="${_previewBlobUrl}" title="${escHtml(fileName)}"></iframe>`;
+    }
+  } catch {
+    body.innerHTML = '<div class="preview-err">Could not load preview.</div>';
+  }
+}
+
+function closePreview() {
+  document.getElementById('preview-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('preview-body').innerHTML = '';
+  if (_previewBlobUrl) { URL.revokeObjectURL(_previewBlobUrl); _previewBlobUrl = null; }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
+
+async function downloadAllZip() {
+  const btn  = document.getElementById('btn-download-zip');
+  const docs = _allTenantDocs.filter(d => d.storage_path);
+  if (!docs.length) return;
+  btn.disabled  = true;
+  btn.textContent = 'Generating ZIP…';
+  try {
+    const zip = new JSZip();
+    await Promise.all(docs.map(async doc => {
+      const { url, error } = await sbHelpers.getDocumentSignedUrl(doc.storage_path);
+      if (error || !url) return;
+      try {
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        zip.file(`${doc.doc_type}_${doc.file_name || doc.storage_path.split('/').pop()}`, blob);
+      } catch { /* skip */ }
+    }));
+    const content = await zip.generateAsync({ type: 'blob' });
+    const blobUrl = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = blobUrl; a.download = 'dossier-documents.zip';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⬇ Download all as ZIP';
+  }
+}
+
 function formatHeard(val) {
   const map = { former_tenant: 'Former tenant', relocation_agency: 'Relocation agency', website: 'Agency website', immobilier_ch: 'immobilier.ch', other: 'Other' };
   return map[val] || val || '—';
 }
 </script>
+
+<!-- Document preview modal -->
+<div class="preview-overlay" id="preview-modal" onclick="if(event.target===this)closePreview()">
+  <div class="preview-box" onclick="event.stopPropagation()">
+    <div class="preview-header">
+      <span class="preview-title" id="preview-title"></span>
+      <button class="preview-close" onclick="closePreview()" aria-label="Close preview">✕</button>
+    </div>
+    <div class="preview-body" id="preview-body"></div>
+  </div>
+</div>
 </body>
 </html>
