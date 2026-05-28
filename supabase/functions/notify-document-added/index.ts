@@ -1,4 +1,4 @@
-// SwissTrust — notify-document-added Edge Function
+// Checks — notify-document-added Edge Function
 // Sends a confirmation email to a tenant when they upload a document.
 // Triggered by a Postgres INSERT trigger on the documents table (via pg_net).
 
@@ -9,8 +9,8 @@ const SUPABASE_URL              = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET               = Deno.env.get('CRON_SECRET')!
 const RESEND_API_KEY            = Deno.env.get('RESEND_API_KEY')!
-const FROM_EMAIL                = Deno.env.get('FROM_EMAIL') || 'notifications@swisstrust.ch'
-const SITE_URL                  = Deno.env.get('SITE_URL') || 'https://app.swisstrust.ch'
+const FROM_EMAIL                = Deno.env.get('FROM_EMAIL') || 'notifications@checks.ch'
+const SITE_URL                  = Deno.env.get('SITE_URL') || 'https://app.checks.ch'
 
 const DOC_LABELS: Record<string, string> = {
   passport_id:                 'Passport / ID Card',
@@ -47,7 +47,7 @@ function buildEmailHtml(firstName: string, fileName: string, docType: string): s
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Document received — SwissTrust</title>
+  <title>Document received — Checks</title>
 </head>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
@@ -58,7 +58,7 @@ function buildEmailHtml(firstName: string, fileName: string, docType: string): s
           <!-- Header -->
           <tr>
             <td style="background:#1a2e4a;padding:28px 32px;">
-              <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-.3px;">SwissTrust</span>
+              <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-.3px;">Checks</span>
             </td>
           </tr>
 
@@ -101,8 +101,8 @@ function buildEmailHtml(firstName: string, fileName: string, docType: string): s
           <tr>
             <td style="padding:20px 32px;border-top:1px solid #f0f0f0;">
               <p style="margin:0;font-size:12px;color:#aaa;line-height:1.6;">
-                This is an automated notification from SwissTrust. Please do not reply to this email.<br>
-                &copy; ${new Date().getFullYear()} SwissTrust
+                This is an automated notification from Checks. Please do not reply to this email.<br>
+                &copy; ${new Date().getFullYear()} Checks
               </p>
             </td>
           </tr>
@@ -126,7 +126,7 @@ function buildEmailText(firstName: string, fileName: string, docType: string): s
     '',
     `Track your documents: ${SITE_URL}/tenant/documents.html`,
     '',
-    '— SwissTrust',
+    '— Checks',
   ].join('\n')
 }
 

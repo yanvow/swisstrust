@@ -1,4 +1,4 @@
-// SwissTrust — OCR Edge Function
+// Checks — OCR Edge Function
 // Calls Claude Vision to extract structured data from tenant documents.
 // Deploy: supabase functions deploy ocr
 // Secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-api03-...

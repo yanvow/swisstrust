@@ -1,12 +1,12 @@
-// SwissTrust — notify-expiring-documents Edge Function
+// Checks — notify-expiring-documents Edge Function
 // Queries all documents expiring today and sends one grouped email per tenant.
 // Triggered daily at 09:00 CET via pg_cron (see migration 022).
 //
 // Required secrets (supabase secrets set …):
 //   CRON_SECRET      — shared secret that pg_cron sends as Bearer token
 //   RESEND_API_KEY   — Resend API key for sending email
-//   FROM_EMAIL       — sender address (e.g. notifications@swisstrust.ch)
-//   SITE_URL         — public base URL (e.g. https://app.swisstrust.ch)
+//   FROM_EMAIL       — sender address (e.g. notifications@checks.ch)
+//   SITE_URL         — public base URL (e.g. https://app.checks.ch)
 
 // @ts-nocheck — Deno runtime; standard TS language server does not resolve Deno/esm.sh globals.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -15,8 +15,8 @@ const SUPABASE_URL             = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET              = Deno.env.get('CRON_SECRET')!
 const RESEND_API_KEY           = Deno.env.get('RESEND_API_KEY')!
-const FROM_EMAIL               = Deno.env.get('FROM_EMAIL') || 'notifications@swisstrust.ch'
-const SITE_URL                 = Deno.env.get('SITE_URL') || 'https://app.swisstrust.ch'
+const FROM_EMAIL               = Deno.env.get('FROM_EMAIL') || 'notifications@checks.ch'
+const SITE_URL                 = Deno.env.get('SITE_URL') || 'https://app.checks.ch'
 
 // ── Document type labels ──────────────────────────────────────────────────────
 
@@ -72,7 +72,7 @@ function buildEmailHtml(firstName: string, docs: ExpiringDoc[]): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Document Expiry Notice — SwissTrust</title>
+  <title>Document Expiry Notice — Checks</title>
 </head>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
@@ -83,7 +83,7 @@ function buildEmailHtml(firstName: string, docs: ExpiringDoc[]): string {
           <!-- Header -->
           <tr>
             <td style="background:#1a2e4a;padding:28px 32px;">
-              <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-.3px;">SwissTrust</span>
+              <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-.3px;">Checks</span>
             </td>
           </tr>
 
@@ -93,7 +93,7 @@ function buildEmailHtml(firstName: string, docs: ExpiringDoc[]): string {
               <p style="margin:0 0 8px;font-size:15px;color:#1a1a1a;">Hi ${firstName || 'there'},</p>
               <p style="margin:0 0 24px;font-size:15px;color:#444444;line-height:1.6;">
                 The following ${docWord} expired today. Please upload a renewed version
-                to keep your SwissTrust profile up to date.
+                to keep your Checks profile up to date.
               </p>
 
               <!-- Document table -->
@@ -125,8 +125,8 @@ function buildEmailHtml(firstName: string, docs: ExpiringDoc[]): string {
           <tr>
             <td style="padding:20px 32px;border-top:1px solid #f0f0f0;">
               <p style="margin:0;font-size:12px;color:#aaa;line-height:1.6;">
-                This is an automated notification from SwissTrust. Please do not reply to this email.<br>
-                &copy; ${new Date().getFullYear()} SwissTrust
+                This is an automated notification from Checks. Please do not reply to this email.<br>
+                &copy; ${new Date().getFullYear()} Checks
               </p>
             </td>
           </tr>
@@ -149,7 +149,7 @@ function buildEmailText(firstName: string, docs: ExpiringDoc[]): string {
     '',
     `Please log in to update them: ${SITE_URL}/tenant/documents.html`,
     '',
-    '— SwissTrust',
+    '— Checks',
   ].join('\n')
 }
 

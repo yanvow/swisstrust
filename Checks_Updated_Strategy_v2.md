@@ -1,4 +1,4 @@
-# SWISSTRUST DOSSIER
+# CHECKS DOSSIER
 
 ## Verified Tenant Platform for Switzerland
 
@@ -12,7 +12,7 @@ Prepared: March 2026 | Version 2.0 | Confidential
 
 ## 1. Executive Summary
 
-SwissTrust Dossier is a verified tenant identity platform designed to solve three converging crises in the Swiss rental market: the worst housing shortage in twelve years, a broken application process that forces tenants to broadcast sensitive personal data dozens of times, and a rising epidemic of identity theft through fake rental ads.
+Checks Dossier is a verified tenant identity platform designed to solve three converging crises in the Swiss rental market: the worst housing shortage in twelve years, a broken application process that forces tenants to broadcast sensitive personal data dozens of times, and a rising epidemic of identity theft through fake rental ads.
 
 The platform's core innovation is a privacy-preserving QR certificate system that separates identity verification from data sharing. Tenants build their dossier once, get verified by AI, and generate property-specific certificates that share only what's needed – without exposing salary slips, ID copies, or debt records to strangers.
 
@@ -24,7 +24,7 @@ Crucially, this model turns every tenant into a sales channel for régie acquisi
 
 ## 2. The Hybrid Certificate Model
 
-The Hybrid Certificate Model is the strategic centrepiece of SwissTrust. It determines how tenant data flows to agencies and landlords, and it is designed to solve three problems simultaneously: tenant privacy, agency adoption, and private owner accessibility.
+The Hybrid Certificate Model is the strategic centrepiece of Checks. It determines how tenant data flows to agencies and landlords, and it is designed to solve three problems simultaneously: tenant privacy, agency adoption, and private owner accessibility.
 
 ### 2.1 The Three Sharing Modes
 
@@ -40,7 +40,7 @@ When a tenant taps 'Generate Certificate', they see:
 
 1. Enter property address and monthly rent (or select from platform listings).
 2. Select sharing mode:
-   - **Directed → Régie:** Search for régie by name (auto-complete from pre-seeded directory). If found: select agency and optionally a specific agent. If not found: prompt "This agency isn't on SwissTrust yet. Generate an open certificate, or invite them?" with one-tap invitation.
+   - **Directed → Régie:** Search for régie by name (auto-complete from pre-seeded directory). If found: select agency and optionally a specific agent. If not found: prompt "This agency isn't on Checks yet. Generate an open certificate, or invite them?" with one-tap invitation.
    - **Directed → Private owner:** Enter owner's email address. Owner receives an email with a link to create a free account and view the dossier.
    - **Open:** Any verified professional can view. Confirm with a clear consent message.
    - **On-Request:** You approve each viewer. Confirm.
@@ -110,7 +110,7 @@ Individuals who own and manage their own rental properties without a régie. Thi
 
 To make the Directed certificate flow work from day one, the platform pre-populates a directory of Swiss régies before any of them register. This directory is built from public data: SVIT member lists, commercial registries, Homegate/ImmoScout24/Flatfox listing data, and cantonal régie directories.
 
-Each entry contains: company name, address, canton, phone, email, website, and a flag indicating whether they have an active SwissTrust account. When a tenant selects a régie from this directory:
+Each entry contains: company name, address, canton, phone, email, website, and a flag indicating whether they have an active Checks account. When a tenant selects a régie from this directory:
 
 - If the régie **HAS** an account → the certificate is delivered directly. The agent sees it in their dashboard.
 - If the régie **DOES NOT** have an account → the certificate still works as a PDF/link. The régie receives an invitation email: "A verified tenant wants to share their dossier with you. Create a free account to view it." This is tracked as a 'ghost delivery' for sales analytics.
@@ -164,7 +164,7 @@ Understanding régie resistance is critical to the go-to-market strategy. Agenci
 
 ### 5.1 Tenants
 
-| Current Pains | SwissTrust Gains |
+| Current Pains | Checks Gains |
 |---|---|
 | Rebuild dossier for every application | Build once, generate unlimited certificates |
 | Hand ID, salary, debt data to strangers | QR certificate shows eligibility only; full dossier shared with consent |
@@ -176,7 +176,7 @@ Understanding régie resistance is critical to the go-to-market strategy. Agenci
 
 ### 5.2 Régies / Agencies
 
-| Current Pains | SwissTrust Gains |
+| Current Pains | Checks Gains |
 |---|---|
 | Receive 50–100 paper/email dossiers per listing | Pre-verified, standardised digital dossiers |
 | Manually check every document for authenticity | AI-verified with confidence score + Trust Score |
@@ -187,7 +187,7 @@ Understanding régie resistance is critical to the go-to-market strategy. Agenci
 
 ### 5.3 Private Owners / Landlords
 
-| Current Pains | SwissTrust Gains |
+| Current Pains | Checks Gains |
 |---|---|
 | Don't know how to verify tenant documents | AI-verified with trust score – no expertise needed |
 | Uncomfortable asking for sensitive financial data | Certificate shows eligibility without revealing salary details |
@@ -202,7 +202,7 @@ Understanding régie resistance is critical to the go-to-market strategy. Agenci
 
 No existing Swiss platform combines verified tenant identity, privacy-preserving certificates, and a hybrid sharing model that works independently of agency adoption.
 
-| Capability | Homegate | ImmoScout24 | Flatfox | Others | SwissTrust |
+| Capability | Homegate | ImmoScout24 | Flatfox | Others | Checks |
 |---|---|---|---|---|---|
 | Property listings | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Digital application | ❌ | ❌ | ✅ | ❌ | ✅ |
@@ -215,7 +215,7 @@ No existing Swiss platform combines verified tenant identity, privacy-preserving
 | Tenant data control | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Nachmieter marketplace | ❌ | ❌ | Partial | ❌ | ✅ |
 
-**Key differentiator:** SwissTrust is the only platform where the product works even if zero régies have accounts. A tenant can generate a certificate, print it, and hand it to anyone. The QR code works. The public summary is visible. The platform extracts value from the certificate as a distribution vehicle, not from the listing as a toll gate.
+**Key differentiator:** Checks is the only platform where the product works even if zero régies have accounts. A tenant can generate a certificate, print it, and hand it to anyone. The QR code works. The public summary is visible. The platform extracts value from the certificate as a distribution vehicle, not from the listing as a toll gate.
 
 ---
 
@@ -276,7 +276,7 @@ Core strategy shift: Build the tenant base first. Let tenants pull régies onto 
 
 **Tenant acquisition:** Target expat communities first – UN, WHO, WTO, CERN, international schools, relocation agencies. These users face the greatest friction (new country, no references, language barrier), are tech-savvy, and have high willingness to pay for Premium. Content marketing in EN/FR: 'How to rent in Geneva', 'Avoid rental scams in Switzerland', 'What is a Betreibungsauszug?'
 
-**Régie acquisition (passive):** Pre-seed the Geneva régie directory (~200 firms). Every tenant who selects a régie triggers an invitation email. Track ghost deliveries. After 10+ certificates delivered to a régie, trigger a personalised sales outreach: 'You've received 47 verified dossiers from SwissTrust tenants this month. Create a free account to view them.'
+**Régie acquisition (passive):** Pre-seed the Geneva régie directory (~200 firms). Every tenant who selects a régie triggers an invitation email. Track ghost deliveries. After 10+ certificates delivered to a régie, trigger a personalised sales outreach: 'You've received 47 verified dossiers from Checks tenants this month. Create a free account to view them.'
 
 **Régie acquisition (active):** Partner with 3–5 Geneva régies for a paid pilot. Offer the first 6 months free. Target mid-size firms (50–200 units) who are big enough to benefit but small enough to decide fast. Use the pilot as a case study.
 
@@ -312,7 +312,7 @@ Core strategy shift: Build the tenant base first. Let tenants pull régies onto 
 
 **Full coverage:** All 26 cantons including Ticino (IT). Romansh support as bonus.
 
-**Portal partnerships:** Approach Homegate and ImmoScout24 for integration – 'Verified by SwissTrust' badge on listings. This is credible once you have 100K+ tenants.
+**Portal partnerships:** Approach Homegate and ImmoScout24 for integration – 'Verified by Checks' badge on listings. This is credible once you have 100K+ tenants.
 
 **International:** Evaluate Austria and Germany expansion (similar rental markets, similar pain points).
 
@@ -326,7 +326,7 @@ The régie acquisition strategy has five layers, ordered from lowest friction to
 
 ### 9.1 Layer 1 – Passive Inbound (Certificate-Driven)
 
-Every Directed certificate sent to a non-registered régie triggers an invitation email. The email contains: the tenant's public certificate summary, a CTA to create a free account, and a count of how many certificates they've received from SwissTrust tenants. This is automated, personalised, and scales infinitely.
+Every Directed certificate sent to a non-registered régie triggers an invitation email. The email contains: the tenant's public certificate summary, a CTA to create a free account, and a count of how many certificates they've received from Checks tenants. This is automated, personalised, and scales infinitely.
 
 **Metric:** Track 'ghost deliveries' per régie. Dashboard shows: Naef (47 certs received, 0 account), Pilet & Renaud (31 certs, 0 account), etc.
 
@@ -359,7 +359,7 @@ For the top 20–50 régies nationally (firms managing 500+ units), deploy a dir
 
 - **Time saved:** 15 minutes per application review × 100 applications × 50 listings/year = 1,250 hours saved.
 - **Fraud reduction:** every AI-verified dossier eliminates a manual authenticity check.
-- **Compliance:** nFADP data handling offloaded to SwissTrust.
+- **Compliance:** nFADP data handling offloaded to Checks.
 - **Integration:** API connects to their existing PM software; no workflow change required.
 
 ---

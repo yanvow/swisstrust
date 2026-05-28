@@ -1,4 +1,4 @@
-# SwissTrust Dossier — MVP Build Brief
+# Checks Dossier — MVP Build Brief
 **Version:** MVP (Single-pass) | **Date:** March 2026 | **Confidential**
 
 ---

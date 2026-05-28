@@ -1,4 +1,4 @@
-// SwissTrust — delete-account Edge Function
+// Checks — delete-account Edge Function
 // Deletes the calling user's auth account (and all cascading data).
 // Deploy: supabase functions deploy delete-account
 

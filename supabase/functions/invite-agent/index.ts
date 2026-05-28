@@ -1,4 +1,4 @@
-// SwissTrust — invite-agent Edge Function
+// Checks — invite-agent Edge Function
 // Supports two modes:
 //   mode: 'invite' (default) — send Supabase invite email, agent sets own password
 //   mode: 'create'           — create agent directly with given credentials

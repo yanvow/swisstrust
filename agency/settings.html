@@ -385,7 +385,7 @@ function showTab(tab) {
 
 // ── Notifications & Other prefs ───────────────────────────
 function loadNotifPrefs() {
-  const prefs = JSON.parse(localStorage.getItem(`swisstrust:notifPrefs:${_userId}`) || '{}');
+  const prefs = JSON.parse(localStorage.getItem(`checks:notifPrefs:${_userId}`) || '{}');
   document.getElementById('notif-new-cert').checked      = prefs['new-cert']      ?? true;
   document.getElementById('notif-agent-change').checked  = prefs['agent-change']  ?? true;
   document.getElementById('notif-weekly-digest').checked = prefs['weekly-digest'] ?? false;
@@ -399,11 +399,11 @@ function saveNotifPrefs() {
     'weekly-digest': document.getElementById('notif-weekly-digest').checked,
     'product-news':  document.getElementById('notif-product-news').checked,
   };
-  localStorage.setItem(`swisstrust:notifPrefs:${_userId}`, JSON.stringify(prefs));
+  localStorage.setItem(`checks:notifPrefs:${_userId}`, JSON.stringify(prefs));
 }
 
 function loadOtherPrefs() {
-  const prefs = JSON.parse(localStorage.getItem(`swisstrust:otherPrefs:${_userId}`) || '{}');
+  const prefs = JSON.parse(localStorage.getItem(`checks:otherPrefs:${_userId}`) || '{}');
   if (prefs.language)   document.getElementById('pref-language').value    = prefs.language;
   if (prefs.dateFormat) document.getElementById('pref-date-format').value = prefs.dateFormat;
 }
@@ -413,7 +413,7 @@ function saveOtherPrefs() {
     language:   document.getElementById('pref-language').value,
     dateFormat: document.getElementById('pref-date-format').value,
   };
-  localStorage.setItem(`swisstrust:otherPrefs:${_userId}`, JSON.stringify(prefs));
+  localStorage.setItem(`checks:otherPrefs:${_userId}`, JSON.stringify(prefs));
 }
 
 // ── Usage ─────────────────────────────────────────────────

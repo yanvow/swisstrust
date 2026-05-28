@@ -294,7 +294,7 @@ async function certSignOut() {
 
   // Save to owner's recent history (localStorage)
   if (role === 'owner' && session) {
-    const key   = `swisstrust:ownerRecent:${session.user.id}`;
+    const key   = `checks:ownerRecent:${session.user.id}`;
     const entry = {
       certCode: cert.cert_code,
       tenantName: tenant.full_name || '—',

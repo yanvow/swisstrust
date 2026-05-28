@@ -1,4 +1,4 @@
-// SwissTrust — notify-new-agency Edge Function
+// Checks — notify-new-agency Edge Function
 // Sends a verification-request email to all admin users when a new agency registers.
 // Triggered by a Postgres AFTER INSERT trigger on the agencies table (via pg_net).
 
@@ -9,8 +9,8 @@ const SUPABASE_URL              = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET               = Deno.env.get('CRON_SECRET')!
 const RESEND_API_KEY            = Deno.env.get('RESEND_API_KEY')!
-const FROM_EMAIL                = Deno.env.get('FROM_EMAIL') || 'notifications@swisstrust.ch'
-const SITE_URL                  = Deno.env.get('SITE_URL') || 'https://app.swisstrust.ch'
+const FROM_EMAIL                = Deno.env.get('FROM_EMAIL') || 'notifications@checks.ch'
+const SITE_URL                  = Deno.env.get('SITE_URL') || 'https://app.checks.ch'
 
 function buildEmailHtml(agency: { company_name: string; address: string; contact_email: string; id: string }): string {
   const adminUrl = `${SITE_URL}/admin/agencies.html`
@@ -19,7 +19,7 @@ function buildEmailHtml(agency: { company_name: string; address: string; contact
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>New agency registered — SwissTrust</title>
+  <title>New agency registered — Checks</title>
 </head>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
@@ -30,7 +30,7 @@ function buildEmailHtml(agency: { company_name: string; address: string; contact
           <!-- Header -->
           <tr>
             <td style="background:#1a2e4a;padding:28px 32px;">
-              <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-.3px;">SwissTrust</span>
+              <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-.3px;">Checks</span>
               <span style="color:rgba(255,255,255,.6);font-size:13px;margin-left:12px;">Admin notification</span>
             </td>
           </tr>
@@ -40,7 +40,7 @@ function buildEmailHtml(agency: { company_name: string; address: string; contact
             <td style="padding:32px 32px 24px;">
               <p style="margin:0 0 8px;font-size:15px;color:#1a1a1a;font-weight:600;">New agency registration — verification required</p>
               <p style="margin:0 0 24px;font-size:15px;color:#444444;line-height:1.6;">
-                A new agency has just registered on SwissTrust and is pending verification. Please review their details and verify or reject the account.
+                A new agency has just registered on Checks and is pending verification. Please review their details and verify or reject the account.
               </p>
 
               <!-- Agency card -->
@@ -76,8 +76,8 @@ function buildEmailHtml(agency: { company_name: string; address: string; contact
           <tr>
             <td style="padding:20px 32px;border-top:1px solid #f0f0f0;">
               <p style="margin:0;font-size:12px;color:#aaa;line-height:1.6;">
-                This is an automated admin notification from SwissTrust.<br>
-                &copy; ${new Date().getFullYear()} SwissTrust
+                This is an automated admin notification from Checks.<br>
+                &copy; ${new Date().getFullYear()} Checks
               </p>
             </td>
           </tr>
@@ -100,7 +100,7 @@ function buildEmailText(agency: { company_name: string; address: string; contact
     '',
     'Please review and verify or reject the account in the admin panel.',
     '',
-    '— SwissTrust (automated notification)',
+    '— Checks (automated notification)',
   ].join('\n')
 }
 

@@ -1,5 +1,5 @@
 -- ============================================================
--- SwissTrust — Seed data: Swiss agencies
+-- Checks — Seed data: Swiss agencies
 -- Run AFTER schema.sql
 -- These are pre-seeded agencies (no login account — user_id is NULL)
 -- When an agency self-registers, user_id is populated.

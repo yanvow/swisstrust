@@ -1,5 +1,5 @@
 -- ============================================================
--- SwissTrust — Supabase Database Schema
+-- Checks — Supabase Database Schema
 -- Run this in the Supabase SQL editor (dashboard → SQL Editor)
 -- ============================================================
 
@@ -514,7 +514,7 @@ ALTER TABLE certificates ADD COLUMN IF NOT EXISTS owner_email TEXT;
 
 -- ============================================================
 -- MIGRATION: ghost delivery tracking
--- Allows tenants to direct certs to agencies not yet on SwissTrust.
+-- Allows tenants to direct certs to agencies not yet on Checks.
 -- Run this if you already ran the original schema.
 -- ============================================================
 ALTER TABLE certificates ADD COLUMN IF NOT EXISTS unregistered_agency_name TEXT;

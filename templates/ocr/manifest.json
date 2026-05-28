@@ -1,6 +1,6 @@
 {
   "template_version": "1.0",
-  "description": "Extraction templates for SwissTrust document OCR/import flows.",
+  "description": "Extraction templates for Checks document OCR/import flows.",
   "global_rules": {
     "dates": "Use ISO 8601 format YYYY-MM-DD when the value is known.",
     "currency": "Use CHF numeric amounts without currency symbols when the source is Swiss Francs.",

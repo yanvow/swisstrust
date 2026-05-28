@@ -103,7 +103,7 @@
         "not_clean",
         "unknown"
       ],
-      "description": "Normalized SwissTrust summary status derived from the extract."
+      "description": "Normalized Checks summary status derived from the extract."
     },
     {
       "path": "register_summary.entry_count",

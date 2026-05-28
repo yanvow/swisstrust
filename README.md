@@ -1,4 +1,4 @@
-# swisstrust
+# checks
 
 ## Document Expiry Notifications
 

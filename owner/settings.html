@@ -433,7 +433,7 @@ function showTab(tab) {
 
 // ── Notifications & Other prefs ───────────────────────────
 function loadNotifPrefs() {
-  const prefs = JSON.parse(localStorage.getItem(`swisstrust:notifPrefs:${_userId}`) || '{}');
+  const prefs = JSON.parse(localStorage.getItem(`checks:notifPrefs:${_userId}`) || '{}');
   document.getElementById('notif-cert-verified').checked   = prefs['cert-verified']   ?? true;
   document.getElementById('notif-access-approved').checked = prefs['access-approved'] ?? true;
   document.getElementById('notif-weekly-digest').checked   = prefs['weekly-digest']   ?? false;
@@ -447,11 +447,11 @@ function saveNotifPrefs() {
     'weekly-digest':   document.getElementById('notif-weekly-digest').checked,
     'product-news':    document.getElementById('notif-product-news').checked,
   };
-  localStorage.setItem(`swisstrust:notifPrefs:${_userId}`, JSON.stringify(prefs));
+  localStorage.setItem(`checks:notifPrefs:${_userId}`, JSON.stringify(prefs));
 }
 
 function loadOtherPrefs() {
-  const prefs = JSON.parse(localStorage.getItem(`swisstrust:otherPrefs:${_userId}`) || '{}');
+  const prefs = JSON.parse(localStorage.getItem(`checks:otherPrefs:${_userId}`) || '{}');
   if (prefs.language)   document.getElementById('pref-language').value    = prefs.language;
   if (prefs.dateFormat) document.getElementById('pref-date-format').value = prefs.dateFormat;
 }
@@ -461,7 +461,7 @@ function saveOtherPrefs() {
     language:   document.getElementById('pref-language').value,
     dateFormat: document.getElementById('pref-date-format').value,
   };
-  localStorage.setItem(`swisstrust:otherPrefs:${_userId}`, JSON.stringify(prefs));
+  localStorage.setItem(`checks:otherPrefs:${_userId}`, JSON.stringify(prefs));
 }
 
 // ── Usage ─────────────────────────────────────────────────
@@ -484,7 +484,7 @@ function usageBar(label, used, limit, sub, unlimited) {
 
 function loadUsage() {
   const now        = new Date();
-  const history    = JSON.parse(localStorage.getItem('swisstrust:ownerRecent:' + _userId) || '[]');
+  const history    = JSON.parse(localStorage.getItem('checks:ownerRecent:' + _userId) || '[]');
   const thisMonth  = history.filter(item => {
     const d = new Date(item.viewedAt);
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
@@ -496,7 +496,7 @@ function loadUsage() {
 async function confirmClearHistory() {
   if (!_userId) return;
   if (!confirm('Clear your local certificate viewing history from this browser?')) return;
-  localStorage.removeItem('swisstrust:ownerRecent:' + _userId);
+  localStorage.removeItem('checks:ownerRecent:' + _userId);
   alert('Viewing history cleared.');
 }
 
