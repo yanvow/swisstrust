@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
       return json({ error: insertErr?.message || 'Could not create invite record.' }, 500)
     }
 
-    const redirectTo = `${SITE_URL}/auth/agent-accept.html`
+    const redirectTo = `${SITE_URL}/auth/agent-accept`
     const { error: inviteErr } = await adminSb.auth.admin.inviteUserByEmail(normalEmail, {
       data: {
         role:         'agent',

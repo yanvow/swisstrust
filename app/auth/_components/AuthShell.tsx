@@ -10,8 +10,8 @@ export default function AuthShell({
   children,
   maxWidth = 480,
 }: {
-  title?: string;
-  subtitle?: string;
+  title?: ReactNode;
+  subtitle?: ReactNode;
   topRight?: ReactNode;
   children: ReactNode;
   maxWidth?: number;

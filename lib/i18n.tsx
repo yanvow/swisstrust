@@ -303,6 +303,30 @@ const FR: Dict = {
   "Register as an agency →": "S’inscrire comme régie →",
   "Looking to rent?": "Vous cherchez à louer ?",
   "Create a tenant dossier →": "Créer un dossier locataire →",
+
+  // ── Auth: agent-accept ─────────────────────────────────────────
+  "Verifying invitation…": "Vérification de l’invitation…",
+  "Please wait while we set up your account.":
+    "Veuillez patienter pendant que nous configurons votre compte.",
+  "Invitation problem": "Problème d’invitation",
+  "Back to homepage": "Retour à l’accueil",
+  "You've been invited!": "Vous avez été invité !",
+  "Complete your profile to join": "Complétez votre profil pour rejoindre",
+  "on Checks.": "sur Checks.",
+  "your agency": "votre régie",
+  "This invitation link is invalid or has expired. Please ask your agency admin to send a new invite.":
+    "Ce lien d’invitation est invalide ou a expiré. Veuillez demander à votre administrateur de régie d’envoyer une nouvelle invitation.",
+  "The invitation data is incomplete. Please contact your agency admin.":
+    "Les données de l’invitation sont incomplètes. Veuillez contacter votre administrateur de régie.",
+  "First name and last name are required.": "Le prénom et le nom sont obligatoires.",
+  Phone: "Téléphone",
+  "(optional)": "(optionnel)",
+  "Choose a password": "Choisissez un mot de passe",
+  "Complete setup": "Terminer la configuration",
+  "Setting up…": "Configuration en cours…",
+  "Welcome aboard!": "Bienvenue à bord !",
+  "Your account is ready. Redirecting to your dashboard…":
+    "Votre compte est prêt. Redirection vers votre tableau de bord…",
 };
 
 const DICTS: Record<Lang, Dict> = { en: {}, fr: FR };
