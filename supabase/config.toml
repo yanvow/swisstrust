@@ -1,0 +1,33 @@
+# Supabase project config (CLI v1.x+).
+# Only the [auth.email.template.*] sections are wired up here so that
+# `supabase config push` updates the hosted project's email templates
+# without touching unrelated auth settings (those remain managed in
+# the dashboard).
+#
+# To apply: ensure the CLI is linked (supabase/.temp/linked-project.json
+# already points at this project), then run:
+#   supabase config push --project-ref zgcgosfddrihtwpzboiq
+#
+# Reference: https://supabase.com/docs/guides/local-development/customizing-email-templates
+
+project_id = "checks"
+
+[auth.email.template.confirmation]
+subject = "Confirm your Checks account"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Checks password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Your Checks sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.invite]
+subject = "You've been invited to Checks"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your email change — Checks"
+content_path = "./supabase/templates/email_change.html"

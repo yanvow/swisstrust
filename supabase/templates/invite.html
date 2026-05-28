@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>You've been invited to Checks</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#1a2e4a;padding:28px 32px;">
+              <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-.3px;">Checks</span>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px 32px 24px;">
+              <p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#1a1a1a;">You've been invited to Checks</p>
+              <p style="margin:0 0 16px;font-size:15px;color:#444444;line-height:1.6;">
+                {{ .Data.agency_name }} has invited you to join their team on Checks — the Swiss verified tenant identity platform.
+              </p>
+              <p style="margin:0 0 24px;font-size:15px;color:#444444;line-height:1.6;">
+                Accept the invitation to set your password and start reviewing verified tenant dossiers.
+              </p>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding:0 32px 32px;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="display:inline-block;background:#1a2e4a;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:6px;">
+                Accept invitation
+              </a>
+              <p style="margin:20px 0 0;font-size:12px;color:#888;line-height:1.6;">
+                Or paste this link into your browser:<br>
+                <span style="color:#444;word-break:break-all;">{{ .ConfirmationURL }}</span>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 32px;border-top:1px solid #f0f0f0;">
+              <p style="margin:0;font-size:12px;color:#aaa;line-height:1.6;">
+                If you weren't expecting this invitation, you can safely ignore this email.<br>
+                &copy; 2026 Checks
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
