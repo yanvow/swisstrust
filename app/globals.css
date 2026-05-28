@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+  body {
+    @apply bg-white text-charcoal font-sans;
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    @apply font-bold leading-[1.15] tracking-tight;
+  }
+  h2 {
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    @apply font-bold leading-tight tracking-tight;
+  }
+  h3 {
+    @apply text-xl font-semibold leading-snug;
+  }
+  p {
+    @apply text-gray-600;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-7 py-3 text-[0.9375rem] font-semibold rounded-[2px] transition-colors whitespace-nowrap cursor-pointer border-0;
+  }
+  .btn-sm {
+    @apply px-[18px] py-2 text-sm;
+  }
+  .btn-lg {
+    @apply px-9 py-4 text-[1.0625rem];
+  }
+  .btn-primary {
+    @apply bg-red text-white hover:bg-red-dark;
+  }
+  .btn-outline {
+    @apply bg-transparent text-charcoal border-[1.5px] border-charcoal hover:bg-charcoal hover:text-white;
+  }
+  .btn-outline-white {
+    @apply bg-transparent text-white border-[1.5px] border-white hover:bg-white hover:text-charcoal;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-gray-600 hover:text-charcoal;
+  }
+
+  .container-x {
+    @apply mx-auto max-w-container px-6;
+  }
+  .section-pad {
+    @apply py-20;
+  }
+  .section-label {
+    @apply text-xs font-semibold tracking-[0.08em] uppercase text-gray-400 mb-3;
+  }
+
+  .card {
+    @apply bg-white border border-gray-200 rounded-[2px] p-7 shadow-subtle;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] text-[0.8rem] font-semibold tracking-wide;
+  }
+  .badge-green { @apply bg-[#DCFCE7] text-[#15803D]; }
+  .badge-amber { @apply bg-[#FEF3C7] text-[#92400E]; }
+  .badge-red   { @apply bg-[#FEE2E2] text-[#B91C1C]; }
+
+  .verified-badge {
+    @apply inline-flex items-center gap-2 bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC] px-4 py-2 rounded-[2px] font-semibold;
+  }
+}
