@@ -43,10 +43,10 @@ export default function LandingNav() {
           <a href="#owners" className={linkClass} onClick={closeMenu}>
             {t("For owners")}
           </a>
-          <a href="/auth/login.html" className={linkClass} onClick={closeMenu}>
+          <a href="/auth/login" className={linkClass} onClick={closeMenu}>
             {t("Sign in")}
           </a>
-          <a href="/auth/tenant-register.html" className="btn btn-primary btn-sm" onClick={closeMenu}>
+          <a href="/auth/tenant-register" className="btn btn-primary btn-sm" onClick={closeMenu}>
             {t("Create dossier")}
           </a>
         </div>

@@ -196,6 +196,113 @@ const FR: Dict = {
     "Identité locataire vérifiée pour le marché suisse de la location. Construisez votre dossier une fois. Partagez en toute sécurité avec qui vous voulez.",
   "© 2026 Checks SA. All rights reserved.": "© 2026 Checks SA. Tous droits réservés.",
   "Made in Switzerland": "Fait en Suisse",
+
+  // ── Auth: shared ────────────────────────────────────────────────
+  "Signing in…": "Connexion en cours…",
+  "Welcome back": "Bon retour",
+  "Sign in to your tenant, agency, or owner account":
+    "Connectez-vous à votre compte locataire, régie ou propriétaire",
+  "Continue with Google": "Continuer avec Google",
+  "Sign up with Google": "S’inscrire avec Google",
+  "or sign in with email": "ou connectez-vous par e-mail",
+  "or register with email": "ou inscrivez-vous par e-mail",
+  "or continue as": "ou continuer en tant que",
+  "Email address": "Adresse e-mail",
+  Password: "Mot de passe",
+  "Forgot password?": "Mot de passe oublié ?",
+  "← Back to homepage": "← Retour à l’accueil",
+  "← Back to sign in": "← Retour à la connexion",
+  "Back to sign in": "Retour à la connexion",
+  "New tenant": "Nouveau locataire",
+  "New agency": "Nouvelle régie",
+  "New owner": "Nouveau propriétaire",
+  "Already have an account? Sign in": "Vous avez déjà un compte ? Se connecter",
+  "Already registered? Sign in": "Déjà inscrit ? Se connecter",
+  "Already registered?": "Déjà inscrit ?",
+  "Passwords do not match.": "Les mots de passe ne correspondent pas.",
+  "Min. 8 characters": "Minimum 8 caractères",
+  "Repeat password": "Répétez le mot de passe",
+  "Repeat your password": "Répétez votre mot de passe",
+  Repeat: "Répéter",
+  "8+ chars · uppercase · lowercase · number · symbol":
+    "8+ caractères · majuscule · minuscule · chiffre · symbole",
+  "I agree to the": "J’accepte les",
+  and: "et",
+  "Terms of Service": "Conditions d’utilisation",
+  "Privacy Policy": "Politique de confidentialité",
+  ". I understand my documents will be stored securely on Swiss servers.":
+    ". Je comprends que mes documents seront stockés en toute sécurité sur des serveurs suisses.",
+  "Password must be at least 8 characters.": "Le mot de passe doit comporter au moins 8 caractères.",
+  "Password must contain at least one uppercase letter.":
+    "Le mot de passe doit contenir au moins une majuscule.",
+  "Password must contain at least one lowercase letter.":
+    "Le mot de passe doit contenir au moins une minuscule.",
+  "Password must contain at least one number.":
+    "Le mot de passe doit contenir au moins un chiffre.",
+  "Password must contain at least one special character (e.g. !@#$%).":
+    "Le mot de passe doit contenir au moins un caractère spécial (par ex. !@#$%).",
+
+  // ── Auth: forgot / reset password ──────────────────────────────
+  "Reset your password": "Réinitialiser votre mot de passe",
+  "Enter your email address and we'll send you a link to set a new password.":
+    "Saisissez votre adresse e-mail et nous vous enverrons un lien pour définir un nouveau mot de passe.",
+  "Send reset link": "Envoyer le lien de réinitialisation",
+  "A reset link has been sent to": "Un lien de réinitialisation a été envoyé à",
+  "Check your inbox and click the link to set a new password. The link expires after 1 hour.":
+    "Consultez votre boîte de réception et cliquez sur le lien pour définir un nouveau mot de passe. Le lien expire après 1 heure.",
+  "Verifying your reset link…": "Vérification de votre lien de réinitialisation…",
+  "This reset link is invalid or has expired.": "Ce lien de réinitialisation est invalide ou a expiré.",
+  "Request a new link": "Demander un nouveau lien",
+  "Set a new password": "Définir un nouveau mot de passe",
+  "Choose a strong password for your account.": "Choisissez un mot de passe fort pour votre compte.",
+  "New password": "Nouveau mot de passe",
+  "Confirm new password": "Confirmer le nouveau mot de passe",
+  "At least 8 characters": "Au moins 8 caractères",
+  "Set new password": "Définir le nouveau mot de passe",
+  "Password updated successfully.": "Mot de passe mis à jour avec succès.",
+  "Sign in with your new password": "Connectez-vous avec votre nouveau mot de passe",
+
+  // ── Auth: tenant register ──────────────────────────────────────
+  "Create your tenant account": "Créer votre compte locataire",
+  "Verify your identity once. Apply to any property in Switzerland.":
+    "Vérifiez votre identité une fois. Postulez à tout bien en Suisse.",
+  "After registration, you'll be guided to complete your profile and upload documents.":
+    "Après l’inscription, vous serez guidé pour compléter votre profil et téléverser vos documents.",
+  "First name": "Prénom",
+  "Last name": "Nom",
+  "Confirm password": "Confirmer le mot de passe",
+  "Create account & continue": "Créer le compte et continuer",
+  "Please wait…": "Veuillez patienter…",
+
+  // ── Auth: agency register ──────────────────────────────────────
+  "Access verified tenant dossiers. Free registration — your agency appears in the tenant directory immediately.":
+    "Accédez aux dossiers locataires vérifiés. Inscription gratuite — votre régie apparaît immédiatement dans l’annuaire des locataires.",
+  "Verified documents": "Documents vérifiés",
+  "Secure access": "Accès sécurisé",
+  "Audit trail": "Journal d’audit",
+  "Agency / company name": "Nom de la régie / société",
+  "Business address": "Adresse professionnelle",
+  "Contact email": "E-mail de contact",
+  "Account email (for login)": "E-mail du compte (pour la connexion)",
+  "Agency Terms": "Conditions régie",
+  "and confirm this agency is authorised to access tenant data in accordance with Swiss data protection law.":
+    "et confirme que cette régie est autorisée à accéder aux données locataires conformément à la loi suisse sur la protection des données.",
+
+  // ── Auth: owner register ───────────────────────────────────────
+  "Register as private owner": "S’inscrire comme propriétaire privé",
+  "Scan any Checks QR certificate and instantly see a tenant's verified dossier — income, documents, and certificate status. Free forever for private landlords.":
+    "Scannez n’importe quel QR Checks et voyez instantanément le dossier vérifié d’un locataire — revenus, documents et statut du certificat. Gratuit à vie pour les propriétaires privés.",
+  "Private owner plan — free": "Offre propriétaire privé — gratuite",
+  "View approved On-Request certificates and Directed certificates addressed to you · Full audit trail":
+    "Consultez les certificats sur demande approuvés et les certificats dirigés qui vous sont adressés · Journal d’audit complet",
+  "Property address (optional)": "Adresse du bien (optionnel)",
+  "Helps tenants know which property you manage. Can be added later.":
+    "Aide les locataires à savoir quel bien vous gérez. Peut être ajouté plus tard.",
+  "Create owner account": "Créer le compte propriétaire",
+  "Are you a régie?": "Êtes-vous une régie ?",
+  "Register as an agency →": "S’inscrire comme régie →",
+  "Looking to rent?": "Vous cherchez à louer ?",
+  "Create a tenant dossier →": "Créer un dossier locataire →",
 };
 
 const DICTS: Record<Lang, Dict> = { en: {}, fr: FR };

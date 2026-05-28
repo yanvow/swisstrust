@@ -33,10 +33,10 @@ export default function HomePage() {
               )}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href="/auth/tenant-register.html" className="btn btn-primary btn-lg">
+              <a href="/auth/tenant-register" className="btn btn-primary btn-lg">
                 {t("Create tenant dossier")}
               </a>
-              <a href="/auth/agency-register.html" className="btn btn-outline btn-lg">
+              <a href="/auth/agency-register" className="btn btn-outline btn-lg">
                 {t("Register your agency")}
               </a>
             </div>
@@ -292,7 +292,7 @@ export default function HomePage() {
                   )}
                 />
               </div>
-              <a href="/auth/agency-register.html" className="btn btn-primary btn-lg">
+              <a href="/auth/agency-register" className="btn btn-primary btn-lg">
                 {t("Register your agency — free")}
               </a>
             </div>
@@ -344,7 +344,7 @@ export default function HomePage() {
                   )}
                 />
               </div>
-              <a href="/auth/owner-register.html" className="btn btn-outline btn-lg">
+              <a href="/auth/owner-register" className="btn btn-outline btn-lg">
                 {t("Register as private owner — free")}
               </a>
             </div>
@@ -383,19 +383,19 @@ export default function HomePage() {
             )}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a href="/auth/tenant-register.html" className="btn btn-primary btn-lg">
+            <a href="/auth/tenant-register" className="btn btn-primary btn-lg">
               {t("Create tenant dossier")}
             </a>
-            <a href="/auth/agency-register.html" className="btn btn-outline btn-lg">
+            <a href="/auth/agency-register" className="btn btn-outline btn-lg">
               {t("Register agency")}
             </a>
-            <a href="/auth/owner-register.html" className="btn btn-ghost btn-lg">
+            <a href="/auth/owner-register" className="btn btn-ghost btn-lg">
               {t("Private owner →")}
             </a>
           </div>
           <p className="text-xs text-gray-400 mt-6">
             {t("Already have an account?")}{" "}
-            <a href="/auth/login.html" className="text-charcoal font-semibold">
+            <a href="/auth/login" className="text-charcoal font-semibold">
               {t("Sign in →")}
             </a>
           </p>

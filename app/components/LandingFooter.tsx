@@ -27,10 +27,10 @@ export default function LandingFooter() {
 
           <div>
             <div className={colTitle}>{t("Tenants")}</div>
-            <a href="/auth/tenant-register.html" className={linkClass}>
+            <a href="/auth/tenant-register" className={linkClass}>
               {t("Create dossier")}
             </a>
-            <a href="/auth/login.html" className={linkClass}>
+            <a href="/auth/login" className={linkClass}>
               {t("Sign in")}
             </a>
             <a href="/verify.html" className={linkClass}>
@@ -40,20 +40,20 @@ export default function LandingFooter() {
 
           <div>
             <div className={colTitle}>{t("Agencies")}</div>
-            <a href="/auth/agency-register.html" className={linkClass}>
+            <a href="/auth/agency-register" className={linkClass}>
               {t("Register")}
             </a>
-            <a href="/auth/login.html" className={linkClass}>
+            <a href="/auth/login" className={linkClass}>
               {t("Agency login")}
             </a>
           </div>
 
           <div>
             <div className={colTitle}>{t("Owners")}</div>
-            <a href="/auth/owner-register.html" className={linkClass}>
+            <a href="/auth/owner-register" className={linkClass}>
               {t("Register")}
             </a>
-            <a href="/auth/login.html" className={linkClass}>
+            <a href="/auth/login" className={linkClass}>
               {t("Owner login")}
             </a>
           </div>
