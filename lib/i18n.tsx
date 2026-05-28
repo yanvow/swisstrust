@@ -327,6 +327,80 @@ const FR: Dict = {
   "Welcome aboard!": "Bienvenue à bord !",
   "Your account is ready. Redirecting to your dashboard…":
     "Votre compte est prêt. Redirection vers votre tableau de bord…",
+
+  // ── Tenant: chrome / sidebar ───────────────────────────────────
+  "Sign out": "Se déconnecter",
+  "Open menu": "Ouvrir le menu",
+  "My dossier": "Mon dossier",
+  Dashboard: "Tableau de bord",
+  "My profile": "Mon profil",
+  Documents: "Documents",
+  Certificates: "Certificats",
+  "My certificates": "Mes certificats",
+  "New certificate": "Nouveau certificat",
+  Other: "Autre",
+  Account: "Compte",
+  Settings: "Paramètres",
+  Notifications: "Notifications",
+  "Access requests": "Demandes d’accès",
+
+  // ── Tenant: dashboard content ──────────────────────────────────
+  "Welcome back,": "Bon retour,",
+  there: "vous",
+  "Here's your dossier status.": "Voici le statut de votre dossier.",
+  pending: "en attente",
+  "Dossier completion": "Avancement du dossier",
+  "Complete your profile to generate certificates":
+    "Complétez votre profil pour générer des certificats",
+  complete: "terminé",
+  "Personal information complete": "Informations personnelles complètes",
+  "Employment details filled": "Détails d’emploi remplis",
+  "Rental situation configured": "Situation locative configurée",
+  "Rental situation not configured (income type / guarantor)":
+    "Situation locative non configurée (type de revenu / garant)",
+  "Configure →": "Configurer →",
+  "All required documents uploaded": "Tous les documents requis téléversés",
+  "required documents still missing": "documents requis manquants",
+  "required document still missing": "document requis manquant",
+  "Upload now →": "Téléverser maintenant →",
+  "No certificates yet": "Aucun certificat pour l’instant",
+  "certificates generated": "certificats générés",
+  "certificate generated": "certificat généré",
+  "Generate →": "Générer →",
+  "Fix →": "Corriger →",
+  "Documents uploaded": "Documents téléversés",
+  "Verified ✓": "Vérifiés ✓",
+  "Profile status": "Statut du profil",
+  "✗ Not ready": "✗ Pas prêt",
+  "Document status": "Statut des documents",
+  "Upload all required documents to generate a certificate":
+    "Téléversez tous les documents requis pour générer un certificat",
+  Missing: "Manquant",
+  Uploaded: "Téléversé",
+  confidence: "de confiance",
+  "Manage documents": "Gérer les documents",
+  "Ready to apply for a flat?": "Prêt à postuler pour un appartement ?",
+  "Generate a QR certificate for a specific property. Takes 2 minutes.":
+    "Générez un certificat QR pour un bien spécifique. 2 minutes suffisent.",
+  "New certificate →": "Nouveau certificat →",
+  "Pending review": "En attente de revue",
+  "Processing…": "Traitement…",
+  "Auto-verified": "Auto-vérifié",
+  Flagged: "Signalé",
+  Rejected: "Refusé",
+  "We couldn't find your tenant profile. Please contact support.":
+    "Nous n’avons pas trouvé votre profil locataire. Veuillez contacter le support.",
+  "Loading…": "Chargement…",
+
+  // ── Tenant: access request card ────────────────────────────────
+  "Private owner": "Propriétaire privé",
+  Agency: "Régie",
+  "Requesting access to": "Demande d’accès à",
+  Approve: "Approuver",
+  Deny: "Refuser",
+  "Access approved — the professional can now view the full dossier.":
+    "Accès approuvé — le professionnel peut maintenant consulter le dossier complet.",
+  "Access denied.": "Accès refusé.",
 };
 
 const DICTS: Record<Lang, Dict> = { en: {}, fr: FR };

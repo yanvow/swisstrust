@@ -13,6 +13,7 @@ const config: NextConfig = {
       { source: "/auth/agency-register.html", destination: "/auth/agency-register", permanent: false },
       { source: "/auth/owner-register.html", destination: "/auth/owner-register", permanent: false },
       { source: "/auth/agent-accept.html", destination: "/auth/agent-accept", permanent: false },
+      { source: "/tenant/dashboard.html", destination: "/tenant/dashboard", permanent: false },
     ];
   },
 };

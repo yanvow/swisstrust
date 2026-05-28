@@ -4,7 +4,7 @@ export function dashboardPathForRole(role: string | undefined | null): string {
   if (role === "agency" || role === "agent") return "/agency/dashboard.html";
   if (role === "owner") return "/owner/dashboard.html";
   if (role === "admin") return "/admin/dashboard.html";
-  return "/tenant/dashboard.html";
+  return "/tenant/dashboard";
 }
 
 export function validatePassword(pw: string): string | null {
