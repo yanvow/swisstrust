@@ -16,10 +16,10 @@ export default function ResetPasswordPage() {
   const [password2, setPassword2] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const sb = createClient();
 
   useEffect(() => {
     (async () => {
+      const sb = createClient();
       const url = new URL(window.location.href);
       const code = url.searchParams.get("code");
 
@@ -55,6 +55,7 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true);
+    const sb = createClient();
     const { error: err } = await sb.auth.updateUser({ password });
     if (err) {
       setError(err.message);

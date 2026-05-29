@@ -14,13 +14,12 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const sb = createClient();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    const sb = createClient();
     const redirectTo = `${window.location.origin}/auth/reset-password`;
     const { error: err } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo });
 

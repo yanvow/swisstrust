@@ -19,10 +19,10 @@ export default function TenantRegisterPage() {
   const [terms, setTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const sb = createClient();
 
   const handleGoogle = async () => {
     setError(null);
+    const sb = createClient();
     await sb.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback?role=tenant` },
@@ -44,6 +44,7 @@ export default function TenantRegisterPage() {
     }
 
     setLoading(true);
+    const sb = createClient();
     const { error: err } = await sb.auth.signUp({
       email: email.trim(),
       password,

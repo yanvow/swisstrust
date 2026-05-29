@@ -16,13 +16,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const sb = createClient();
 
   // If a session already exists and there's no ?return target, jump straight
   // to the role-based dashboard.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const sb = createClient();
       const returnUrl = new URLSearchParams(window.location.search).get("return");
       const {
         data: { session },
@@ -42,6 +42,7 @@ export default function LoginPage() {
 
   const handleGoogle = async () => {
     setError(null);
+    const sb = createClient();
     await sb.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -52,6 +53,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    const sb = createClient();
     const { data, error: err } = await sb.auth.signInWithPassword({ email: email.trim(), password });
     if (err) {
       setError(err.message);
