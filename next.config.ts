@@ -23,6 +23,9 @@ const config: NextConfig = {
       { source: "/agency/dossier.html", destination: "/agency/dossier", permanent: false },
       { source: "/agency/profile.html", destination: "/agency/profile", permanent: false },
       { source: "/agency/settings.html", destination: "/agency/settings", permanent: false },
+      { source: "/owner/dashboard.html", destination: "/owner/dashboard", permanent: false },
+      { source: "/owner/dossier.html", destination: "/owner/dossier", permanent: false },
+      { source: "/owner/settings.html", destination: "/owner/settings", permanent: false },
     ];
   },
 };
