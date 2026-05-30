@@ -14,6 +14,11 @@ const config: NextConfig = {
       { source: "/auth/owner-register.html", destination: "/auth/owner-register", permanent: false },
       { source: "/auth/agent-accept.html", destination: "/auth/agent-accept", permanent: false },
       { source: "/tenant/dashboard.html", destination: "/tenant/dashboard", permanent: false },
+      { source: "/tenant/profile.html", destination: "/tenant/profile", permanent: false },
+      { source: "/tenant/documents.html", destination: "/tenant/documents", permanent: false },
+      { source: "/tenant/certificates.html", destination: "/tenant/certificates", permanent: false },
+      { source: "/tenant/certificate-new.html", destination: "/tenant/certificate-new", permanent: false },
+      { source: "/tenant/settings.html", destination: "/tenant/settings", permanent: false },
     ];
   },
 };

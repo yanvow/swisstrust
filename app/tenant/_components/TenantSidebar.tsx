@@ -21,15 +21,15 @@ export default function TenantSidebar({
       label: t("My dossier"),
       items: [
         { href: "/tenant/dashboard", icon: "⊞", label: t("Dashboard") },
-        { href: "/tenant/profile.html", icon: "◎", label: t("My profile") },
-        { href: "/tenant/documents.html", icon: "📄", label: t("Documents") },
+        { href: "/tenant/profile", icon: "◎", label: t("My profile") },
+        { href: "/tenant/documents", icon: "📄", label: t("Documents") },
       ],
     },
     {
       label: t("Certificates"),
       items: [
-        { href: "/tenant/certificates.html", icon: "🪪", label: t("My certificates") },
-        { href: "/tenant/certificate-new.html", icon: "＋", label: t("New certificate") },
+        { href: "/tenant/certificates", icon: "🪪", label: t("My certificates") },
+        { href: "/tenant/certificate-new", icon: "＋", label: t("New certificate") },
       ],
     },
     {
@@ -38,7 +38,7 @@ export default function TenantSidebar({
     },
     {
       label: t("Account"),
-      items: [{ href: "/tenant/settings.html", icon: "⚙", label: t("Settings") }],
+      items: [{ href: "/tenant/settings", icon: "⚙", label: t("Settings") }],
     },
   ];
 
