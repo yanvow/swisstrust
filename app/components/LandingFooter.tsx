@@ -33,7 +33,7 @@ export default function LandingFooter() {
             <a href="/auth/login" className={linkClass}>
               {t("Sign in")}
             </a>
-            <a href="/verify.html" className={linkClass}>
+            <a href="/verify" className={linkClass}>
               {t("Verify a certificate")}
             </a>
           </div>

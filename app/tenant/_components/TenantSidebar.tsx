@@ -34,7 +34,7 @@ export default function TenantSidebar({
     },
     {
       label: t("Other"),
-      items: [{ href: "/verify.html", icon: "✓", label: t("Verify a certificate") }],
+      items: [{ href: "/verify", icon: "✓", label: t("Verify a certificate") }],
     },
     {
       label: t("Account"),

@@ -47,7 +47,7 @@ export default function OwnerDashboardPage() {
       alert(t("Please enter the full 12-character code (STD-XXXX-XXXX)."));
       return;
     }
-    window.location.href = `/cert/cert-view.html?code=${encodeURIComponent(upper)}`;
+    window.location.href = `/cert/cert-view?code=${encodeURIComponent(upper)}`;
   }
 
   const lookups = history.length;
@@ -293,7 +293,7 @@ function HistoryRow({ item }: { item: HistoryItem }) {
       <td className="text-sm text-gray">{date}</td>
       <td>
         <Link
-          href={`/cert/cert-view.html?code=${encodeURIComponent(item.certCode)}`}
+          href={`/cert/cert-view?code=${encodeURIComponent(item.certCode)}`}
           className="btn btn-outline btn-sm"
         >
           {t("Open")}

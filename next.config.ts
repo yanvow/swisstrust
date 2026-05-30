@@ -26,6 +26,8 @@ const config: NextConfig = {
       { source: "/owner/dashboard.html", destination: "/owner/dashboard", permanent: false },
       { source: "/owner/dossier.html", destination: "/owner/dossier", permanent: false },
       { source: "/owner/settings.html", destination: "/owner/settings", permanent: false },
+      { source: "/verify.html", destination: "/verify", permanent: false },
+      { source: "/cert/cert-view.html", destination: "/cert/cert-view", permanent: false },
     ];
   },
 };

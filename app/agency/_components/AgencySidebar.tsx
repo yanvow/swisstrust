@@ -28,7 +28,7 @@ export default function AgencySidebar({
     },
     {
       label: t("Tools"),
-      items: [{ href: "/verify.html", icon: "✓", label: t("Verify by code") }],
+      items: [{ href: "/verify", icon: "✓", label: t("Verify by code") }],
     },
     {
       label: t("Account"),

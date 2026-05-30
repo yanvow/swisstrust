@@ -320,7 +320,7 @@ export default function NewCertificatePage() {
     const salary = tenant.monthly_gross_salary || 0;
     const isEligible = salary >= total * 3;
     const certCode = generateCertCode();
-    const qrUrl = `${window.location.origin}/cert/cert-view.html?code=${certCode}`;
+    const qrUrl = `${window.location.origin}/cert/cert-view?code=${certCode}`;
 
     const { error } = await sb.from("certificates").insert({
       tenant_id: tenant.id,

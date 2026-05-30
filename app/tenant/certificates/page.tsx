@@ -237,7 +237,7 @@ function CertCard({
   }
 
   function printCert() {
-    const qrUrl = c.qr_url || `${window.location.origin}/cert/cert-view.html?code=${c.cert_code}`;
+    const qrUrl = c.qr_url || `${window.location.origin}/cert/cert-view?code=${c.cert_code}`;
     const property = [c.property_address, c.property_city].filter(Boolean).join(", ") || "—";
     const details = detailParts.join(" · ");
     const issueDate = new Date(c.created_at).toLocaleDateString("en-CH", {
@@ -352,7 +352,7 @@ body { font-family: 'Inter', sans-serif; background: white; color: #111827; padd
         </div>
         <div className="flex gap-2 items-center flex-wrap">
           <Link
-            href={`/cert/cert-view.html?code=${c.cert_code}`}
+            href={`/cert/cert-view?code=${c.cert_code}`}
             className="btn btn-outline btn-sm"
           >
             {t("View certificate")}
