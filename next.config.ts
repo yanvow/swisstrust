@@ -19,6 +19,10 @@ const config: NextConfig = {
       { source: "/tenant/certificates.html", destination: "/tenant/certificates", permanent: false },
       { source: "/tenant/certificate-new.html", destination: "/tenant/certificate-new", permanent: false },
       { source: "/tenant/settings.html", destination: "/tenant/settings", permanent: false },
+      { source: "/agency/dashboard.html", destination: "/agency/dashboard", permanent: false },
+      { source: "/agency/dossier.html", destination: "/agency/dossier", permanent: false },
+      { source: "/agency/profile.html", destination: "/agency/profile", permanent: false },
+      { source: "/agency/settings.html", destination: "/agency/settings", permanent: false },
     ];
   },
 };
