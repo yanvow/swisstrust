@@ -28,6 +28,12 @@ const config: NextConfig = {
       { source: "/owner/settings.html", destination: "/owner/settings", permanent: false },
       { source: "/verify.html", destination: "/verify", permanent: false },
       { source: "/cert/cert-view.html", destination: "/cert/cert-view", permanent: false },
+      { source: "/admin/dashboard.html", destination: "/admin/dashboard", permanent: false },
+      { source: "/admin/tenants.html", destination: "/admin/tenants", permanent: false },
+      { source: "/admin/agencies.html", destination: "/admin/agencies", permanent: false },
+      { source: "/admin/owners.html", destination: "/admin/owners", permanent: false },
+      { source: "/admin/documents.html", destination: "/admin/documents", permanent: false },
+      { source: "/admin/certificates.html", destination: "/admin/certificates", permanent: false },
     ];
   },
 };

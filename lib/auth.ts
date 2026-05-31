@@ -1,9 +1,9 @@
 export type Role = "tenant" | "agency" | "agent" | "owner" | "admin";
 
 export function dashboardPathForRole(role: string | undefined | null): string {
-  if (role === "agency" || role === "agent") return "/agency/dashboard.html";
-  if (role === "owner") return "/owner/dashboard.html";
-  if (role === "admin") return "/admin/dashboard.html";
+  if (role === "agency" || role === "agent") return "/agency/dashboard";
+  if (role === "owner") return "/owner/dashboard";
+  if (role === "admin") return "/admin/dashboard";
   return "/tenant/dashboard";
 }
 
