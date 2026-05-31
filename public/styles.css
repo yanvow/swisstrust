@@ -555,3 +555,16 @@ tr:hover td { background: var(--gray-100); }
 .preview-body img { max-width:100%; max-height:75vh; display:block; margin:auto; padding:16px; box-sizing:border-box; }
 .preview-loading { display:flex; align-items:center; justify-content:center; height:300px; font-size:.875rem; color:var(--gray-400); }
 .preview-err { display:flex; align-items:center; justify-content:center; height:200px; font-size:.875rem; color:var(--red); }
+
+/* ── Recovered: agency dashboard group-by-address wrapper ─ */
+.addr-group { border: 1px solid var(--gray-200); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+
+/* ── Recovered: admin clickable table rows ──────────────── */
+.clickable { cursor: pointer; }
+.clickable:hover td { background: var(--gray-100); }
+
+/* ── Recovered: public cert-view tier banners ───────────── */
+.tier-banner { padding: 10px 24px; font-size: .8rem; font-weight: 600; text-align: center; letter-spacing: .03em; }
+.tier-banner--public { background: var(--gray-200); color: var(--gray-600); }
+.tier-banner--agency { background: #DCFCE7; color: #15803D; border-bottom: 1px solid #86EFAC; }
+.tier-banner--onrequest { background: #FFF7ED; color: #C2410C; border-bottom: 1px solid #FED7AA; }
