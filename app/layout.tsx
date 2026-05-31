@@ -19,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap"
           rel="stylesheet"
         />
+        <link rel="stylesheet" href="/styles.css" />
       </head>
       <body>
         <I18nProvider>{children}</I18nProvider>
