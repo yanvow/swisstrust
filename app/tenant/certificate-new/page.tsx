@@ -830,6 +830,26 @@ export default function NewCertificatePage() {
           </Link>
         </div>
 
+        {loaded && !tenant && (
+          <div
+            className="mt-3 rounded-[2px] p-4 text-sm"
+            style={{
+              background: "#FEF2F2",
+              border: "1px solid #FECACA",
+              color: "var(--red)",
+            }}
+          >
+            <strong>{t("Profile not completed.")}</strong>{" "}
+            <Link
+              href="/tenant/profile"
+              className="font-semibold underline"
+              style={{ color: "var(--red)" }}
+            >
+              {t("Fill in your profile →")}
+            </Link>
+          </div>
+        )}
+
         {validity && !validity.valid && (
           <div
             className="mt-3 rounded-[2px] p-4 text-sm"

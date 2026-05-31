@@ -86,6 +86,17 @@ export default function TenantDocumentsPage() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    if (preview) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [preview]);
+
   if (!loaded || !tenant) {
     return (
       <div className="text-gray-400 text-sm" style={{ padding: 40, textAlign: "center" }}>

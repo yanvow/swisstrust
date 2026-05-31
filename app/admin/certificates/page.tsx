@@ -168,7 +168,7 @@ function EditModal({ cert, onClose, onSaved, onDeleted }: { cert: Cert; onClose:
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ background: "white", borderRadius: "var(--radius)", width: "100%", maxWidth: 720, maxHeight: "90vh", overflowY: "auto", padding: 32, boxShadow: "var(--shadow-lg)" }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ background: "white", borderRadius: "var(--radius)", width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto", padding: 32, boxShadow: "var(--shadow-lg)" }} onClick={(e) => e.stopPropagation()}>
         <div className="flex-between mb-4">
           <div>
             <div style={{ fontWeight: 700, fontSize: "1.1rem" }}>{cert.cert_code}</div>

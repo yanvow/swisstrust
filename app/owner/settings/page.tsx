@@ -40,7 +40,28 @@ type Invoice = {
   issued_at: string;
 };
 
-const PHONE_CODES = ["+41", "+33", "+49", "+39", "+43", "+32", "+31", "+34", "+351", "+44", "+1"];
+const PHONE_CODES = [
+  { value: "+41", label: "🇨🇭 +41" },
+  { value: "+33", label: "🇫🇷 +33" },
+  { value: "+49", label: "🇩🇪 +49" },
+  { value: "+39", label: "🇮🇹 +39" },
+  { value: "+43", label: "🇦🇹 +43" },
+  { value: "+32", label: "🇧🇪 +32" },
+  { value: "+31", label: "🇳🇱 +31" },
+  { value: "+34", label: "🇪🇸 +34" },
+  { value: "+351", label: "🇵🇹 +351" },
+  { value: "+44", label: "🇬🇧 +44" },
+  { value: "+1", label: "🇺🇸 +1" },
+  { value: "+55", label: "🇧🇷 +55" },
+  { value: "+86", label: "🇨🇳 +86" },
+  { value: "+91", label: "🇮🇳 +91" },
+  { value: "+81", label: "🇯🇵 +81" },
+  { value: "+7", label: "🇷🇺 +7" },
+  { value: "+90", label: "🇹🇷 +90" },
+  { value: "+212", label: "🇲🇦 +212" },
+  { value: "+213", label: "🇩🇿 +213" },
+  { value: "+216", label: "🇹🇳 +216" },
+];
 
 export default function OwnerSettingsPage() {
   const t = useT();
@@ -275,18 +296,21 @@ function OptionsTab({ userId, email }: { userId: string; email: string }) {
             desc={t("Get notified when a tenant approves your full-dossier access request.")}
             checked={prefs.accessApproved}
             onChange={(v) => saveNotifs({ ...prefs, accessApproved: v })}
+            divider
           />
           <Toggle
             title={t("Weekly digest")}
             desc={t("A weekly summary of your certificate verifications and lookups.")}
             checked={prefs.weeklyDigest}
             onChange={(v) => saveNotifs({ ...prefs, weeklyDigest: v })}
+            divider
           />
           <Toggle
             title={t("Product news")}
             desc={t("Occasional emails about new Checks features and updates.")}
             checked={prefs.productNews}
             onChange={(v) => saveNotifs({ ...prefs, productNews: v })}
+            divider
           />
         </div>
       </fieldset>
@@ -663,8 +687,8 @@ function PaymentTab({ userId }: { userId: string }) {
                 onChange={(e) => setBilling({ ...billing, phone_country_code: e.target.value })}
               >
                 {PHONE_CODES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                  <option key={c.value} value={c.value}>
+                    {c.label}
                   </option>
                 ))}
               </select>
@@ -1086,9 +1110,11 @@ function AddPaymentModal({
                 value={twint.cc}
                 onChange={(e) => setTwint({ ...twint, cc: e.target.value })}
               >
-                <option value="+41">+41</option>
-                <option value="+33">+33</option>
-                <option value="+49">+49</option>
+                {PHONE_CODES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
               </select>
               <input
                 type="tel"
@@ -1150,14 +1176,21 @@ function Toggle({
   desc,
   checked,
   onChange,
+  divider,
 }: {
   title: string;
   desc: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  divider?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div
+      className={[
+        "flex items-start justify-between gap-4",
+        divider ? "border-t border-gray-100 pt-[18px]" : "",
+      ].join(" ")}
+    >
       <div>
         <div className="font-semibold text-[0.9rem]">{title}</div>
         <div className="text-sm text-gray-400 mt-1">{desc}</div>

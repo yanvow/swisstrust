@@ -1042,6 +1042,12 @@ const FR: Dict = {
   "Deactivate this certificate? The QR code and cert code will no longer work.":
     "Désactiver ce certificat ? Le QR code et le code cesseront de fonctionner.",
   File: "Fichier",
+
+  // UI parity fixes
+  "Profile not completed.": "Profil non complété.",
+  "Fill in your profile →": "Complétez votre profil →",
+  "Could not generate download link.": "Impossible de générer le lien de téléchargement.",
+  "Downloading…": "Téléchargement…",
 };
 
 const DICTS: Record<Lang, Dict> = { en: {}, fr: FR };

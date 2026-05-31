@@ -113,6 +113,7 @@ export default function AgencyDossierPage() {
     mime: string;
   } | null>(null);
   const [zipBusy, setZipBusy] = useState(false);
+  const [downloadErrors, setDownloadErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const sb = createClient();
@@ -200,6 +201,14 @@ export default function AgencyDossierPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!preview) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [preview]);
+
   async function openPreview(storagePath: string, fileName: string, mime: string) {
     setPreview({ fileName, blobUrl: "", mime });
     const sb = createClient();
@@ -226,12 +235,21 @@ export default function AgencyDossierPage() {
     setPreview(null);
   }
 
-  async function downloadOne(storagePath: string, fileName: string) {
+  async function downloadOne(storagePath: string, fileName: string, docKey: string) {
+    setDownloadErrors((prev) => {
+      if (!prev[docKey]) return prev;
+      const next = { ...prev };
+      delete next[docKey];
+      return next;
+    });
     const sb = createClient();
     const { data, error } = await sb.functions.invoke("signed-url", {
       body: { storage_path: storagePath },
     });
-    if (error || !data?.url) return;
+    if (error || !data?.url) {
+      setDownloadErrors((prev) => ({ ...prev, [docKey]: true }));
+      return;
+    }
     try {
       const resp = await fetch(data.url);
       const blob = await resp.blob();
@@ -244,7 +262,7 @@ export default function AgencyDossierPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch {
-      /* ignore */
+      setDownloadErrors((prev) => ({ ...prev, [docKey]: true }));
     }
   }
 
@@ -441,7 +459,7 @@ export default function AgencyDossierPage() {
       <div className="card mb-6">
         <div
           className="card-header"
-          style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}
+          style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}
         >
           <div>
             <div className="card-title">{t("Verified documents")}</div>
@@ -467,6 +485,7 @@ export default function AgencyDossierPage() {
                 doc={doc}
                 onPreview={openPreview}
                 onDownload={downloadOne}
+                downloadError={!!downloadErrors[meta.key]}
               />
             );
           })}
@@ -594,11 +613,13 @@ function DocBlock({
   doc,
   onPreview,
   onDownload,
+  downloadError,
 }: {
   meta: { key: string; label: string; icon: string };
   doc?: Doc;
   onPreview: (storagePath: string, fileName: string, mime: string) => void;
-  onDownload: (storagePath: string, fileName: string) => Promise<void>;
+  onDownload: (storagePath: string, fileName: string, docKey: string) => Promise<void>;
+  downloadError: boolean;
 }) {
   const t = useT();
   if (!doc) {
@@ -670,12 +691,18 @@ function DocBlock({
               onDownload(
                 doc.storage_path,
                 doc.file_name || doc.storage_path.split("/").pop() || "",
+                meta.key,
               )
             }
           >
             {t("Download")}
           </button>
         </div>
+        {downloadError && (
+          <div style={{ color: "var(--red)", fontSize: ".75rem", marginTop: 4 }}>
+            {t("Could not generate download link.")}
+          </div>
+        )}
       </div>
     </div>
   );

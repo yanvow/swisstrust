@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import {
   computeCertValidity,
@@ -177,10 +178,10 @@ export default function TenantDashboardPage() {
           <Checkpoint
             done={profileComplete}
             label={t("Personal information complete")}
-            link="/tenant/profile.html"
+            link="/tenant/profile"
             t={t}
           />
-          <Checkpoint done={hasEmployment} label={t("Employment details filled")} link="/tenant/profile.html" t={t} />
+          <Checkpoint done={hasEmployment} label={t("Employment details filled")} link="/tenant/profile" t={t} />
           <Checkpoint
             done={rentalConfigured}
             label={
@@ -188,7 +189,7 @@ export default function TenantDashboardPage() {
                 ? t("Rental situation configured")
                 : t("Rental situation not configured (income type / guarantor)")
             }
-            link="/tenant/profile.html"
+            link="/tenant/profile"
             linkLabel={t("Configure →")}
             t={t}
           />
@@ -201,7 +202,7 @@ export default function TenantDashboardPage() {
                     missingRequired > 1 ? t("required documents still missing") : t("required document still missing")
                   }`
             }
-            link="/tenant/documents.html"
+            link="/tenant/documents"
             linkLabel={t("Upload now →")}
             t={t}
           />
@@ -212,7 +213,7 @@ export default function TenantDashboardPage() {
                 ? `${certCount} ${certCount > 1 ? t("certificates generated") : t("certificate generated")}`
                 : t("No certificates yet")
             }
-            link="/tenant/certificate-new.html"
+            link="/tenant/certificate-new"
             linkLabel={t("Generate →")}
             t={t}
           />
@@ -264,6 +265,7 @@ export default function TenantDashboardPage() {
                 icon={dt.icon}
                 title={dt.label}
                 subtitle={`${confPct}${t("Uploaded")} ${uploaded}`}
+                status={doc.status as DocStatus}
               >
                 <span className={STATUS_BADGE_CLASS[doc.status]}>
                   {t(STATUS_LABEL[doc.status as DocStatus] || doc.status)}
@@ -274,9 +276,9 @@ export default function TenantDashboardPage() {
         </div>
 
         <div className="mt-5">
-          <a href="/tenant/documents.html" className="btn btn-outline btn-sm">
+          <Link href="/tenant/documents" className="btn btn-outline btn-sm">
             {t("Manage documents")}
-          </a>
+          </Link>
         </div>
       </section>
 
@@ -288,9 +290,9 @@ export default function TenantDashboardPage() {
               {t("Generate a QR certificate for a specific property. Takes 2 minutes.")}
             </div>
           </div>
-          <a href="/tenant/certificate-new.html" className="btn btn-primary whitespace-nowrap">
+          <Link href="/tenant/certificate-new" className="btn btn-primary whitespace-nowrap">
             {t("New certificate →")}
-          </a>
+          </Link>
         </div>
       </section>
     </>
@@ -349,12 +351,12 @@ function Checkpoint({
       <span style={{ color: done ? "#0A7D44" : "#888" }}>{done ? "✓" : "○"}</span>
       <span style={{ color: done ? "inherit" : "#888" }}>{label}</span>
       {!done && link ? (
-        <a
+        <Link
           href={link}
           className="ml-auto text-[0.8rem] text-charcoal font-semibold hover:underline"
         >
           {linkLabel || t("Fix →")}
-        </a>
+        </Link>
       ) : null}
     </div>
   );
@@ -364,15 +366,26 @@ function DocRow({
   icon,
   title,
   subtitle,
+  status,
   children,
 }: {
   icon: string;
   title: string;
   subtitle: string;
+  status?: DocStatus;
   children: React.ReactNode;
 }) {
+  const borderColor =
+    status === "auto_verified"
+      ? "#86EFAC"
+      : status === "flagged"
+        ? "#FCD34D"
+        : undefined;
   return (
-    <div className="flex items-center gap-3 border border-gray-200 rounded-[2px] px-3 py-3">
+    <div
+      className="flex items-center gap-3 border border-gray-200 rounded-[2px] px-3 py-3"
+      style={borderColor ? { borderColor } : undefined}
+    >
       <div className="text-xl w-6 text-center">{icon}</div>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-charcoal truncate">{title}</div>

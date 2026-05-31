@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useT } from "@/lib/i18n";
+import { NATIONALITIES } from "@/lib/profile-constants";
 
 type Tenant = {
   id: string;
@@ -275,7 +276,18 @@ function EditModal({
       <div style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 12 }}>{t("Profile")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label={t("Full name")}><input type="text" value={form.full_name} onChange={(e) => up("full_name", e.target.value)} /></Field>
-        <Field label={t("Nationality")}><input type="text" value={form.nationality} onChange={(e) => up("nationality", e.target.value)} /></Field>
+        <Field label={t("Nationality")}>
+          <select value={form.nationality} onChange={(e) => up("nationality", e.target.value)}>
+            <option value="">—</option>
+            {NATIONALITIES.map((g) => (
+              <optgroup key={g.group} label={g.group}>
+                {g.options.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </Field>
         <Field label={t("Date of birth")}><input type="date" value={form.date_of_birth} onChange={(e) => up("date_of_birth", e.target.value)} /></Field>
         <Field label={t("Permit type")}>
           <select value={form.permit_type} onChange={(e) => up("permit_type", e.target.value)}>

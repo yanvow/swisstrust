@@ -112,6 +112,8 @@ export default function OwnerDossierPage() {
     mime: string;
   } | null>(null);
   const [zipBusy, setZipBusy] = useState(false);
+  const [dlBusy, setDlBusy] = useState<Record<string, boolean>>({});
+  const [dlError, setDlError] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const sb = createClient();
@@ -198,6 +200,14 @@ export default function OwnerDossierPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!preview) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [preview]);
+
   async function openPreview(storagePath: string, fileName: string, mime: string) {
     setPreview({ fileName, blobUrl: "", mime });
     const sb = createClient();
@@ -224,12 +234,18 @@ export default function OwnerDossierPage() {
     setPreview(null);
   }
 
-  async function downloadOne(storagePath: string, fileName: string) {
+  async function downloadOne(docId: string, storagePath: string, fileName: string) {
+    setDlBusy((b) => ({ ...b, [docId]: true }));
+    setDlError((e) => ({ ...e, [docId]: false }));
     const sb = createClient();
     const { data, error } = await sb.functions.invoke("signed-url", {
       body: { storage_path: storagePath },
     });
-    if (error || !data?.url) return;
+    if (error || !data?.url) {
+      setDlBusy((b) => ({ ...b, [docId]: false }));
+      setDlError((e) => ({ ...e, [docId]: true }));
+      return;
+    }
     try {
       const resp = await fetch(data.url);
       const blob = await resp.blob();
@@ -242,7 +258,9 @@ export default function OwnerDossierPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch {
-      /* ignore */
+      setDlError((e) => ({ ...e, [docId]: true }));
+    } finally {
+      setDlBusy((b) => ({ ...b, [docId]: false }));
     }
   }
 
@@ -333,7 +351,16 @@ export default function OwnerDossierPage() {
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <div className="verified-badge">✓ {t("Identity Verified")}</div>
+          <div className="verified-badge">
+            <svg viewBox="0 0 20 20" fill="currentColor" style={{ width: 18, height: 18 }}>
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                clipRule="evenodd"
+              />
+            </svg>{" "}
+            {t("Identity Verified")}
+          </div>
           <span
             className={`badge ${certIsActive ? "badge-green" : "badge-red"}`}
             style={{ fontSize: "1rem", padding: "7px 18px" }}
@@ -433,7 +460,12 @@ export default function OwnerDossierPage() {
       <div className="card mb-6">
         <div
           className="card-header"
-          style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}
+          style={{
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            alignItems: "flex-start",
+          }}
         >
           <div>
             <div className="card-title">{t("Verified documents")}</div>
@@ -457,6 +489,8 @@ export default function OwnerDossierPage() {
               doc={byType[meta.key]}
               onPreview={openPreview}
               onDownload={downloadOne}
+              dlBusy={byType[meta.key] ? !!dlBusy[byType[meta.key].id] : false}
+              dlError={byType[meta.key] ? !!dlError[byType[meta.key].id] : false}
             />
           ))}
         </div>
@@ -580,11 +614,15 @@ function DocBlock({
   doc,
   onPreview,
   onDownload,
+  dlBusy,
+  dlError,
 }: {
   meta: { key: string; label: string; icon: string };
   doc?: Doc;
   onPreview: (storagePath: string, fileName: string, mime: string) => void;
-  onDownload: (storagePath: string, fileName: string) => Promise<void>;
+  onDownload: (docId: string, storagePath: string, fileName: string) => Promise<void>;
+  dlBusy: boolean;
+  dlError: boolean;
 }) {
   const t = useT();
   if (!doc) {
@@ -650,16 +688,23 @@ function DocBlock({
           </button>
           <button
             className="btn btn-outline btn-sm"
+            disabled={dlBusy}
             onClick={() =>
               onDownload(
+                doc.id,
                 doc.storage_path,
                 doc.file_name || doc.storage_path.split("/").pop() || "",
               )
             }
           >
-            {t("Download")}
+            {dlBusy ? t("Downloading…") : t("Download")}
           </button>
         </div>
+        {dlError && (
+          <div className="text-red" style={{ fontSize: ".75rem", marginTop: 4 }}>
+            {t("Could not generate download link.")}
+          </div>
+        )}
       </div>
     </div>
   );

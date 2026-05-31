@@ -234,7 +234,7 @@ function DetailModal({ agency, onClose, onSaved, onDeleted }: { agency: Agency; 
   }
 
   return (
-    <Modal onClose={onClose} title={agency.company_name} meta={`${agency.contact_email || "—"} · ${agency.is_verified ? t("Verified") : t("Unverified")}${agency.is_suspended ? " · " + t("Suspended") : ""}`}>
+    <Modal onClose={onClose} title={agency.company_name} maxWidth={660} meta={`${agency.contact_email || "—"} · ${agency.is_verified ? t("Verified") : t("Unverified")}${agency.is_suspended ? " · " + t("Suspended") : ""}`}>
       {err && <div style={{ color: "var(--red)", fontSize: ".875rem", margin: "12px 0" }}>{err}</div>}
       <hr style={{ border: "none", borderTop: "1px solid var(--gray-200)", margin: "20px 0" }} />
       <div style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 12 }}>{t("Agency details")}</div>

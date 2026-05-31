@@ -259,7 +259,7 @@ function CertCard({
 body { font-family: 'Inter', sans-serif; background: white; color: #111827; padding: 48px; max-width: 680px; margin: 0 auto; }
 .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #111827; }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.25rem; }
-.logo-mark { background: #111827; color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+.logo-mark { background: #111827; color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .875rem; font-weight: 900; }
 .verified { display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; color: #15803d; border: 1px solid #86efac; border-radius: 20px; padding: 5px 14px; font-size: .8rem; font-weight: 600; }
 .body { display: flex; gap: 40px; align-items: flex-start; margin-bottom: 32px; }
 .qr-wrap { flex-shrink: 0; }
@@ -400,7 +400,7 @@ body { font-family: 'Inter', sans-serif; background: white; color: #111827; padd
                       key={log.id}
                       className="flex items-center gap-2.5 py-1.5 border-b border-gray-100 text-[0.8125rem]"
                     >
-                      <span className="flex-shrink-0">
+                      <span className="flex-shrink-0" style={{ fontSize: "1rem" }}>
                         {VIEWER_ICON[log.viewer_type] || "👁"}
                       </span>
                       <span className="flex-1 text-charcoal">

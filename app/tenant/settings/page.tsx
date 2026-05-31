@@ -366,6 +366,7 @@ function OptionsTab({
             onChange={(v) => savePrefs({ ...prefs, certViewed: v })}
           />
           <Toggle
+            divider
             title={t("Access request decided")}
             desc={t(
               "Get notified when a landlord's full-dossier access request is approved or denied.",
@@ -374,12 +375,14 @@ function OptionsTab({
             onChange={(v) => savePrefs({ ...prefs, accessRequest: v })}
           />
           <Toggle
+            divider
             title={t("Weekly digest")}
             desc={t("A weekly summary of your certificate activity and dossier views.")}
             checked={prefs.weeklyDigest}
             onChange={(v) => savePrefs({ ...prefs, weeklyDigest: v })}
           />
           <Toggle
+            divider
             title={t("Product news")}
             desc={t("Occasional emails about new Checks features and updates.")}
             checked={prefs.productNews}
@@ -1257,12 +1260,13 @@ function AddPaymentModal({
         )}
 
         <div className="form-group">
-          <label className="inline-flex items-center gap-2.5 cursor-pointer font-normal">
+          <label className="toggle inline-flex items-center gap-2.5 cursor-pointer font-normal">
             <input
               type="checkbox"
               checked={isDefault}
               onChange={(e) => setIsDefault(e.target.checked)}
             />
+            <span className="toggle-slider" />
             <span className="text-sm">{t("Set as default payment method")}</span>
           </label>
         </div>
@@ -1311,14 +1315,20 @@ function Toggle({
   desc,
   checked,
   onChange,
+  divider,
 }: {
   title: string;
   desc: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  divider?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div
+      className={`flex items-start justify-between gap-4${
+        divider ? " border-t border-gray-100 pt-[18px]" : ""
+      }`}
+    >
       <div>
         <div className="font-semibold text-[0.9rem]">{title}</div>
         <div className="text-sm text-gray-400 mt-1">{desc}</div>
