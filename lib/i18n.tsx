@@ -1048,6 +1048,42 @@ const FR: Dict = {
   "Fill in your profile →": "Complétez votre profil →",
   "Could not generate download link.": "Impossible de générer le lien de téléchargement.",
   "Downloading…": "Téléchargement…",
+
+  // Admin payment / detail sections
+  Name: "Nom",
+  "Billing info": "Informations de facturation",
+  Email: "E-mail",
+  "Tax IDs": "Numéros fiscaux",
+  Wire: "Virement",
+  Invoices: "Factures",
+  "No payment information on file.": "Aucune information de paiement enregistrée.",
+  "No auth account linked.": "Aucun compte lié.",
+  "Review all in Documents →": "Tout examiner dans Documents →",
+  "Government identity": "Identité officielle",
+  "Identity locked": "Identité verrouillée",
+  "Not locked": "Non verrouillée",
+  "Unlock for editing": "Déverrouiller pour modifier",
+  "Add accepted name": "Ajouter un nom accepté",
+  "Approve & unlock": "Approuver et déverrouiller",
+  "Reject request": "Rejeter la demande",
+  "Review request pending": "Demande d’examen en attente",
+  "Accepted alternate names:": "Noms alternatifs acceptés :",
+  "Clear all information": "Effacer toutes les informations",
+  "Clear agency information": "Effacer les informations de la régie",
+  "Clearing…": "Effacement…",
+  "No documents uploaded yet.": "Aucun document téléversé pour l’instant.",
+  "Unlock this tenant's government identity for editing?":
+    "Déverrouiller l’identité officielle de ce locataire pour modification ?",
+  "Reject this review request? The identity lock stays unchanged.":
+    "Rejeter cette demande d’examen ? Le verrouillage d’identité reste inchangé.",
+  "Enter an alternate accepted name (e.g. maiden name):":
+    "Saisissez un autre nom accepté (p. ex. nom de jeune fille) :",
+  "Unlock this guarantor's government identity for editing?":
+    "Déverrouiller l’identité officielle de ce garant pour modification ?",
+  "Delete ALL documents for this tenant? Files are permanently removed from storage.":
+    "Supprimer TOUS les documents de ce locataire ? Les fichiers sont définitivement supprimés du stockage.",
+  "Clear ALL profile information for this tenant? This resets their profile to blank.":
+    "Effacer TOUTES les informations de profil de ce locataire ? Son profil est réinitialisé.",
 };
 
 const DICTS: Record<Lang, Dict> = { en: {}, fr: FR };

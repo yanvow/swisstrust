@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useT } from "@/lib/i18n";
+import PaymentSection from "../_components/PaymentSection";
 
 type Agency = {
   id: string;
@@ -174,6 +175,8 @@ function DetailModal({ agency, onClose, onSaved, onDeleted }: { agency: Agency; 
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [newAgentEmail, setNewAgentEmail] = useState("");
   const [agentErr, setAgentErr] = useState("");
+  const [dangerErr, setDangerErr] = useState("");
+  const [clearing, setClearing] = useState(false);
 
   async function loadAgents() {
     setAgentsLoading(true);
@@ -209,6 +212,17 @@ function DetailModal({ agency, onClose, onSaved, onDeleted }: { agency: Agency; 
     const { error } = await sb.from("agencies").delete().eq("id", agency.id);
     if (error) { alert("Error: " + error.message); return; }
     onDeleted(agency.id);
+  }
+
+  async function clearInfo() {
+    if (!confirm(`Clear agency information for "${agency.company_name}"? This cannot be undone.`)) return;
+    setClearing(true); setDangerErr("");
+    const cleared = { company_name: "", address: "", contact_email: "" };
+    const { error } = await sb.from("agencies").update(cleared).eq("id", agency.id);
+    setClearing(false);
+    if (error) { setDangerErr(error.message); return; }
+    setForm((f) => ({ ...f, company_name: "", address: "", contact_email: "" }));
+    onSaved({ ...agency, ...cleared });
   }
 
   async function addAgent() {
@@ -284,6 +298,19 @@ function DetailModal({ agency, onClose, onSaved, onDeleted }: { agency: Agency; 
         </div>
         {agentErr && <div style={{ color: "var(--red)", fontSize: ".8rem", marginTop: 6 }}>{agentErr}</div>}
       </div>
+
+      <hr style={{ border: "none", borderTop: "1px solid var(--gray-200)", margin: "20px 0" }} />
+      <div style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 12 }}>{t("Payment")}</div>
+      <PaymentSection userId={agency.user_id} />
+
+      <hr style={{ border: "none", borderTop: "1px solid var(--gray-200)", margin: "20px 0" }} />
+      <div style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 12, color: "var(--red)" }}>{t("Danger zone")}</div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="btn btn-outline btn-sm" onClick={clearInfo} disabled={clearing} style={{ color: "var(--amber)", borderColor: "var(--amber)" }}>
+          {clearing ? t("Clearing…") : t("Clear agency information")}
+        </button>
+      </div>
+      {dangerErr && <div style={{ color: "var(--red)", fontSize: ".8rem", marginTop: 8 }}>{dangerErr}</div>}
     </Modal>
   );
 }

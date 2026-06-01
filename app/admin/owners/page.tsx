@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useT } from "@/lib/i18n";
+import PaymentSection from "../_components/PaymentSection";
 
 type Owner = {
   id: string;
@@ -108,6 +109,21 @@ function EditModal({ owner, onClose, onSaved, onDeleted }: { owner: Owner; onClo
   const [form, setForm] = useState({ full_name: owner.full_name || "", phone: owner.phone || "", property_address: owner.property_address || "" });
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
+  const [dangerErr, setDangerErr] = useState("");
+  const [clearing, setClearing] = useState(false);
+
+  async function clearInfo() {
+    if (!confirm(`Clear profile information for "${owner.full_name || "this owner"}"? This cannot be undone.`)) return;
+    setClearing(true); setDangerErr("");
+    const { error } = await sb
+      .from("owners")
+      .update({ full_name: null, phone: null, property_address: null, updated_at: new Date().toISOString() })
+      .eq("id", owner.id);
+    setClearing(false);
+    if (error) { setDangerErr(error.message); return; }
+    setForm({ full_name: "", phone: "", property_address: "" });
+    onSaved({ ...owner, full_name: null, phone: null, property_address: null });
+  }
 
   async function save() {
     setSaving(true); setErr("");
@@ -156,6 +172,19 @@ function EditModal({ owner, onClose, onSaved, onDeleted }: { owner: Owner; onClo
             <button className="btn btn-outline btn-sm" onClick={del} style={{ color: "var(--red)", borderColor: "var(--red)" }}>{t("Delete")}</button>
           </div>
         </div>
+
+        <hr style={{ border: "none", borderTop: "1px solid var(--gray-200)", margin: "20px 0" }} />
+        <div style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 12 }}>{t("Payment")}</div>
+        <PaymentSection userId={owner.user_id} />
+
+        <hr style={{ border: "none", borderTop: "1px solid var(--gray-200)", margin: "20px 0" }} />
+        <div style={{ fontWeight: 600, fontSize: ".9rem", color: "var(--red)", marginBottom: 12 }}>{t("Danger zone")}</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn btn-outline btn-sm" onClick={clearInfo} disabled={clearing} style={{ color: "var(--amber)", borderColor: "var(--amber)" }}>
+            {clearing ? t("Clearing…") : t("Clear all information")}
+          </button>
+        </div>
+        {dangerErr && <div style={{ color: "var(--red)", fontSize: ".8rem", marginTop: 8 }}>{dangerErr}</div>}
       </div>
     </div>
   );

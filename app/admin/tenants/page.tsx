@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useT } from "@/lib/i18n";
 import { NATIONALITIES } from "@/lib/profile-constants";
+import PaymentSection from "../_components/PaymentSection";
 
 type Tenant = {
   id: string;
@@ -34,6 +35,35 @@ type Tenant = {
   guarantor_full_name?: string | null;
   guarantor_date_of_birth?: string | null;
   guarantor_gov_info_review_note?: string | null;
+};
+
+type TenantDoc = {
+  id: string;
+  doc_type: string;
+  file_name: string | null;
+  status: string | null;
+  confidence_score: number | null;
+  created_at: string;
+  storage_path: string | null;
+  rejection_reason: string | null;
+};
+
+const DOC_LABELS: Record<string, string> = {
+  passport_id: "Passport / Swiss ID", residence_permit: "Residence permit",
+  betreibungsauszug: "Debt enforcement register", reference_letter: "Reference letter",
+  salary_slip_1: "Salary slip 1", salary_slip_2: "Salary slip 2", salary_slip_3: "Salary slip 3",
+  balance_sheet: "Balance sheet", tax_assessment: "Tax assessment", bank_statement: "Bank statement",
+  net_income_proof: "Net income proof", turnover_proof: "Turnover proof",
+  avs_affiliation: "AVS affiliation", commercial_register: "Commercial register",
+  guarantor_id: "Guarantor ID", guarantor_salary_slip_1: "Guarantor salary 1",
+  guarantor_salary_slip_2: "Guarantor salary 2", guarantor_salary_slip_3: "Guarantor salary 3",
+  guarantor_betreibungsauszug: "Guarantor debt register",
+  unemployment_benefit_1: "Unemployment benefit 1", unemployment_benefit_2: "Unemployment benefit 2",
+  unemployment_benefit_3: "Unemployment benefit 3", welfare_rent_coverage: "Welfare rent coverage",
+};
+const DOC_STATUS_BADGE: Record<string, string> = {
+  pending: "badge-amber", processing: "badge-blue",
+  auto_verified: "badge-green", flagged: "badge-amber", rejected: "badge-red",
 };
 
 export default function AdminTenantsPage() {
@@ -227,6 +257,86 @@ function EditModal({
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Live copy so gov-identity actions update the modal without a reload
+  const [live, setLive] = useState<Tenant>(tenant);
+  const [docs, setDocs] = useState<TenantDoc[]>([]);
+  const [docsLoading, setDocsLoading] = useState(true);
+  const [dangerErr, setDangerErr] = useState("");
+  const [deletingDocs, setDeletingDocs] = useState(false);
+  const [clearingInfo, setClearingInfo] = useState(false);
+
+  async function loadDocs() {
+    setDocsLoading(true);
+    const { data } = await sb
+      .from("documents")
+      .select("id, doc_type, file_name, status, confidence_score, created_at, storage_path, rejection_reason")
+      .eq("tenant_id", tenant.id)
+      .order("doc_type");
+    setDocs((data as TenantDoc[]) || []);
+    setDocsLoading(false);
+  }
+  useEffect(() => { loadDocs(); /* eslint-disable-next-line */ }, []);
+
+  // Apply a gov-identity update, sync local + parent state
+  async function applyGov(fields: Partial<Tenant>) {
+    const { data, error } = await sb.from("tenants").update(fields).eq("id", tenant.id).select().single();
+    if (error) { alert("Error: " + error.message); return; }
+    const updated = { ...live, ...(data as Tenant) };
+    setLive(updated);
+    onSaved(updated);
+  }
+  function unlockGov() {
+    if (!confirm(t("Unlock this tenant's government identity for editing?"))) return;
+    applyGov({ is_gov_info_locked: false, gov_info_review_requested: false, gov_info_review_note: null });
+  }
+  function rejectGov() {
+    if (!confirm(t("Reject this review request? The identity lock stays unchanged."))) return;
+    applyGov({ gov_info_review_requested: false, gov_info_review_note: null });
+  }
+  function addAcceptedName() {
+    const name = prompt(t("Enter an alternate accepted name (e.g. maiden name):"));
+    if (!name || !name.trim()) return;
+    const existing = Array.isArray(live.accepted_names) ? live.accepted_names : [];
+    applyGov({ accepted_names: [...new Set([...existing, name.trim()])], gov_info_review_requested: false, gov_info_review_note: null });
+  }
+  function unlockGuarantorGov() {
+    if (!confirm(t("Unlock this guarantor's government identity for editing?"))) return;
+    applyGov({ guarantor_is_gov_info_locked: false, guarantor_gov_info_review_requested: false, guarantor_gov_info_review_note: null });
+  }
+  function rejectGuarantorGov() {
+    if (!confirm(t("Reject this review request? The identity lock stays unchanged."))) return;
+    applyGov({ guarantor_gov_info_review_requested: false, guarantor_gov_info_review_note: null });
+  }
+
+  async function deleteAllDocs() {
+    if (!confirm(t("Delete ALL documents for this tenant? Files are permanently removed from storage."))) return;
+    setDeletingDocs(true); setDangerErr("");
+    const paths = docs.map((d) => d.storage_path).filter(Boolean) as string[];
+    if (paths.length) await sb.storage.from("documents").remove(paths);
+    const { error } = await sb.from("documents").delete().eq("tenant_id", tenant.id);
+    setDeletingDocs(false);
+    if (error) { setDangerErr(error.message); return; }
+    loadDocs();
+  }
+  async function clearAllInfo() {
+    if (!confirm(t("Clear ALL profile information for this tenant? This resets their profile to blank."))) return;
+    setClearingInfo(true); setDangerErr("");
+    const reset = {
+      full_name: null, date_of_birth: null, nationality: null,
+      current_address: null, employer_name: null, job_role: null,
+      employment_start_date: null, monthly_gross_salary: null,
+      occupant_count: 1, is_smoker: false, has_pets: false,
+      needs_guarantor: false, guarantor_is_employee: false, guarantor_is_self_employed: false,
+      is_employee: false, is_self_employed: false, is_unemployed: false, is_on_welfare: false,
+      has_household_liability_insurance: false, rental_deposit_type: null,
+      profile_complete: false, updated_at: new Date().toISOString(),
+    };
+    const { error } = await sb.from("tenants").update(reset).eq("id", tenant.id);
+    setClearingInfo(false);
+    if (error) { setDangerErr(error.message); return; }
+    onSaved({ ...live, full_name: null, profile_complete: false });
+  }
+
   function up<K extends keyof typeof form>(k: K, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
   }
@@ -314,7 +424,136 @@ function EditModal({
           <button className="btn btn-outline btn-sm" onClick={del} style={{ color: "var(--red)", borderColor: "var(--red)" }}>{t("Delete")}</button>
         </div>
       </div>
+
+      {/* Documents */}
+      <hr style={{ border: "none", borderTop: "1px solid var(--gray-200)", margin: "20px 0" }} />
+      <div className="flex-between" style={{ marginBottom: 12 }}>
+        <div style={{ fontWeight: 600, fontSize: ".9rem" }}>{t("Documents")}</div>
+        <a href={`/admin/documents?tenant=${encodeURIComponent(tenant.full_name || "")}`} className="btn btn-ghost btn-sm" style={{ fontSize: ".8rem" }}>
+          {t("Review all in Documents →")}
+        </a>
+      </div>
+      {docsLoading ? (
+        <div className="text-sm text-gray">{t("Loading…")}</div>
+      ) : docs.length === 0 ? (
+        <div className="text-sm text-gray">{t("No documents uploaded yet.")}</div>
+      ) : (
+        docs.map((d) => {
+          const conf = d.confidence_score != null ? Math.round(d.confidence_score * 100) : null;
+          const confColor = conf == null ? "var(--gray-400)" : conf >= 90 ? "var(--green)" : conf >= 65 ? "var(--amber)" : "var(--red)";
+          return (
+            <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--gray-100)" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="text-sm font-bold">{DOC_LABELS[d.doc_type] || d.doc_type}</div>
+                <div className="text-xs text-gray">{(d.file_name || d.doc_type) + " · " + new Date(d.created_at).toLocaleDateString("en-CH", { day: "2-digit", month: "short", year: "numeric" })}</div>
+              </div>
+              <span className={`badge ${DOC_STATUS_BADGE[d.status || ""] || "badge-gray"}`} style={{ fontSize: ".7rem", flexShrink: 0 }}>{(d.status || "—").replace("_", " ")}</span>
+              <span className="text-sm font-bold" style={{ color: confColor, flexShrink: 0, minWidth: 36, textAlign: "right" }}>{conf != null ? conf + "%" : "—"}</span>
+            </div>
+          );
+        })
+      )}
+
+      {/* Payment */}
+      <hr style={{ border: "none", borderTop: "1px solid var(--gray-200)", margin: "20px 0" }} />
+      <div style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 12 }}>{t("Payment")}</div>
+      <PaymentSection userId={tenant.user_id} />
+
+      {/* Government identity */}
+      <hr style={{ border: "none", borderTop: "1px solid var(--gray-200)", margin: "20px 0" }} />
+      <div style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 12 }}>{t("Government identity")}</div>
+      <GovBlock
+        label={t("Tenant")}
+        locked={!!live.is_gov_info_locked}
+        name={live.full_name}
+        dob={live.date_of_birth}
+        acceptedNames={live.accepted_names}
+        reviewRequested={!!live.gov_info_review_requested}
+        reviewNote={live.gov_info_review_note}
+        onUnlock={unlockGov}
+        onAddName={addAcceptedName}
+        onReject={rejectGov}
+      />
+      {live.needs_guarantor && live.guarantor_full_name && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--gray-200)" }}>
+          <GovBlock
+            label={t("Guarantor")}
+            locked={!!live.guarantor_is_gov_info_locked}
+            name={live.guarantor_full_name}
+            dob={live.guarantor_date_of_birth}
+            reviewRequested={!!live.guarantor_gov_info_review_requested}
+            reviewNote={live.guarantor_gov_info_review_note}
+            onUnlock={unlockGuarantorGov}
+            onReject={rejectGuarantorGov}
+          />
+        </div>
+      )}
+
+      {/* Danger zone */}
+      <hr style={{ border: "none", borderTop: "1px solid var(--gray-200)", margin: "20px 0" }} />
+      <div style={{ fontWeight: 600, fontSize: ".9rem", color: "var(--red)", marginBottom: 12 }}>{t("Danger zone")}</div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="btn btn-outline btn-sm" onClick={deleteAllDocs} disabled={deletingDocs} style={{ color: "var(--amber)", borderColor: "var(--amber)" }}>
+          {deletingDocs ? t("Deleting…") : t("Delete all documents")}
+        </button>
+        <button className="btn btn-outline btn-sm" onClick={clearAllInfo} disabled={clearingInfo} style={{ color: "var(--amber)", borderColor: "var(--amber)" }}>
+          {clearingInfo ? t("Clearing…") : t("Clear all information")}
+        </button>
+      </div>
+      {dangerErr && <div style={{ color: "var(--red)", fontSize: ".8rem", marginTop: 8 }}>{dangerErr}</div>}
     </Modal>
+  );
+}
+
+function GovBlock({
+  label, locked, name, dob, acceptedNames, reviewRequested, reviewNote, onUnlock, onAddName, onReject,
+}: {
+  label: string;
+  locked: boolean;
+  name: string | null | undefined;
+  dob: string | null | undefined;
+  acceptedNames?: string[] | null;
+  reviewRequested: boolean;
+  reviewNote: string | null | undefined;
+  onUnlock: () => void;
+  onAddName?: () => void;
+  onReject: () => void;
+}) {
+  const t = useT();
+  return (
+    <div>
+      <div className="text-xs text-gray" style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>{label}</div>
+      {locked ? (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: ".875rem", flexWrap: "wrap" }}>
+            <span className="badge badge-green">🔒 {t("Identity locked")}</span>
+            <span>{t("Name")}: <strong>{name || "—"}</strong> · {t("Date of birth")}: <strong>{dob || "—"}</strong></span>
+          </div>
+          {acceptedNames && acceptedNames.length > 0 && (
+            <div className="text-xs text-gray" style={{ marginBottom: 6 }}>
+              {t("Accepted alternate names:")} {acceptedNames.map((n) => <strong key={n}>{n} </strong>)}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+            <button className="btn btn-outline btn-sm" onClick={onUnlock} style={{ fontSize: ".8rem" }}>{t("Unlock for editing")}</button>
+            {onAddName && <button className="btn btn-outline btn-sm" onClick={onAddName} style={{ fontSize: ".8rem" }}>{t("Add accepted name")}</button>}
+          </div>
+          {reviewRequested && (
+            <div style={{ marginTop: 10, padding: "10px 12px", background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: "var(--radius)", fontSize: ".875rem" }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>⚠️ {t("Review request pending")}</div>
+              <div>{reviewNote || "—"}</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                <button className="btn btn-sm" onClick={onUnlock} style={{ background: "#16A34A", color: "#fff", border: "none", cursor: "pointer", padding: "6px 14px", borderRadius: 6, fontSize: ".8rem" }}>{t("Approve & unlock")}</button>
+                {onAddName && <button className="btn btn-sm btn-outline" onClick={onAddName} style={{ fontSize: ".8rem" }}>{t("Add accepted name")}</button>}
+                <button className="btn btn-sm btn-outline" onClick={onReject} style={{ fontSize: ".8rem", color: "var(--red)", borderColor: "var(--red)" }}>{t("Reject request")}</button>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <span className="badge badge-gray">{t("Not locked")}</span>
+      )}
+    </div>
   );
 }
 
